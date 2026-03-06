@@ -1,0 +1,324 @@
+Parsing libraries...
+Parsing code...
+ignoring nonexistent directory "/usr/include/x86_64-linux-gnu/c++/15.2.1"
+ignoring nonexistent directory "/usr/include/c++/15.2.1/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/include/x86_64-pc-linux-gnu/c++/15.2.1"
+ignoring nonexistent directory "/usr/include/c++/15.2"
+ignoring nonexistent directory "/usr/include/c++/15.2/backward"
+ignoring nonexistent directory "/usr/include/x86_64-linux-gnu/c++/15.2"
+ignoring nonexistent directory "/usr/include/c++/15.2/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/include/x86_64-pc-linux-gnu/c++/15.2"
+ignoring nonexistent directory "/usr/include/c++/15.2/x86_64-pc-linux-gnu"
+ignoring nonexistent directory "/usr/include/c++/15"
+ignoring nonexistent directory "/usr/include/c++/15/backward"
+ignoring nonexistent directory "/usr/include/x86_64-linux-gnu/c++/15"
+ignoring nonexistent directory "/usr/include/c++/15/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/include/x86_64-pc-linux-gnu/c++/15"
+ignoring nonexistent directory "/usr/include/c++/15/x86_64-pc-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2.1/include"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2.1/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2.1/include/c++/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2/include"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2/include/c++/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15/include"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15/include/c++/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/include/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/c++/x86_64-pc-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15.2/include"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15.2/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15.2/include/c++/x86_64-pc-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15/include"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15/include/c++/x86_64-pc-linux-gnu"
+ignoring nonexistent directory "/usr/include/x86_64-pc-linux-gnu"
+#include "..." search starts here:
+#include <...> search starts here:
+ /home/shanoaice/projects/Pacpar/src/Pacpar.Alpm.BindingsGen/bin/Debug/net10.0/lib/clang/19/include
+ /usr/include/c++/15.2.1
+ /usr/include/c++/15.2.1/backward
+ /usr/include/c++/15.2.1/x86_64-pc-linux-gnu
+ /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include
+ /usr/include
+ /usr/include/linux
+End of search list.
+
+STATISTICS:
+
+*** Semantic Analysis Stats:
+0 SFINAE diagnostics trapped.
+
+Number of memory regions: 1
+Bytes used: 256
+Bytes allocated: 4096
+Bytes wasted: 3840 (includes alignment, etc)
+
+*** Analysis Based Warnings Stats:
+0 functions analyzed (0 w/o CFGs).
+  0 CFG blocks built.
+  0 average CFG blocks per function.
+  0 max CFG blocks per function.
+0 functions analyzed for uninitialiazed variables
+  0 variables analyzed.
+  0 average variables per function.
+  0 max variables per function.
+  0 block visits.
+  0 average block visits per function.
+  0 max block visits per function.
+
+*** AST Context Stats:
+  2147 types total.
+    10 Decayed types, 48 each (480 bytes)
+    43 ConstantArray types, 48 each (2064 bytes)
+    5 IncompleteArray types, 48 each (240 bytes)
+    63 Builtin types, 32 each (2016 bytes)
+    2 Complex types, 48 each (96 bytes)
+    1 Decltype types, 48 each (48 bytes)
+    300 Elaborated types, 48 each (14400 bytes)
+    1178 FunctionProto types, 48 each (56544 bytes)
+    16 Paren types, 48 each (768 bytes)
+    225 Pointer types, 48 each (10800 bytes)
+    22 Enum types, 32 each (704 bytes)
+    98 Record types, 32 each (3136 bytes)
+    182 Typedef types, 48 each (8736 bytes)
+    2 Using types, 48 each (96 bytes)
+Total bytes = 100128
+0/83 implicit default constructors created
+0/83 implicit copy constructors created
+0/83 implicit move constructors created
+0/83 implicit copy assignment operators created
+0/83 implicit move assignment operators created
+0/83 implicit destructors created
+
+Number of memory regions: 186
+Bytes used: 974915
+Bytes allocated: 999424
+Bytes wasted: 24509 (includes alignment, etc)
+
+*** Decl Stats:
+  5088 decls total.
+    27 LinkageSpec decls, 80 each (2160 bytes)
+    1 ExternCContext decls, 72 each (72 bytes)
+    11 Namespace decls, 112 each (1232 bytes)
+    489 EnumConstant decls, 88 each (43032 bytes)
+    1180 Function decls, 168 each (198240 bytes)
+    16 Var decls, 104 each (1664 bytes)
+    2284 ParmVar decls, 104 each (237536 bytes)
+    382 Field decls, 80 each (30560 bytes)
+    93 UsingShadow decls, 80 each (7440 bytes)
+    163 CXXRecord decls, 144 each (23472 bytes)
+    22 Enum decls, 160 each (3520 bytes)
+    336 Typedef decls, 88 each (29568 bytes)
+    84 Using decls, 88 each (7392 bytes)
+Total bytes = 585888
+
+*** Stmt/Expr Stats:
+  1691 stmts/exprs total.
+    1 UnaryOperator, 24 each (24 bytes)
+    7 UnaryExprOrTypeTraitExpr, 32 each (224 bytes)
+    48 StringLiteral, 16 each (768 bytes)
+    49 ParenExpr, 32 each (1568 bytes)
+    568 IntegerLiteral, 32 each (18176 bytes)
+    485 ConstantExpr, 24 each (11640 bytes)
+    14 DeclRefExpr, 32 each (448 bytes)
+    83 ImplicitCastExpr, 24 each (1992 bytes)
+    1 CStyleCastExpr, 40 each (40 bytes)
+    5 CallExpr, 24 each (120 bytes)
+    1 CXXNullPtrLiteralExpr, 16 each (16 bytes)
+    359 CXXBoolLiteralExpr, 16 each (5744 bytes)
+    57 BinaryOperator, 32 each (1824 bytes)
+    1 ConditionalOperator, 48 each (48 bytes)
+    6 ReturnStmt, 16 each (96 bytes)
+    6 CompoundStmt, 16 each (96 bytes)
+Total bytes = 42824
+ignoring nonexistent directory "/usr/include/x86_64-linux-gnu/c++/15.2.1"
+ignoring nonexistent directory "/usr/include/c++/15.2.1/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/include/x86_64-pc-linux-gnu/c++/15.2.1"
+ignoring nonexistent directory "/usr/include/c++/15.2"
+ignoring nonexistent directory "/usr/include/c++/15.2/backward"
+ignoring nonexistent directory "/usr/include/x86_64-linux-gnu/c++/15.2"
+ignoring nonexistent directory "/usr/include/c++/15.2/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/include/x86_64-pc-linux-gnu/c++/15.2"
+ignoring nonexistent directory "/usr/include/c++/15.2/x86_64-pc-linux-gnu"
+ignoring nonexistent directory "/usr/include/c++/15"
+ignoring nonexistent directory "/usr/include/c++/15/backward"
+ignoring nonexistent directory "/usr/include/x86_64-linux-gnu/c++/15"
+ignoring nonexistent directory "/usr/include/c++/15/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/include/x86_64-pc-linux-gnu/c++/15"
+ignoring nonexistent directory "/usr/include/c++/15/x86_64-pc-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2.1/include"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2.1/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2.1/include/c++/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2/include"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15.2/include/c++/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15/include"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/15/include/c++/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/include/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include/c++/x86_64-pc-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15.2/include"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15.2/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15.2/include/c++/x86_64-pc-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15/include"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15/include/c++"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-pc-linux-gnu/15/include/c++/x86_64-pc-linux-gnu"
+ignoring nonexistent directory "/usr/include/x86_64-pc-linux-gnu"
+#include "..." search starts here:
+#include <...> search starts here:
+ /home/shanoaice/projects/Pacpar/src/Pacpar.Alpm.BindingsGen/bin/Debug/net10.0/lib/clang/19/include
+ /usr/include/c++/15.2.1
+ /usr/include/c++/15.2.1/backward
+ /usr/include/c++/15.2.1/x86_64-pc-linux-gnu
+ /usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include
+ /usr/include
+ /usr/include/linux
+End of search list.
+
+STATISTICS:
+
+*** Semantic Analysis Stats:
+0 SFINAE diagnostics trapped.
+
+Number of memory regions: 1
+Bytes used: 96
+Bytes allocated: 4096
+Bytes wasted: 4000 (includes alignment, etc)
+
+*** Analysis Based Warnings Stats:
+0 functions analyzed (0 w/o CFGs).
+  0 CFG blocks built.
+  0 average CFG blocks per function.
+  0 max CFG blocks per function.
+0 functions analyzed for uninitialiazed variables
+  0 variables analyzed.
+  0 average variables per function.
+  0 max variables per function.
+  0 block visits.
+  0 average block visits per function.
+  0 max block visits per function.
+
+*** AST Context Stats:
+  699 types total.
+    3 Decayed types, 48 each (144 bytes)
+    29 ConstantArray types, 48 each (1392 bytes)
+    1 IncompleteArray types, 48 each (48 bytes)
+    63 Builtin types, 32 each (2016 bytes)
+    2 Complex types, 48 each (96 bytes)
+    1 Decltype types, 48 each (48 bytes)
+    102 Elaborated types, 48 each (4896 bytes)
+    328 FunctionProto types, 48 each (15744 bytes)
+    5 Paren types, 48 each (240 bytes)
+    64 Pointer types, 48 each (3072 bytes)
+    32 Record types, 32 each (1024 bytes)
+    67 Typedef types, 48 each (3216 bytes)
+    2 Using types, 48 each (96 bytes)
+Total bytes = 32032
+0/29 implicit default constructors created
+0/29 implicit copy constructors created
+0/29 implicit move constructors created
+0/29 implicit copy assignment operators created
+0/29 implicit move assignment operators created
+0/29 implicit destructors created
+
+Number of memory regions: 62
+Bytes used: 244913
+Bytes allocated: 253952
+Bytes wasted: 9039 (includes alignment, etc)
+
+*** Decl Stats:
+  6279 decls total.
+    1 TranslationUnit decls, 104 each (104 bytes)
+    42 LinkageSpec decls, 80 each (3360 bytes)
+    2 ExternCContext decls, 72 each (144 bytes)
+    22 Namespace decls, 112 each (2464 bytes)
+    489 EnumConstant decls, 88 each (43032 bytes)
+    1392 Function decls, 168 each (233856 bytes)
+    16 Var decls, 104 each (1664 bytes)
+    2756 ParmVar decls, 104 each (286624 bytes)
+    479 Field decls, 80 each (38320 bytes)
+    186 UsingShadow decls, 80 each (14880 bytes)
+    207 CXXRecord decls, 144 each (29808 bytes)
+    22 Enum decls, 160 each (3520 bytes)
+    497 Typedef decls, 88 each (43736 bytes)
+    168 Using decls, 88 each (14784 bytes)
+Total bytes = 716296
+
+*** Stmt/Expr Stats:
+  2288 stmts/exprs total.
+    2 UnaryOperator, 24 each (48 bytes)
+    9 UnaryExprOrTypeTraitExpr, 32 each (288 bytes)
+    74 StringLiteral, 16 each (1184 bytes)
+    52 ParenExpr, 32 each (1664 bytes)
+    766 IntegerLiteral, 32 each (24512 bytes)
+    656 ConstantExpr, 24 each (15744 bytes)
+    26 DeclRefExpr, 32 each (832 bytes)
+    99 ImplicitCastExpr, 24 each (2376 bytes)
+    2 CStyleCastExpr, 40 each (80 bytes)
+    10 CallExpr, 24 each (240 bytes)
+    2 CXXNullPtrLiteralExpr, 16 each (32 bytes)
+    502 CXXBoolLiteralExpr, 16 each (8032 bytes)
+    62 BinaryOperator, 32 each (1984 bytes)
+    2 ConditionalOperator, 48 each (96 bytes)
+    12 ReturnStmt, 16 each (192 bytes)
+    12 CompoundStmt, 16 each (192 bytes)
+Total bytes = 57496
+Parsed 'alpm.h, alpm_list.h'
+Removing module libalpm because no translation units are generated...
+Processing code...
+Pass 'CppSharp.Passes.ResolveIncompleteDeclsPass'
+Pass 'CppSharp.Passes.IgnoreSystemDeclarationsPass'
+Pass 'CppSharp.Passes.MatchParamNamesWithInstantiatedFromPass'
+Pass 'CppSharp.Passes.EqualiseAccessOfOverrideAndBasePass'
+Pass 'CppSharp.Passes.FlattenAnonymousTypesToFields'
+Pass 'CppSharp.Passes.CheckIgnoredDeclsPass'
+Pass 'CppSharp.Passes.MarkUsedClassInternalsPass'
+Pass 'CppSharp.Passes.TrimSpecializationsPass'
+Pass 'CppSharp.Passes.CheckAmbiguousFunctions'
+Pass 'CppSharp.Passes.GenerateSymbolsPass'
+Pass 'CppSharp.Passes.CheckIgnoredDeclsPass'
+Pass 'CppSharp.Passes.MoveFunctionToClassPass'
+Pass 'CppSharp.Passes.ValidateOperatorsPass'
+Pass 'CppSharp.Passes.FindSymbolsPass'
+Pass 'CppSharp.Passes.CheckMacroPass'
+Pass 'CppSharp.Passes.CheckStaticClassPass'
+Pass 'CppSharp.Passes.CheckAmbiguousFunctions'
+Pass 'CppSharp.Passes.ConstructorToConversionOperatorPass'
+Pass 'CppSharp.Passes.MarshalPrimitivePointersAsRefTypePass'
+Pass 'CppSharp.Passes.CheckOperatorsOverloadsPass'
+Pass 'CppSharp.Passes.CheckVirtualOverrideReturnCovariance'
+Pass 'CppSharp.Passes.CleanCommentsPass'
+Pass 'CppSharp.Passes.CheckAbiParameters'
+Pass 'CppSharp.Passes.CleanInvalidDeclNamesPass'
+Pass 'CppSharp.FastDelegateToDelegatesPass'
+Pass 'CppSharp.Passes.FieldToPropertyPass'
+Pass 'CppSharp.Passes.CheckIgnoredDeclsPass'
+Pass 'CppSharp.Passes.CheckEnumsPass'
+Pass 'CppSharp.Passes.MakeProtectedNestedTypesPublicPass'
+Pass 'CppSharp.Passes.GenerateAbstractImplementationsPass'
+Pass 'CppSharp.Passes.MultipleInheritancePass'
+Pass 'CppSharp.Passes.DelegatesPass'
+Pass 'CppSharp.Passes.GetterSetterToPropertyPass'
+Pass 'CppSharp.Passes.StripUnusedSystemTypesPass'
+Pass 'CppSharp.Passes.SpecializationMethodsWithDependentPointersPass'
+Pass 'CppSharp.Passes.ParamTypeToInterfacePass'
+Pass 'CppSharp.Passes.CheckDuplicatedNamesPass'
+Pass 'CppSharp.Passes.CaseRenamePass'
+Pass 'CppSharp.Passes.CheckKeywordNamesPass'
+Pass 'CppSharp.Passes.HandleVariableInitializerPass'
+Pass 'CppSharp.MarkEventsWithUniqueIdPass'
+Generating code...
+Generated 'Std.cs'
+Compiler argument: -xc++
+Compiler argument: -std=gnu++14
+Compiler argument: -fno-rtti
+Compiler argument: -fgnuc-version=10.1
+Target triple: x86_64-unknown-linux-gnu
+Compiler argument: -xc++
+Compiler argument: -std=gnu++14
+Compiler argument: -fno-rtti
+Compiler argument: -fgnuc-version=10.1
+Target triple: x86_64-unknown-linux-gnu
