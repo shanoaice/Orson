@@ -25,7 +25,7 @@ public sealed unsafe partial class Database
       var ret = NativeMethods.alpm_db_search(dbPtr, needleList, &retList);
       if (ret < 0)
       {
-        if (retList != null) NativeMethods.alpm_list_free(retList);
+        AlpmNativeList.Free(retList);
         var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
         GC.KeepAlive(this);
         results = null;

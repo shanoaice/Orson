@@ -20,7 +20,7 @@ public sealed class GcAnchorAuditTests
   // Recorded baseline: raising this is fine, lowering it is not. An exact count is the tripwire: any
   // new read of unmanaged memory - or any site that quietly stops claiming a mechanism - shows up
   // here instead of as a crash in a finalizer thread. Re-record it when the library really changed.
-  private const int ExpectedHazardSiteCount = 249;
+  private const int ExpectedHazardSiteCount = 246; // Three direct alpm_list_free sites moved into AlpmNativeList.Free.
 
   private static AnchorAuditResult Audit()
   {

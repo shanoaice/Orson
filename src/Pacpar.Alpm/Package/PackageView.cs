@@ -74,7 +74,7 @@ public sealed unsafe partial class PackageView : PackageBase
     }
     finally
     {
-      if (nativeList != null) NativeMethods.alpm_list_free(nativeList);
+      AlpmNativeList.Free(nativeList);
     }
   }
 
@@ -124,7 +124,7 @@ public sealed unsafe partial class PackageView : PackageBase
     }
     finally
     {
-      if (dbsList != null) NativeMethods.alpm_list_free(dbsList);
+      AlpmNativeList.Free(dbsList);
     }
   }
 }
