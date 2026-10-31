@@ -63,6 +63,11 @@ public sealed unsafe class ListOwnershipTests
   }
 
   [Fact]
+  public void BuildStringList_NullElement_ThrowsAndFreesEarlierBuffers()
+    => Assert.Throws<ArgumentException>(() =>
+      AlpmNativeList.BuildStringList(["alpha", null!], out _));
+
+  [Fact]
   public void Borrow_ElementAt_ThrowsOnOutOfRange()
     => Assert.Throws<ArgumentOutOfRangeException>(() =>
     {

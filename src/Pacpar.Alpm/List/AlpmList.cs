@@ -265,6 +265,11 @@ internal static class AlpmNativeList
     {
       foreach (var str in strings)
       {
+        if (str is null)
+        {
+          throw new ArgumentException("The collection contains a null string.", nameof(strings));
+        }
+
         var ptr = (nint)NativeString.ToNative(str);
         allocatedBuffers.Add(ptr);
         list = NativeMethods.alpm_list_add(list, (void*)ptr);
