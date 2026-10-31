@@ -6,11 +6,12 @@ namespace Pacpar.Alpm.Tests.Unit.Options;
 /// Coverage ledger §4: the sandbox options.
 /// </summary>
 /// <remarks>
-/// The aggregate C accessors (<c>alpm_option_get/set_disable_sandbox</c>) are declared in alpm.h and
-/// documented in <c>libalpm_options.3</c> but are <b>not exported</b> by the installed
-/// <c>libalpm.so.16</c> — calling them throws <see cref="EntryPointNotFoundException"/>. The wrapper
-/// must therefore derive <see cref="AlpmOptions.Sandbox"/> from the three component flags, which
-/// reproduces libalpm's own definition (0 = all enabled, 1 = any disabled, 2 = all disabled).
+/// Only the three component flags are wrapped. The aggregate C accessors
+/// (<c>alpm_option_get/set_disable_sandbox</c>) are declared in alpm.h but are <b>not exported</b> by
+/// the installed <c>libalpm.so.16</c>. The aggregate is also not a faithful sum of the three flags:
+/// libalpm computes it from the filesystem and syscalls flags only and ignores the network flag, so
+/// exposing it as a state enum would report a sandbox as fully disabled while networking is still
+/// enabled. Callers that need the state should read the three flags.
 /// </remarks>
 public sealed class SandboxOptionTests
 {
@@ -23,7 +24,6 @@ public sealed class SandboxOptionTests
     Assert.False(options.DisableSandboxFilesystem);
     Assert.False(options.DisableSandboxNetwork);
     Assert.False(options.DisableSandboxSyscalls);
-    Assert.Equal(SandboxState.Enabled, options.Sandbox);
   }
 
   [Fact]
@@ -42,30 +42,6 @@ public sealed class SandboxOptionTests
     options.DisableSandboxFilesystem = false;
     Assert.False(options.DisableSandboxFilesystem);
     Assert.True(options.DisableSandboxNetwork);
-  }
-
-  [Fact]
-  public void Sandbox_ReportsPartiallyDisabled_WhenOnlySomeComponentsAreDisabled()
-  {
-    using var environment = new IsolatedAlpmEnvironment();
-    var options = environment.AlpmSession.Options;
-
-    options.DisableSandboxSyscalls = true;
-
-    Assert.Equal(SandboxState.PartiallyDisabled, options.Sandbox);
-  }
-
-  [Fact]
-  public void Sandbox_ReportsDisabled_WhenEveryComponentIsDisabled()
-  {
-    using var environment = new IsolatedAlpmEnvironment();
-    var options = environment.AlpmSession.Options;
-
-    options.DisableSandboxFilesystem = true;
-    options.DisableSandboxNetwork = true;
-    options.DisableSandboxSyscalls = true;
-
-    Assert.Equal(SandboxState.Disabled, options.Sandbox);
   }
 
   [Fact]

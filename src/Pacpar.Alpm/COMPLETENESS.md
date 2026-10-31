@@ -109,7 +109,7 @@ rediscover, so it is recorded next to the API it constrains.
 | `alpm_sync_get_new_version` | `PackageView.GetNewVersion` | done | Searches only the databases passed in, so the owner is always resolvable among them. |
 | `alpm_filelist_contains` | `FileList.Contains`, `FileList.FindFile` | done | Native binary search over a sorted list; returns a `PackageFile` snapshot. |
 | `alpm_option_get/set_disable_dl_timeout` | `AlpmOptions.DisableDownloadTimeout` | done | Native type is `unsigned short`. |
-| `alpm_option_get/set_disable_sandbox_filesystem`, `_network`, `_syscalls` | `AlpmOptions.DisableSandboxFilesystem`, `DisableSandboxNetwork`, `DisableSandboxSyscalls` | done | The native aggregate `alpm_option_get_disable_sandbox` counts only filesystem and syscalls and ignores network; the wrapper's `Sandbox` composite counts all three, so the two can disagree. |
+| `alpm_option_get/set_disable_sandbox_filesystem`, `_network`, `_syscalls` | `AlpmOptions.DisableSandboxFilesystem`, `DisableSandboxNetwork`, `DisableSandboxSyscalls` | done | Only the three component flags are wrapped. libalpm's aggregate `alpm_option_get_disable_sandbox` counts filesystem and syscalls and ignores network; an aggregate built from all three would report a fully disabled sandbox while networking is enabled, so no aggregate is exported. |
 | `alpm_option_get/set_sandboxuser` | `AlpmOptions.SandboxUser` | done | Return 1 means `getpwnam` found no such user, not a malformed string. |
 | `alpm_pkg_mtree_open`, `alpm_pkg_mtree_next`, `alpm_pkg_mtree_close` | `PackageBase.GetMtree`, `TryGetMtree`, `PackageMtreeReader` | done | Reads `<dbpath>/local/<pkg>/mtree`; returns `null` when absent or non-local. `PackageMtreeReader` owns archive handle cleanup. |
 

@@ -40,7 +40,6 @@ them all being enums, which is a property of the C# type system and not of the d
 | `DepMod` | `Dependencies.cs` | Ships with `Depend` |
 | `PackageOrigin`, `PackageReason`, `PackageValidation` | `Package/PackageEnums.cs` | Package-only |
 | `HookWhen`, `PackageOperation` | `Events/AlpmEvent.cs` | Event payloads only |
-| `SandboxState` | `Options.cs` | One consumer, `AlpmOptions.Sandbox` |
 | `Capability` | `AlpmSession.cs` | One consumer, `AlpmSession.Capabilities` |
 | `DatabaseUsage` | `Database.cs` | One consumer, `Database.Usage` |
 | `SigLevel` | `SigLevel.cs` | Shared by session options, database registration and package loading |
@@ -87,8 +86,8 @@ have one are the ones where libalpm defines it — `PackageReason.Explicit = 0`,
 = 0`, `FetchResult.Success = 0`. The ones that start at 1 describe native sets that start at 1, and
 their `default(T)` is an undefined value on purpose.
 
-Two enums are not bound and do follow the FDG: `SandboxState` and `AlpmFailureCode` are ours, and
-both carry a zero member.
+One enum is not bound and does follow the FDG: `AlpmFailureCode` is ours, and it carries a zero
+member.
 
 ### One deliberate deviation, kept
 

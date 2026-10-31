@@ -5,26 +5,6 @@ using Pacpar.Alpm.Options;
 namespace Pacpar.Alpm;
 
 /// <summary>
-/// Represents the aggregate state of the libalpm sandbox.
-/// </summary>
-/// <remarks>
-/// Not a projection of any libalpm enum: it is this library's summary of the three
-/// <c>alpm_option_get_disable_sandbox_*</c> flags, which is why it carries a zero member of its
-/// own. ADR 0014.
-/// </remarks>
-public enum SandboxState
-{
-  /// <summary>All sandbox components are enabled.</summary>
-  Enabled = 0,
-
-  /// <summary>Some sandbox components are disabled.</summary>
-  PartiallyDisabled = 1,
-
-  /// <summary>All sandbox components are disabled.</summary>
-  Disabled = 2,
-}
-
-/// <summary>
 /// Options for the ALPM library.
 /// Options of array type are queried and modified through properties exposed as <see cref="ICollection{T}"/>s.
 /// Options of scalar type are queried and modified through properties whose accessors call the
@@ -256,31 +236,6 @@ public sealed unsafe class AlpmOptions
   {
     get => Read(&NativeMethods.alpm_option_get_disable_sandbox_syscalls) != 0;
     set => WriteUShort(&NativeMethods.alpm_option_set_disable_sandbox_syscalls, (ushort)(value ? 1 : 0));
-  }
-
-  /// <summary>
-  /// Gets the aggregate state of the sandbox.
-  /// </summary>
-  public SandboxState Sandbox
-  {
-    get
-    {
-      var fs = DisableSandboxFilesystem;
-      var net = DisableSandboxNetwork;
-      var sys = DisableSandboxSyscalls;
-
-      if (!fs && !net && !sys)
-      {
-        return SandboxState.Enabled;
-      }
-
-      if (fs && net && sys)
-      {
-        return SandboxState.Disabled;
-      }
-
-      return SandboxState.PartiallyDisabled;
-    }
   }
 
   /// <summary>

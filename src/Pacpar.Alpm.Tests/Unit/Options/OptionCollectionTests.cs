@@ -203,7 +203,6 @@ public sealed class OptionCollectionTests : IDisposable
     Assert.Throws<AlpmLifetimeException>(() => options.GpgDirectory);
     Assert.Throws<AlpmLifetimeException>(() => options.DisableDownloadTimeout);
     Assert.Throws<AlpmLifetimeException>(() => options.DisableSandboxFilesystem);
-    Assert.Throws<AlpmLifetimeException>(() => options.Sandbox);
     Assert.Throws<AlpmLifetimeException>(() => options.SandboxUser);
   }
 }
