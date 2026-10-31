@@ -397,7 +397,15 @@ public partial class AlpmSession : IDisposable
   /// </summary>
   /// <param name="databases">The databases to update.</param>
   /// <param name="force">If <c>true</c>, forces the download even if local copies are current.</param>
-  /// <returns><c>true</c> if any database was updated; <c>false</c> if all were already up to date.</returns>
+  /// <returns>
+  /// <c>true</c> if at least one file was downloaded, including a forced download of content that did
+  /// not change; <c>false</c> if every file was already current.
+  /// </returns>
+  /// <remarks>
+  /// Every database in <paramref name="databases"/> is invalidated before the download starts, so its
+  /// existing views are invalid even when the call fails. A forced update downloads the files again;
+  /// it does not promise that their contents changed.
+  /// </remarks>
   public bool UpdateDatabases(IEnumerable<Database> databases, bool force = false)
   {
     ThrowIfDisposed();

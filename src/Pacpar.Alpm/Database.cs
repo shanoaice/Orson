@@ -401,7 +401,15 @@ public sealed unsafe partial class Database
   /// Updates this database from its configured download servers.
   /// </summary>
   /// <param name="force">If <c>true</c>, forces the download even if the local copy is current.</param>
-  /// <returns><c>true</c> if the database was updated; <c>false</c> if it was already up to date.</returns>
+  /// <returns>
+  /// <c>true</c> if at least one file was downloaded, including a forced download of content that did
+  /// not change; <c>false</c> if every file was already current.
+  /// </returns>
+  /// <remarks>
+  /// Existing views of this database are invalidated before the download starts, so they are invalid
+  /// even when the call fails. A forced update only downloads the files again; it does not promise that
+  /// their contents changed.
+  /// </remarks>
   public bool Update(bool force = false)
   {
     if (!TryUpdate(force, out var updated, out var failure))
