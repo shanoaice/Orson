@@ -683,7 +683,10 @@ internal sealed unsafe class PackageChangelogStream : Stream
     ArgumentNullException.ThrowIfNull(buffer);
     ArgumentOutOfRangeException.ThrowIfNegative(offset);
     ArgumentOutOfRangeException.ThrowIfNegative(count);
-    if (offset + count > buffer.Length) throw new ArgumentException("Offset and count exceed buffer length.");
+    if (offset > buffer.Length || count > buffer.Length - offset)
+    {
+      throw new ArgumentException("Offset and count exceed buffer length.");
+    }
     if (count == 0) return 0;
 
     return Read(buffer.AsSpan(offset, count));

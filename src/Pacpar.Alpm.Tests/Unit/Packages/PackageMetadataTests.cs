@@ -76,4 +76,18 @@ public sealed class PackageMetadataTests : IDisposable
     Assert.Null(installed.OpenChangelogStream());
     Assert.Null(installed.ReadChangelog());
   }
+
+  [Fact]
+  public void OpenChangelogStream_ReadRejectsOutOfRangeBoundsWithoutOverflow()
+  {
+    var archive = PackageArchive.Create(_environment.PackageDirectory, "pacpar-changelog-bounds", changelog: "body");
+    using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
+    using var stream = loaded.OpenChangelogStream();
+    Assert.NotNull(stream);
+
+    // The second case used to overflow offset + count into a negative value and fall through to
+    // Span's own range check; both must fail the standard bounds check with the same exception type.
+    Assert.IsType<ArgumentException>(Record.Exception(() => stream.Read(new byte[4], 3, 5)));
+    Assert.IsType<ArgumentException>(Record.Exception(() => stream.Read(new byte[4], int.MaxValue, 1)));
+  }
 }
