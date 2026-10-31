@@ -157,6 +157,11 @@ public partial class AlpmSession
     ArgumentNullException.ThrowIfNull(databases);
 
     var dbList = databases.ToList();
+    if (dbList.Count == 0)
+    {
+      throw new ArgumentException("At least one database must be supplied.", nameof(databases));
+    }
+
     foreach (var db in dbList)
     {
       db.InvalidateViews("Database.Update");

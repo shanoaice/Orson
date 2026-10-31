@@ -401,6 +401,9 @@ public partial class AlpmSession : IDisposable
   /// <c>true</c> if at least one file was downloaded, including a forced download of content that did
   /// not change; <c>false</c> if every file was already current.
   /// </returns>
+  /// <exception cref="ArgumentException">
+  /// <paramref name="databases"/> is empty.
+  /// </exception>
   /// <remarks>
   /// Every database in <paramref name="databases"/> is invalidated before the download starts, so its
   /// existing views are invalid even when the call fails. A forced update downloads the files again;
