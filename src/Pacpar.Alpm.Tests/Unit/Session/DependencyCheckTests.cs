@@ -57,8 +57,5 @@ public sealed class DependencyCheckTests
     environment.AlpmSession.CheckConflicts(packages);
 
     Assert.Empty(packages);
-#pragma warning disable xUnit2013
-    Assert.Equal(0, packages.Count());
-#pragma warning restore xUnit2013
   }
 }
