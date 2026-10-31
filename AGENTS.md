@@ -24,6 +24,7 @@ When Rider MCP is absent, use standard `dotnet` CLI tools and SharpLens instead.
 - `.dsh-refs/` — repositories cloned or downloaded for reference.
 - `reports/` — the only folder for markdown work reports, unless explicitly asked otherwise.
 - Use BenchmarkDotNet for all benchmarks. Stopwatch timing is not acceptable.
+- All these intermediate outputs should not be referenced in commited codes or documents, since they are not visible to VCS.
 
 ## Documentation Lifecycle
 
