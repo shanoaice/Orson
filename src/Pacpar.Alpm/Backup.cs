@@ -15,6 +15,7 @@ public sealed class Backup
   internal unsafe Backup(_alpm_backup_t* backingStruct)
   {
     Name = NativeString.FromNative((nint)backingStruct->name);
+    Hash = backingStruct->hash != null ? NativeString.FromNative((nint)backingStruct->hash) : null;
   }
 
   // The token parameter matches the element-factory delegate signature; a Backup is an eager
@@ -34,4 +35,14 @@ public sealed class Backup
   /// The relative file path of the backup configuration file.
   /// </summary>
   public string? Name { get; }
+
+  /// <summary>
+  /// The MD5 hash recorded for the file when the package was installed, or <c>null</c> if no hash is
+  /// recorded (for example for a package loaded from a file rather than from the local database).
+  /// </summary>
+  /// <remarks>
+  /// pacman compares this hash with the file on disk to decide whether the file is modified. libalpm
+  /// may leave both the hash pointer and the string itself <c>null</c>; both cases map to <c>null</c>.
+  /// </remarks>
+  public string? Hash { get; }
 }

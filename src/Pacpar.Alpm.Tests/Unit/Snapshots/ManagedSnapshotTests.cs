@@ -110,7 +110,7 @@ public sealed unsafe class ManagedSnapshotTests
   }
 
   [Fact]
-  public void Backup_CopiesItsName()
+  public void Backup_CopiesItsNameAndHash()
   {
     var name = NativeString.ToNative("etc/pacman.conf");
     var hash = NativeString.ToNative("deadbeef");
@@ -126,9 +126,12 @@ public sealed unsafe class ManagedSnapshotTests
       var backup = Backup.Factory(native, null);
 
       Scramble(name, "etc/pacman.conf");
+      Scramble(hash, "deadbeef");
       native->name = null;
+      native->hash = null;
 
       Assert.Equal("etc/pacman.conf", backup.Name);
+      Assert.Equal("deadbeef", backup.Hash);
     }
     finally
     {
