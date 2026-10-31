@@ -223,4 +223,11 @@ forgetting `Dispose`.
    which suggests it touches the handle. A session that is itself dropped to the GC has no ordering
    guarantee at all, which is why the contract stays "dispose the session".
 
+The same ordering argument covers `PackageChangelogStream`, which owns the archive handle returned by
+`alpm_pkg_changelog_open`. A finalizer that closed the handle after `AlpmSession.Dispose()` released
+the package would pass a freed package pointer to `alpm_pkg_changelog_close`, and libalpm writes the
+handle's error state on that path. The stream therefore documents "dispose it" and has no finalizer
+instead of hiding the problem in a `SafeHandle`: the handle belongs to the package, and the package
+has no independent lifetime to reference-count.
+
 The F# facade is a stub, so the error-bridge decisions recorded in the ADRs are not implemented yet.

@@ -593,6 +593,12 @@ public abstract unsafe partial class PackageBase
   /// <summary>
   /// Opens a stream for reading the package changelog, or returns <c>null</c> if no changelog is available.
   /// </summary>
+  /// <remarks>
+  /// The returned stream owns a native archive handle. Dispose it (or use <see cref="ReadChangelog"/>,
+  /// which does) before the package or its session is released: the stream has no finalizer by design,
+  /// because closing the handle after <c>alpm_release</c> would touch a freed handle, and libalpm is not
+  /// thread-safe. A stream that is never disposed leaks the archive handle until the process exits.
+  /// </remarks>
   public Stream? OpenChangelogStream()
   {
     var fp = NativeMethods.alpm_pkg_changelog_open(BackingStruct);
@@ -641,6 +647,12 @@ public abstract unsafe partial class PackageBase
 /// <summary>
 /// A read-only forward stream over a package's changelog, backed by libalpm's changelog read routine.
 /// </summary>
+/// <remarks>
+/// The stream holds the archive handle returned by <c>alpm_pkg_changelog_open</c> and releases it in
+/// <see cref="Dispose(bool)"/>. There is deliberately no finalizer: libalpm writes the package handle's
+/// error state on close, so a finalizer that runs after the session released the package would be a
+/// use-after-free; see the lifetime design document. Callers must dispose the stream.
+/// </remarks>
 internal sealed unsafe class PackageChangelogStream : Stream
 {
   private readonly PackageBase _package;

@@ -104,7 +104,7 @@ rediscover, so it is recorded next to the API it constrains.
 | `alpm_db_add_server`, `alpm_db_remove_server`, `alpm_db_set_servers` | `Database.AddServer`, `RemoveServer`, `SetServers` | done | The bulk setter replaces the list, so it invalidates the database's views. |
 | `alpm_db_add_cache_server`, `alpm_db_remove_cache_server`, `alpm_db_set_cache_servers` | `Database.AddCacheServer`, `RemoveCacheServer`, `SetCacheServers` | done | Same invalidation rule. |
 | `alpm_pkg_download_size` | `PackageBase.DownloadSize` | done | Triggers libalpm's cache lookup for the package; may return 0 for a package already in the cache. |
-| `alpm_pkg_changelog_open`, `_read`, `_close` | `PackageBase.OpenChangelogStream`, `ReadChangelog` | done | The stream has no finalizer: an undisposed one leaks the native archive handle. Dispose it. |
+| `alpm_pkg_changelog_open`, `_read`, `_close` | `PackageBase.OpenChangelogStream`, `ReadChangelog` | done | The stream deliberately has no finalizer: an undisposed one leaks the native archive handle, and closing it after the package was released would touch a freed handle. Dispose it. |
 | `alpm_pkg_set_reason` | `PackageView.SetReason`, `InstallReason` | done | Only valid for packages from the local database. |
 | `alpm_sync_get_new_version` | `PackageView.GetNewVersion` | done | Searches only the databases passed in, so the owner is always resolvable among them. |
 | `alpm_filelist_contains` | `FileList.Contains`, `FileList.FindFile` | done | Native binary search over a sorted list; returns a `PackageFile` snapshot. |
