@@ -255,6 +255,9 @@ public partial class AlpmSession
       var err = NativeMethods.alpm_fetch_pkgurl(Handle, nativeUrls, &fetchedList);
       if (err != 0)
       {
+        // alpm_fetch_pkgurl's failure paths free *fetched with FREELIST and leave it NULL
+        // (dload.c), so this branch normally sees null. The guard covers only a native path that
+        // returns an error while still populating the out parameter.
         if (fetchedList != null)
         {
           AlpmNativeList.Free(fetchedList, &Interop.MemoryManagement.CFreeExtern);
