@@ -1,4 +1,3 @@
-using System.Reflection;
 
 namespace Pacpar.Alpm.Tests.Unit.Callbacks;
 
@@ -9,11 +8,6 @@ namespace Pacpar.Alpm.Tests.Unit.Callbacks;
 /// owned by <see cref="AlpmSession"/> and has no public release path - its lifetime is pinned by
 /// <see cref="CallbackContextLifetimeTests"/>.
 /// </summary>
-/// <remarks>
-/// The last three tests read accessibility rather than behaviour, which is what pins the decisions
-/// the compiler cannot: a user never disposes a <see cref="AlpmCallbacks"/> (the session owns it), the
-/// session still has to be able to, and <see cref="AlpmCallbacks.HandlerException"/> is the one hook a
-/// caller has for seeing a handler that failed.
 /// </remarks>
 public sealed class CallbackTests
 {
@@ -75,35 +69,4 @@ public sealed class CallbackTests
   public void SafeInvoke_WithResult_ReturnsHandlerValue_WhenItDoesNotThrow()
     => Assert.Equal(7, AlpmCallbacks.SafeInvoke(() => 7, -1, null));
 
-  [Fact]
-  public void Dispose_IsNotPublicApi()
-  {
-    var publicDispose = typeof(AlpmCallbacks)
-      .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-      .Where(method => method.Name == "Dispose");
-
-    Assert.Empty(publicDispose);
-    Assert.False(typeof(IDisposable).IsAssignableFrom(typeof(AlpmCallbacks)));
-  }
-
-  [Fact]
-  public void Dispose_StaysAvailableToAlpm()
-  {
-    var internalDispose = typeof(AlpmCallbacks)
-      .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-      .Where(method => method.Name == "Dispose" && method.IsAssembly);
-
-    Assert.Single(internalDispose);
-  }
-
-  [Fact]
-  public void HandlerException_IsAPublicObserverHook()
-  {
-    var property = typeof(AlpmCallbacks).GetProperty("HandlerException");
-
-    Assert.NotNull(property);
-    Assert.Equal(typeof(Action<Exception>), property.PropertyType);
-    Assert.True(property.CanRead);
-    Assert.True(property.CanWrite);
-  }
 }

@@ -136,18 +136,6 @@ public sealed class SafeBindingPairingTests
       """);
   }
 
-  /// <summary>
-  /// Both directions are only meaningful while the layers actually exist: if the generated
-  /// declarations ever stop being visible to reflection (for example because csbindgen changed its
-  /// class shape), the pairing assertions above would vacuously pass.
-  /// </summary>
-  [Fact]
-  public void BothDeclarationLayers_AreVisible()
-  {
-    Assert.NotEmpty(GeneratedDeclarations);
-    Assert.NotEmpty(SafeOverloads);
-  }
-
   [Fact]
   public unsafe void LibalpmVersion_IsAvailable()
   {

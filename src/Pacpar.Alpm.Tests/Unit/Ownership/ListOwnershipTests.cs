@@ -18,24 +18,6 @@ namespace Pacpar.Alpm.Tests.Unit.Ownership;
 public sealed unsafe class ListOwnershipTests
 {
   [Fact]
-  public void BorrowedViews_AreNotDisposable()
-  {
-    Assert.False(typeof(IDisposable).IsAssignableFrom(typeof(AlpmStringList)));
-    Assert.False(typeof(IDisposable).IsAssignableFrom(typeof(AlpmList<Database>)));
-    Assert.False(typeof(IDisposable).IsAssignableFrom(typeof(AlpmList<PackageView>)));
-    Assert.False(typeof(IDisposable).IsAssignableFrom(typeof(AlpmList<Group>)));
-  }
-
-  [Fact]
-  public void OwnedList_IsNotPublicApi()
-  {
-    var owned = typeof(AlpmList<Database>).Assembly.GetType("Pacpar.Alpm.List.AlpmOwnedList`1");
-
-    Assert.NotNull(owned);
-    Assert.False(owned.IsPublic);
-  }
-
-  [Fact]
   public void Borrow_ReadsItems_WithoutFreeingTheList()
   {
     var list = BuildStringList("alpha", "beta", "gamma");

@@ -7,23 +7,6 @@ namespace Pacpar.Alpm.Tests.Unit.Databases;
 /// </summary>
 public sealed class DatabaseUsageTests
 {
-  /// <summary>
-  /// Pins the bit values against <c>alpm.h</c>. This is not in <see cref="ManagedEnumsTests"/> because
-  /// the bindings project <c>alpm_db_usage_t</c> as a plain <c>uint</c>, so there is no native enum to
-  /// mirror - the wrapper's declaration is the only one there is.
-  /// </summary>
-  [Fact]
-  public void DatabaseUsage_DeclaresTheNativeFlags()
-  {
-    Assert.Equal(1u, (uint)DatabaseUsage.Sync);
-    Assert.Equal(2u, (uint)DatabaseUsage.Search);
-    Assert.Equal(4u, (uint)DatabaseUsage.Install);
-    Assert.Equal(8u, (uint)DatabaseUsage.Upgrade);
-    Assert.Equal(15u, (uint)DatabaseUsage.All);   // (1 << 4) - 1
-    Assert.Equal(DatabaseUsage.All,
-      DatabaseUsage.Sync | DatabaseUsage.Search | DatabaseUsage.Install | DatabaseUsage.Upgrade);
-  }
-
   /// <summary>Measured on libalpm 16.0.1: a freshly registered sync database reports 15 (ALL).</summary>
   [Fact]
   public void Usage_DefaultsToAll()

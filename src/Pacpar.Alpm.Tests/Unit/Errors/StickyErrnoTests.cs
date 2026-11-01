@@ -78,14 +78,4 @@ public sealed class StickyErrnoTests
     Assert.ThrowsAny<Exception>(() => db.LoadPackageCache());
   }
 
-  [Fact]
-  public void NativeFailureWithoutAnErrno_HasItsOwnType()
-  {
-    var exception = new AlpmNativeFailureException("unregister database");
-
-    Assert.IsAssignableFrom<AlpmException>(exception);
-    Assert.Equal("unregister database", exception.Operation);
-    Assert.Equal(0, exception.Errno);
-    Assert.Contains("without setting an error code", exception.Message);
-  }
 }

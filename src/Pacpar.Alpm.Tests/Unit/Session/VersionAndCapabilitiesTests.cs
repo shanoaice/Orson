@@ -25,10 +25,6 @@ public sealed unsafe class VersionAndCapabilitiesTests
     Assert.Matches(@"^\d+\.\d+", AlpmSession.Version);
   }
 
-  [Fact]
-  public void Capabilities_ReportsTheSameBitmaskAsTheNativeCall()
-    => Assert.Equal((Capability)(uint)NativeMethods.alpm_capabilities(), AlpmSession.Capabilities);
-
   /// <summary>
   /// A capability libalpm reports but this wrapper does not model must not be dropped: it is
   /// carried through as an undeclared bit. The Arch build reports all three

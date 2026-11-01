@@ -132,9 +132,18 @@ public sealed class PackageMtreeTests : IDisposable
       ./detached size=0
 
       """;
-    var entries = ReadMtreeEntries("pacpar-mtree-detached", mtreeContent);
+    IReadOnlyList<MtreeEntry> entries;
+    using (var env = new IsolatedAlpmEnvironment())
+    {
+      env.Install("pacpar-mtree-detached", mtree: mtreeContent);
+      var root = Path.Combine(env.WorkspaceRoot, "root");
+      var dbpath = Path.Combine(env.WorkspaceRoot, "var", "lib", "pacman");
+      using var freshSession = new AlpmSession(root, dbpath);
+      var pkg = freshSession.GetLocalDatabase().GetPackage("pacpar-mtree-detached")!;
+      entries = pkg.GetMtreeEntries()!;
+      Assert.NotNull(entries);
+    }
 
-    Assert.Single(entries);
-    Assert.Single(entries);
+    Assert.Equal("detached", Assert.Single(entries).Path);
   }
 }
