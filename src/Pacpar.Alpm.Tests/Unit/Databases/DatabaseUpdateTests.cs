@@ -39,4 +39,17 @@ public sealed class DatabaseUpdateTests : IDisposable
     Assert.Equal("the local database", thrown.Target);
     Assert.Equal("Database.Update", thrown.InvalidatedBy);
   }
+
+  [Fact]
+  public void Database_Unregister_InvalidatesPriorPackageViews()
+  {
+    PackageArchive.CreateSyncDatabase(_environment.DatabasePath, "core", "core-pkg", "base-grp");
+    var syncDb = _environment.AlpmSession.RegisterSyncDatabase("core", SigLevel.UseDefault);
+    var pkg = syncDb.GetPackage("core-pkg")!;
+
+    syncDb.Unregister();
+
+    var thrown = Assert.Throws<AlpmLifetimeException>(() => pkg.Name);
+    Assert.Equal("Database.Unregister()", thrown.InvalidatedBy);
+  }
 }

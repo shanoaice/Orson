@@ -102,6 +102,9 @@ public sealed class TrySeamContractTests : IDisposable
 
     Assert.True(ok);
     Assert.Null(failure);
+
+    _environment.AlpmSession.RegisterSyncDatabase("extra_try2", 0);
+    _environment.AlpmSession.UnregisterAllSyncDatabases();
   }
 
   [Fact]
@@ -146,6 +149,7 @@ public sealed class TrySeamContractTests : IDisposable
 
     Assert.True(ok);
     Assert.Null(failure);
+    local.Validate();
   }
 
   [Fact]
@@ -156,6 +160,9 @@ public sealed class TrySeamContractTests : IDisposable
 
     Assert.True(ok);
     Assert.Null(failure);
+
+    var sync2 = _environment.AlpmSession.RegisterSyncDatabase("sync_unregister_public_test", 0);
+    sync2.Unregister();
   }
 
   [Fact]
@@ -193,6 +200,7 @@ public sealed class TrySeamContractTests : IDisposable
 
     Assert.True(ok);
     Assert.Null(failure);
+    tx.SystemUpgrade();
   }
 
   [Fact]
@@ -204,6 +212,7 @@ public sealed class TrySeamContractTests : IDisposable
     Assert.False(ok);
     Assert.NotNull(failure);
     Assert.Equal(AlpmFailureCode.TransactionType, failure.Code);
+    Assert.Throws<AlpmTransactionException>(() => tx.Interrupt());
   }
 
   [Fact]
@@ -279,6 +288,6 @@ public sealed class TrySeamContractTests : IDisposable
     Assert.False(matches);
     Assert.NotNull(failure);
     Assert.Equal(AlpmFailureCode.WrongArguments, failure.Code);
-    Assert.ThrowsAny<AlpmException>(() => loaded.CheckMd5Sum());
+    Assert.Throws<AlpmException>(() => loaded.CheckMd5Sum());
   }
 }

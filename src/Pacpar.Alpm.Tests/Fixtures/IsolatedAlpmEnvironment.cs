@@ -32,6 +32,9 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
 
   /// <summary>The fake installation root the handle was opened on.</summary>
   internal string Root => Path.Combine(_workspaceRoot, "root");
+  /// <summary>The database path for this isolated environment.</summary>
+  internal string DatabasePath => AlpmSession.Options.DatabasePath!;
+
 
   /// <summary>Where <see cref="Install"/> writes the packages it builds.</summary>
   internal string PackageDirectory { get; }
