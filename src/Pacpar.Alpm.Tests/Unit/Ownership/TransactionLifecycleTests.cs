@@ -166,4 +166,23 @@ public sealed class TransactionLifecycleTests
 
     Assert.Throws<ObjectDisposedException>(() => alpm.BeginTransaction());
   }
+
+  [Fact]
+  public void Transaction_RemovePackage_PopulatesRemovedPackagesAndFlags()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var pkg = environment.Install("removable-pkg");
+    var localDb = environment.AlpmSession.GetLocalDatabase();
+
+    using (var tx = environment.AlpmSession.BeginTransaction(TransactionFlags.NoSave))
+    {
+      tx.RemovePackage(pkg);
+      Assert.Equal(TransactionFlags.NoSave, tx.Flags);
+      Assert.Single(tx.RemovedPackages, p => p.Name == "removable-pkg");
+      tx.Prepare();
+      tx.Commit();
+    }
+
+    Assert.Null(environment.AlpmSession.GetLocalDatabase().GetPackage("removable-pkg"));
+  }
 }

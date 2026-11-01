@@ -30,23 +30,36 @@ internal static class PackageArchive
   /// <param name="changelog">Optional <c>.CHANGELOG</c> contents, the one place libalpm reads a
   /// changelog from for a package loaded from a file.</param>
   internal static string Create(string directory, string name, string arch = "x86_64", string? depend = null,
-    string? conflict = null, string? file = null, string? mtree = null, string? changelog = null)
+    string? conflict = null, string? file = null, string? mtree = null, string? changelog = null,
+    string version = Version, string? pkgbase = null, string? desc = null, string? url = null,
+    string? packager = null, long? builddate = null, long? size = null, string? license = null,
+    string? group = null, string? optdepend = null, string? checkdepend = null, string? makedepend = null,
+    string? provides = null, string? replaces = null, string? backup = null, string? installScriptlet = null,
+    IEnumerable<string>? files = null)
   {
     var info = new StringBuilder()
       .AppendLine($"pkgname = {name}")
-      .AppendLine($"pkgbase = {name}")
-      .AppendLine($"pkgver = {Version}")
-      .AppendLine("pkgdesc = test package")
-      .AppendLine("url = https://example.invalid")
-      .AppendLine("builddate = 0")
-      .AppendLine("packager = test")
-      .AppendLine("size = 1")
+      .AppendLine($"pkgbase = {pkgbase ?? name}")
+      .AppendLine($"pkgver = {version}")
+      .AppendLine($"pkgdesc = {desc ?? "test package"}")
+      .AppendLine($"url = {url ?? "https://example.invalid"}")
+      .AppendLine($"builddate = {builddate ?? 0}")
+      .AppendLine($"packager = {packager ?? "test"}")
+      .AppendLine($"size = {size ?? 1}")
       .AppendLine($"arch = {arch}");
 
+    if (license != null) info.AppendLine($"license = {license}");
+    if (group != null) info.AppendLine($"group = {group}");
     if (depend != null) info.AppendLine($"depend = {depend}");
+    if (optdepend != null) info.AppendLine($"optdepend = {optdepend}");
+    if (checkdepend != null) info.AppendLine($"checkdepend = {checkdepend}");
+    if (makedepend != null) info.AppendLine($"makedepend = {makedepend}");
     if (conflict != null) info.AppendLine($"conflict = {conflict}");
+    if (provides != null) info.AppendLine($"provides = {provides}");
+    if (replaces != null) info.AppendLine($"replaces = {replaces}");
+    if (backup != null) info.AppendLine($"backup = {backup}");
 
-    var path = Path.Combine(directory, $"{name}-{Version}-{arch}.pkg.tar");
+    var path = Path.Combine(directory, $"{name}-{version}-{arch}.pkg.tar");
 
     using (var stream = File.Create(path))
     using (var writer = new TarWriter(stream, TarEntryFormat.Pax))
@@ -54,7 +67,7 @@ internal static class PackageArchive
       writer.WriteEntry(TextEntry(".PKGINFO", info.ToString()));
 
       if (changelog != null) writer.WriteEntry(TextEntry(".CHANGELOG", changelog));
-
+      if (installScriptlet != null) writer.WriteEntry(TextEntry(".INSTALL", installScriptlet));
       if (mtree != null)
       {
         using var gzStream = new MemoryStream();
@@ -76,12 +89,20 @@ internal static class PackageArchive
         writer.WriteEntry(new PaxTarEntry(TarEntryType.Directory, "usr/bin/"));
         writer.WriteEntry(TextEntry(file, "packaged contents"));
       }
+
+      if (files != null)
+      {
+        foreach (var f in files)
+        {
+          writer.WriteEntry(TextEntry(f, "packaged contents"));
+        }
+      }
     }
 
     return path;
   }
 
-  internal static void CreateSyncDatabase(string dbpath, string dbName, string pkgName, string groupName)
+  internal static void CreateSyncDatabase(string dbpath, string dbName, string pkgName, string groupName, string version = Version)
   {
     var syncDir = Path.Combine(dbpath, "sync");
     Directory.CreateDirectory(syncDir);
@@ -92,10 +113,10 @@ internal static class PackageArchive
       .AppendLine(pkgName)
       .AppendLine()
       .AppendLine("%VERSION%")
-      .AppendLine(Version)
+      .AppendLine(version)
       .AppendLine()
       .AppendLine("%FILENAME%")
-      .AppendLine($"{pkgName}-{Version}-x86_64.pkg.tar")
+      .AppendLine($"{pkgName}-{version}-x86_64.pkg.tar")
       .AppendLine()
       .AppendLine("%GROUPS%")
       .AppendLine(groupName)
@@ -103,7 +124,7 @@ internal static class PackageArchive
 
     using var stream = File.Create(dbFile);
     using var writer = new TarWriter(stream, TarEntryFormat.Pax);
-    writer.WriteEntry(TextEntry($"{pkgName}-{Version}/desc", desc.ToString()));
+    writer.WriteEntry(TextEntry($"{pkgName}-{version}/desc", desc.ToString()));
   }
 
   private static PaxTarEntry TextEntry(string name, string contents)

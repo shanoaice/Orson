@@ -20,4 +20,16 @@ public sealed class PackageUpgradeTests : IDisposable
     var upgrade = pkg.GetNewVersion([syncDb]);
     Assert.Null(upgrade);
   }
+
+  [Fact]
+  public void PackageView_GetNewVersion_ReturnsNewerSyncPackageWhenAvailable()
+  {
+    var installedPkg = _environment.Install("upgrade-pkg");
+    PackageArchive.CreateSyncDatabase(_environment.DatabasePath, "core", "upgrade-pkg", "base", version: "2.0-1");
+    _environment.AlpmSession.RegisterSyncDatabase("core", SigLevel.UseDefault);
+
+    var newer = installedPkg.GetNewVersion(_environment.AlpmSession.GetSyncDatabases());
+    Assert.NotNull(newer);
+    Assert.Equal("2.0-1", newer.Version.ToString());
+  }
 }

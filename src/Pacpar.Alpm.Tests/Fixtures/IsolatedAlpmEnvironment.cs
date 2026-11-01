@@ -33,7 +33,7 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
   /// <summary>The fake installation root the handle was opened on.</summary>
   internal string Root => Path.Combine(_workspaceRoot, "root");
   /// <summary>The database path for this isolated environment.</summary>
-  internal string DatabasePath => AlpmSession.Options.DatabasePath!;
+  internal string DatabasePath => Path.Combine(_workspaceRoot, "var", "lib", "pacman");
 
 
   /// <summary>Where <see cref="Install"/> writes the packages it builds.</summary>
@@ -49,12 +49,12 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
   /// <param name="depend">Optional <c>depend</c> entry.</param>
   /// <param name="conflict">Optional <c>conflict</c> entry.</param>
   internal PackageView Install(string name, string? file = null, string? mtree = null, string? depend = null,
-    string? conflict = null)
+    string? conflict = null, TransactionFlags flags = 0)
   {
     var archive = PackageArchive.Create(PackageDirectory, name, file: file, mtree: mtree, depend: depend,
       conflict: conflict);
 
-    using var transaction = AlpmSession.BeginTransaction();
+    using var transaction = AlpmSession.BeginTransaction(flags);
     transaction.AddPackage(AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault));
     transaction.Prepare();
     transaction.Commit();

@@ -137,4 +137,161 @@ public sealed class PackageMetadataTests : IDisposable
     Assert.IsType<ArgumentException>(Record.Exception(() => stream.Read(new byte[4], 3, 5)));
     Assert.IsType<ArgumentException>(Record.Exception(() => stream.Read(new byte[4], int.MaxValue, 1)));
   }
+
+  [Fact]
+  public void LoadedAndInstalledPackage_ExposesAllPkgInfoMetadataAndLists()
+  {
+    var archive = PackageArchive.Create(
+      _environment.PackageDirectory,
+      "meta-pkg",
+      version: "2.1-3",
+      pkgbase: "meta-base",
+      desc: "Full description",
+      url: "https://example.org",
+      packager: "Test Packager <test@example.org>",
+      builddate: 1700000000L,
+      size: 4096L,
+      license: "MIT",
+      group: "base-devel",
+      depend: "glibc>=2.38",
+      optdepend: "python: scripting",
+      checkdepend: "pytest",
+      makedepend: "cmake",
+      conflict: "legacy-meta",
+      provides: "virtual-meta=2.1",
+      replaces: "old-meta",
+      backup: "etc/meta.conf",
+      file: "etc/meta.conf",
+      installScriptlet: "post_install() { true; }\n");
+
+    using (var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault))
+    {
+      Assert.Equal("meta-pkg", loaded.Name);
+      Assert.Equal("meta-base", loaded.Base);
+      Assert.Equal("2.1-3", loaded.Version.ToString());
+      Assert.Equal("Full description", loaded.Description);
+      Assert.Equal("https://example.org", loaded.Url);
+      Assert.Equal("Test Packager <test@example.org>", loaded.Packager);
+      Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1700000000L), loaded.BuildDate);
+      Assert.Equal(4096L, loaded.InstalledSize);
+      Assert.True(loaded.Size > 0);
+      Assert.Equal("x86_64", loaded.Arch);
+      Assert.Equal(PackageOrigin.File, loaded.Origin);
+      _ = loaded.Validation;
+      Assert.True(loaded.HasScriptlet);
+
+      Assert.Equal("MIT", Assert.Single(loaded.Licenses));
+      Assert.Equal("base-devel", Assert.Single(loaded.Groups));
+
+      var dep = Assert.Single(loaded.Depends);
+      Assert.Equal("glibc", dep.Name);
+      Assert.Equal("2.38", dep.Version);
+      Assert.Equal(DepMod.GreaterOrEqual, dep.Depmod);
+
+      var optdep = Assert.Single(loaded.OptionalDepends);
+      Assert.Equal("python", optdep.Name);
+      Assert.Equal("scripting", optdep.Description);
+
+      var checkdep = Assert.Single(loaded.CheckDepends);
+      Assert.Equal("pytest", checkdep.Name);
+
+      var makedep = Assert.Single(loaded.MakeDepends);
+      Assert.Equal("cmake", makedep.Name);
+
+      var conflict = Assert.Single(loaded.Conflicts);
+      Assert.Equal("legacy-meta", conflict.Name);
+
+      var provides = Assert.Single(loaded.Provides);
+      Assert.Equal("virtual-meta", provides.Name);
+      Assert.Equal("2.1", provides.Version);
+
+      var replaces = Assert.Single(loaded.Replaces);
+      Assert.Equal("old-meta", replaces.Name);
+
+      var backup = Assert.Single(loaded.BackupFiles);
+      Assert.Equal("etc/meta.conf", backup.Name);
+
+      var snapshot = loaded.ToSnapshot(includeFiles: true);
+      Assert.Equal(loaded.Name, snapshot.Name);
+      Assert.NotNull(snapshot.Files);
+      Assert.Equal(loaded.Files.Count, snapshot.Files.Count);
+    }
+
+    var loadForInstall = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
+    using (var tx = _environment.AlpmSession.BeginTransaction(TransactionFlags.NoScriptlet | TransactionFlags.NoDeps))
+    {
+      tx.AddPackage(loadForInstall);
+      tx.Prepare();
+      tx.Commit();
+    }
+
+    var depArchive = PackageArchive.Create(
+      _environment.PackageDirectory,
+      "dep-pkg",
+      depend: "meta-pkg",
+      optdepend: "meta-pkg: optional integration");
+
+    var depLoad = _environment.AlpmSession.LoadPackage(depArchive, full: true, SigLevel.UseDefault);
+    using (var tx = _environment.AlpmSession.BeginTransaction(TransactionFlags.NoDeps))
+    {
+      tx.AddPackage(depLoad);
+      tx.Prepare();
+      tx.Commit();
+    }
+
+    var installed = _environment.AlpmSession.GetLocalDatabase().GetPackage("meta-pkg");
+    Assert.NotNull(installed);
+    Assert.Equal(PackageOrigin.LocalDatabase, installed.Origin);
+    Assert.NotNull(installed.InstallDate);
+    Assert.True(installed.InstallDate.Value.ToUnixTimeSeconds() > 0);
+    Assert.Contains("dep-pkg", installed.GetRequiredBy());
+    Assert.Contains("dep-pkg", installed.GetOptionalFor());
+
+    _environment.AlpmSession.Options.IgnorePackages.Add("meta-pkg");
+    Assert.True(installed.ShouldIgnore());
+  }
+
+  [Fact]
+  public void FileList_IndexerAndEnumerator_EnforceBoundsAndReadEntries()
+  {
+    var archive = PackageArchive.Create(
+      _environment.PackageDirectory,
+      "files-pkg",
+      files: ["etc/a.conf", "usr/bin/tool"]);
+
+    using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
+    using (var tx = _environment.AlpmSession.BeginTransaction(TransactionFlags.NoDeps))
+    {
+      tx.AddPackage(loaded);
+      tx.Prepare();
+      tx.Commit();
+    }
+
+    var pkg = _environment.AlpmSession.GetLocalDatabase().GetPackage("files-pkg");
+    Assert.NotNull(pkg);
+
+    Assert.Equal(2, pkg.Files.Count);
+    Assert.Equal("etc/a.conf", pkg.Files[0].Name);
+    Assert.Equal("usr/bin/tool", pkg.Files[1].Name);
+
+    Assert.Throws<ArgumentOutOfRangeException>(() => _ = pkg.Files[-1]);
+    Assert.Throws<ArgumentOutOfRangeException>(() => _ = pkg.Files[2]);
+    Assert.Throws<ArgumentNullException>(() => pkg.Files.Contains(null!));
+    Assert.Throws<ArgumentNullException>(() => pkg.Files.FindFile(null!));
+
+    var enumerator = pkg.Files.GetEnumerator();
+    Assert.Throws<InvalidOperationException>(() => _ = enumerator.Current);
+
+    Assert.True(enumerator.MoveNext());
+    Assert.Equal("etc/a.conf", enumerator.Current.Name);
+    Assert.True(enumerator.MoveNext());
+    Assert.Equal("usr/bin/tool", enumerator.Current.Name);
+    Assert.False(enumerator.MoveNext());
+    Assert.Throws<InvalidOperationException>(() => _ = enumerator.Current);
+
+    enumerator.Reset();
+    Assert.Throws<InvalidOperationException>(() => _ = enumerator.Current);
+    Assert.True(enumerator.MoveNext());
+    Assert.Equal("etc/a.conf", enumerator.Current.Name);
+  }
 }

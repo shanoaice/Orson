@@ -58,4 +58,39 @@ public sealed class DependencyCheckTests
 
     Assert.Empty(packages);
   }
+
+  [Fact]
+  public void CheckDependencies_ReportsUnsatisfiedDependencyOnMissingTarget()
+  {
+    using var env = new IsolatedAlpmEnvironment();
+    env.Install("libfoo");
+    env.Install("app-needs-libfoo", depend: "libfoo>=1.0");
+
+    var localDb = env.AlpmSession.GetLocalDatabase();
+    var packages = localDb.LoadPackageCache();
+    var libfoo = localDb.GetPackage("libfoo")!;
+    var result = env.AlpmSession.CheckDependencies(packages, remove: [libfoo], upgrade: [], reverseDependencies: true);
+    var missing = Assert.Single(result);
+    Assert.Equal("app-needs-libfoo", missing.Target);
+    Assert.NotNull(missing.Depend);
+    Assert.Equal("libfoo", missing.Depend.Name);
+    Assert.Equal("libfoo", missing.CausingPkg);
+  }
+
+  [Fact]
+  public void CheckConflicts_ReportsConflictBetweenPackages()
+  {
+    using var env = new IsolatedAlpmEnvironment();
+    env.Install("pkg-a", conflict: "pkg-b");
+    env.Install("pkg-b", flags: TransactionFlags.NoConflicts);
+
+    var localDb = env.AlpmSession.GetLocalDatabase();
+    var packages = localDb.LoadPackageCache();
+
+    var conflicts = env.AlpmSession.CheckConflicts(packages);
+    var conflict = Assert.Single(conflicts);
+    Assert.Equal("pkg-a", conflict.Package1Name);
+    Assert.Equal("pkg-b", conflict.Package2Name);
+    Assert.Equal("pkg-b", conflict.Reason.Name);
+  }
 }
