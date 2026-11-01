@@ -232,4 +232,8 @@ with `using` before returning, so it does not escape to callers. Hiding the prob
 would not help either: the handle belongs to the package, and the package has no independent lifetime
 to reference-count.
 
+The internal `PackageMtreeReader` follows the same pattern: `GetMtreeEntries` materializes the entries
+into a managed list and disposes the reader before returning, so the native archive handle never
+escapes to callers.
+
 The F# facade is a stub, so the error-bridge decisions recorded in the ADRs are not implemented yet.

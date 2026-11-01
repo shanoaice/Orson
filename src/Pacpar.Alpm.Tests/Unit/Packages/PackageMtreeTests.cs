@@ -3,8 +3,8 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Packages;
 
 /// <summary>
-/// Covers <see cref="PackageBase.GetMtree"/> against packages whose <c>.MTREE</c> the test wrote:
-/// absent, complete, partly filled in, and the two ways an entry can fail to read.
+/// Covers <see cref="PackageBase.GetMtreeEntries"/> against packages whose <c>.MTREE</c> the test wrote:
+/// absent, complete, partly filled in, and an entry that fails to read.
 /// </summary>
 /// <remarks>
 /// libalpm reads the mtree from <c>dbpath/local/pkg/mtree</c>, which exists only
@@ -21,7 +21,7 @@ public sealed class PackageMtreeTests : IDisposable
   /// Installs a package carrying <paramref name="mtreeContent"/>, reopens the workspace and reads the
   /// mtree as a list, so a case can assert on the entries.
   /// </summary>
-  private List<MtreeEntry> ReadMtreeEntries(string name, string mtreeContent)
+  private IReadOnlyList<MtreeEntry> ReadMtreeEntries(string name, string mtreeContent)
   {
     _environment.Install(name, mtree: mtreeContent);
 
@@ -30,21 +30,21 @@ public sealed class PackageMtreeTests : IDisposable
     using var freshSession = new AlpmSession(root, dbpath);
     var pkg = freshSession.GetLocalDatabase().GetPackage(name)!;
 
-    using var reader = pkg.GetMtree();
-    Assert.NotNull(reader);
-    return reader!.ToList();
+    var entries = pkg.GetMtreeEntries();
+    Assert.NotNull(entries);
+    return entries;
   }
 
   [Fact]
-  public void PackageView_GetMtree_ReturnsNullWhenMtreeAbsent()
+  public void PackageView_GetMtreeEntries_ReturnsNullWhenMtreeAbsent()
   {
     var pkg = _environment.Install("pacpar-no-mtree");
 
-    Assert.Null(pkg.GetMtree());
+    Assert.Null(pkg.GetMtreeEntries());
   }
 
   [Fact]
-  public void PackageView_GetMtree_ReadsEntriesWhenMtreePresent()
+  public void PackageView_GetMtreeEntries_ReadsEntriesWhenMtreePresent()
   {
     var mtreeContent = """
       #mtree
@@ -67,7 +67,7 @@ public sealed class PackageMtreeTests : IDisposable
   }
 
   [Fact]
-  public void PackageView_GetMtree_ReportsMissingDigestsAsNull()
+  public void PackageView_GetMtreeEntries_ReportsMissingDigestsAsNull()
   {
     var mtreeContent = """
       #mtree
@@ -94,7 +94,7 @@ public sealed class PackageMtreeTests : IDisposable
   }
 
   [Fact]
-  public void PackageView_GetMtree_ThrowsWhenAnEntryFailsToRead()
+  public void PackageView_GetMtreeEntries_ThrowsWhenAnEntryFailsToRead()
   {
     var mtreeContent = """
       #mtree
@@ -108,7 +108,7 @@ public sealed class PackageMtreeTests : IDisposable
   }
 
   [Fact]
-  public void PackageView_GetMtree_ReadsIdsBeyond32Bits()
+  public void PackageView_GetMtreeEntries_ReadsIdsBeyond32Bits()
   {
     var mtreeContent = """
       #mtree
@@ -121,5 +121,20 @@ public sealed class PackageMtreeTests : IDisposable
     Assert.Equal("big-ids", entry.Path);
     Assert.Equal(8589934592L, entry.Uid);
     Assert.Equal(4294967296L, entry.Gid);
+  }
+
+  [Fact]
+  public void PackageView_GetMtreeEntries_ReturnsADetachedList()
+  {
+    var mtreeContent = """
+      #mtree
+      /set type=file uid=0 gid=0 mode=644
+      ./detached size=0
+
+      """;
+    var entries = ReadMtreeEntries("pacpar-mtree-detached", mtreeContent);
+
+    Assert.Single(entries);
+    Assert.Single(entries);
   }
 }

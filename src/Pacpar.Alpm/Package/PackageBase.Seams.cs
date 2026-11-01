@@ -50,11 +50,11 @@ public abstract unsafe partial class PackageBase
   }
 
   /// <summary>
-  /// The failure-returning seam for <see cref="GetMtree"/>.
+  /// The failure-returning seam for <see cref="GetMtreeEntries"/>.
   /// </summary>
   /// <param name="mtree">
-  /// When this method returns <c>true</c>, carries a reader streaming the package's mtree entries,
-  /// or <c>null</c> if the package carries no mtree manifest.
+  /// When this method returns <c>true</c>, carries an internal reader over the package's mtree
+  /// entries, or <c>null</c> if the package carries no mtree manifest.
   /// </param>
   /// <param name="failure">
   /// The operational error when this method returns <c>false</c>; otherwise <c>null</c>.

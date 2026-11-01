@@ -1,25 +1,25 @@
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
 /// <summary>
-/// A forward-only reader over an installed package's mtree entries (<c>.MTREE</c>).
+/// An internal forward-only reader over an installed package's mtree entries (<c>.MTREE</c>).
 /// </summary>
 /// <remarks>
 /// <para>
-/// The reader is single-use. It is its own enumerator, so a second enumeration over the same
-/// reader yields no entries. Open a new reader to enumerate again.
+/// The reader is single-use and is owned by <see cref="PackageBase.GetMtreeEntries"/>, which
+/// materializes the entries into a managed list and disposes the reader before returning. It is not
+/// part of the public API.
 /// </para>
 /// <para>
 /// Dispose the reader before the owning <see cref="AlpmSession"/> ends. When the session has
 /// already ended, <see cref="Dispose"/> throws <see cref="AlpmLifetimeException"/> before it can
-/// close the native archive reader, and that reader then leaks. The reader has no finalizer,
-/// so a forgotten <see cref="Dispose"/> leaks the native archive reader too.
+/// close the native archive reader, and that reader then leaks. The reader has no finalizer, so a
+/// forgotten <see cref="Dispose"/> leaks the native archive reader too.
 /// </para>
 /// </remarks>
-public sealed unsafe class PackageMtreeReader : IEnumerable<MtreeEntry>, IEnumerator<MtreeEntry>
+internal sealed unsafe class PackageMtreeReader : IDisposable
 {
   private readonly PackageBase _package;
   private readonly archive* _archive;
@@ -35,9 +35,7 @@ public sealed unsafe class PackageMtreeReader : IEnumerable<MtreeEntry>, IEnumer
   /// <summary>
   /// Gets the current <see cref="MtreeEntry"/> in the mtree stream.
   /// </summary>
-  public MtreeEntry Current => _current ?? throw new InvalidOperationException("Enumeration has not started or has already completed.");
-
-  object IEnumerator.Current => Current;
+  internal MtreeEntry Current => _current ?? throw new InvalidOperationException("Enumeration has not started or has already completed.");
 
   /// <summary>
   /// Advances the reader to the next entry in the mtree stream.
@@ -47,7 +45,7 @@ public sealed unsafe class PackageMtreeReader : IEnumerable<MtreeEntry>, IEnumer
   /// libalpm reported a read failure without setting an error code, e.g. a malformed entry.
   /// </exception>
   /// <exception cref="AlpmException">The read failed with an <c>ALPM_ERR_*</c> code.</exception>
-  public bool MoveNext()
+  internal bool MoveNext()
   {
     if (_disposed || _archive == null) return false;
 
@@ -75,9 +73,6 @@ public sealed unsafe class PackageMtreeReader : IEnumerable<MtreeEntry>, IEnumer
     return true;
   }
 
-  /// <inheritdoc />
-  public void Reset() => throw new NotSupportedException("Mtree streams are forward-only and cannot be reset.");
-
   /// <summary>
   /// Closes the native archive reader and releases unmanaged resources.
   /// </summary>
@@ -95,12 +90,6 @@ public sealed unsafe class PackageMtreeReader : IEnumerable<MtreeEntry>, IEnumer
     }
     GC.KeepAlive(_package);
   }
-
-  /// <inheritdoc />
-  public IEnumerator<MtreeEntry> GetEnumerator() => this;
-
-  /// <inheritdoc />
-  IEnumerator IEnumerable.GetEnumerator() => this;
 
   [DoesNotReturn]
   private static void ThrowMtreeReadFailure(int rawErrno)

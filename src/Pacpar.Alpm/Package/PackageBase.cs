@@ -672,22 +672,35 @@ public abstract unsafe partial class PackageBase
   }
 
   /// <summary>
-  /// Opens the package's mtree manifest (<c>.MTREE</c>) and returns a reader streaming its entries,
-  /// or returns <c>null</c> if the package has no mtree file (such as for sync database packages).
+  /// Reads the package's mtree manifest (<c>.MTREE</c>) into a detached list, or returns
+  /// <c>null</c> if the package has no mtree file (such as for sync database packages).
   /// </summary>
   /// <remarks>
-  /// Only packages from the local database carry an mtree manifest. The returned reader is
-  /// single-use: a second enumeration yields no entries. Disposing the reader (or exiting a
-  /// <c>foreach</c> loop) closes the native archive reader. Dispose it before the session ends;
-  /// see <see cref="PackageMtreeReader"/> for the lifetime rules.
+  /// Only packages from the local database carry an mtree manifest. The returned list is a managed
+  /// snapshot: it stays valid after the package or its session is released and can be enumerated
+  /// repeatedly. Reading the mtree manifest is a low-frequency operation, so the entries are
+  /// materialized rather than exposed through a live native reader.
   /// </remarks>
-  public PackageMtreeReader? GetMtree()
+  /// <exception cref="AlpmNativeFailureException">
+  /// libalpm reported a read failure without setting an error code, e.g. a malformed entry.
+  /// </exception>
+  /// <exception cref="AlpmException">The mtree entries could not be read.</exception>
+  /// <exception cref="AlpmLifetimeException">The package's session has already been released.</exception>
+  public IReadOnlyList<MtreeEntry>? GetMtreeEntries()
   {
     if (!TryGetMtree(out var mtree, out var failure))
     {
       throw failure.ToException();
     }
-    return mtree;
+    if (mtree is null) return null;
+
+    using var reader = mtree;
+    var entries = new List<MtreeEntry>();
+    while (reader.MoveNext())
+    {
+      entries.Add(reader.Current);
+    }
+    return entries;
   }
 
   [DoesNotReturn]

@@ -111,7 +111,7 @@ rediscover, so it is recorded next to the API it constrains.
 | `alpm_option_get/set_disable_dl_timeout` | `AlpmOptions.DisableDownloadTimeout` | done | Native type is `unsigned short`. |
 | `alpm_option_get/set_disable_sandbox_filesystem`, `_network`, `_syscalls` | `AlpmOptions.DisableSandboxFilesystem`, `DisableSandboxNetwork`, `DisableSandboxSyscalls` | done | Only the three component flags are wrapped. libalpm's aggregate `alpm_option_get_disable_sandbox` counts filesystem and syscalls and ignores network; an aggregate built from all three would report a fully disabled sandbox while networking is enabled, so no aggregate is exported. |
 | `alpm_option_get/set_sandboxuser` | `AlpmOptions.SandboxUser` | done | Return 1 means `getpwnam` found no such user, not a malformed string. |
-| `alpm_pkg_mtree_open`, `alpm_pkg_mtree_next`, `alpm_pkg_mtree_close` | `PackageBase.GetMtree`, `TryGetMtree`, `PackageMtreeReader` | done | Reads `<dbpath>/local/<pkg>/mtree`; returns `null` when absent or non-local. `PackageMtreeReader` owns archive handle cleanup. |
+| `alpm_pkg_mtree_open`, `alpm_pkg_mtree_next`, `alpm_pkg_mtree_close` | `PackageBase.GetMtreeEntries`, `TryGetMtree` (internal `PackageMtreeReader`) | done | Reads `<dbpath>/local/<pkg>/mtree`; returns `null` when absent or non-local. `GetMtreeEntries` materializes a detached list and closes the native archive reader before returning, so the handle never escapes. |
 
 ## 5. Not wrapped yet (30)
 
