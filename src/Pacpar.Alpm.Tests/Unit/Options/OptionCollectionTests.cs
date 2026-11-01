@@ -205,4 +205,102 @@ public sealed class OptionCollectionTests : IDisposable
     Assert.Throws<AlpmLifetimeException>(() => options.DisableSandboxFilesystem);
     Assert.Throws<AlpmLifetimeException>(() => options.SandboxUser);
   }
+
+  public static TheoryData<string, Func<AlpmOptions, ICollection<string>>, string, string> StringOptionCollections() => new()
+  {
+    { "Architectures", o => o.Architectures, "x86_64", "aarch64" },
+    { "CacheDirectories", o => o.CacheDirectories, "/var/cache/pacman/pkg-a/", "/var/cache/pacman/pkg-b/" },
+    { "HookDirectories", o => o.HookDirectories, "/etc/pacman.d/hooks-a/", "/etc/pacman.d/hooks-b/" },
+    { "IgnoreGroups", o => o.IgnoreGroups, "gnome", "kde" },
+    { "IgnorePackages", o => o.IgnorePackages, "linux", "glibc" },
+    { "NoExtract", o => o.NoExtract, "usr/share/doc/*", "usr/share/man/*" },
+    { "NoUpgrade", o => o.NoUpgrade, "etc/pacman.conf", "etc/makepkg.conf" },
+    { "OverwritableFiles", o => o.OverwritableFiles, "usr/lib/*", "usr/bin/*" },
+  };
+
+  [Theory]
+  [MemberData(nameof(StringOptionCollections))]
+  public void StringOptionCollection_SupportsAddContainsCopyToRemoveAndClear(
+    string name,
+    Func<AlpmOptions, ICollection<string>> selector,
+    string first,
+    string second)
+  {
+    Assert.NotEmpty(name);
+    var collection = selector(_environment.AlpmSession.Options);
+    collection.Clear();
+
+    collection.Add(first);
+    collection.Add(second);
+
+    Assert.Equal(2, collection.Count);
+    Assert.Contains(first, collection);
+    Assert.Contains(second, collection);
+    Assert.DoesNotContain("absent", collection);
+
+    var array = new string[2];
+    collection.CopyTo(array, 0);
+    Assert.Contains(first, array);
+    Assert.Contains(second, array);
+
+    Assert.True(collection.Remove(first));
+    Assert.False(collection.Remove("absent"));
+    Assert.Single(collection);
+
+    collection.Clear();
+    Assert.Empty(collection);
+  }
+
+  [Fact]
+  public void ScalarOptions_RoundTripValues()
+  {
+    var options = _environment.AlpmSession.Options;
+
+    options.CheckSpace = true;
+    Assert.True(options.CheckSpace);
+    options.CheckSpace = false;
+    Assert.False(options.CheckSpace);
+
+    options.DatabaseExtension = ".db.tar.gz";
+    Assert.Equal(".db.tar.gz", options.DatabaseExtension);
+
+    options.DefaultSigLevel = SigLevel.Package | SigLevel.DatabaseOptional;
+    Assert.Equal(SigLevel.Package | SigLevel.DatabaseOptional, options.DefaultSigLevel);
+
+    options.LocalFileSigLevel = SigLevel.PackageOptional;
+    Assert.Equal(SigLevel.PackageOptional, options.LocalFileSigLevel);
+
+    options.RemoteFileSigLevel = SigLevel.Package | SigLevel.PackageMarginalOk;
+    Assert.Equal(SigLevel.Package | SigLevel.PackageMarginalOk, options.RemoteFileSigLevel);
+
+    options.ParallelDownloads = 5;
+    Assert.Equal(5, options.ParallelDownloads);
+
+    options.UseSyslog = true;
+    Assert.True(options.UseSyslog);
+    options.UseSyslog = false;
+    Assert.False(options.UseSyslog);
+
+    options.DisableDownloadTimeout = true;
+    Assert.True(options.DisableDownloadTimeout);
+    options.DisableDownloadTimeout = false;
+    Assert.False(options.DisableDownloadTimeout);
+
+    var gpgDir = Path.Combine(_environment.WorkspaceRoot, "gpg") + "/";
+    Directory.CreateDirectory(gpgDir);
+    options.GpgDirectory = gpgDir;
+    Assert.Equal(gpgDir, options.GpgDirectory);
+
+    var logFile = Path.Combine(_environment.WorkspaceRoot, "alpm.log");
+    options.LogFile = logFile;
+    Assert.Equal(logFile, options.LogFile);
+
+    Assert.NotEmpty(options.Root);
+    Assert.NotEmpty(options.DatabasePath);
+    Assert.NotEmpty(options.Lockfile);
+
+    Assert.ThrowsAny<Exception>(() => options.ParallelDownloads = 0);
+    Assert.Throws<ArgumentNullException>(() => options.DatabaseExtension = null!);
+  }
+
 }
