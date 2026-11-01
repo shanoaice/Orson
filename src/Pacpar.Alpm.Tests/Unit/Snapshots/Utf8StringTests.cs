@@ -56,4 +56,22 @@ public sealed unsafe class Utf8StringTests
 
     Assert.Equal(NonAscii, Assert.Single(architectures));
   }
+
+  [Theory]
+  [InlineData("", "")]
+  [InlineData("a\0b", "a")]
+  [InlineData("𐍈🧪", "𐍈🧪")]
+  public void ToAndFromNative_BoundaryStrings_RoundTripOrTruncateAtNul(string input, string expected)
+  {
+    var ptr = NativeString.ToNative(input);
+    try
+    {
+      var roundTripped = NativeString.FromNative((nint)ptr);
+      Assert.Equal(expected, roundTripped);
+    }
+    finally
+    {
+      NativeMemory.Free(ptr);
+    }
+  }
 }
