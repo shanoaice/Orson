@@ -1,3 +1,4 @@
+using System.Text;
 using Pacpar.Alpm.Tests.Fixtures;
 
 namespace Pacpar.Alpm.Tests.Unit.Packages;
@@ -73,12 +74,58 @@ public sealed class PackageMetadataTests : IDisposable
     Assert.Contains(body, changelog);
 
     var installed = _environment.Install("pacpar-changelog-installed");
-    Assert.Null(installed.OpenChangelogStream());
     Assert.Null(installed.ReadChangelog());
   }
 
   [Fact]
-  public void OpenChangelogStream_ReadRejectsOutOfRangeBoundsWithoutOverflow()
+  public void TryCopyChangelogTo_CopiesTheRawUtf8Bytes()
+  {
+    const string body = "the changelog body \u00e9";
+
+    var archive = PackageArchive.Create(_environment.PackageDirectory, "pacpar-changelog-copy", changelog: body);
+    using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
+    using var destination = new MemoryStream();
+
+    Assert.True(loaded.TryCopyChangelogTo(destination));
+
+    Assert.Equal(Encoding.UTF8.GetBytes(body), destination.ToArray());
+  }
+
+  [Fact]
+  public void CopyChangelogTo_CopiesTheRawUtf8Bytes()
+  {
+    const string body = "another changelog body";
+
+    var archive = PackageArchive.Create(_environment.PackageDirectory, "pacpar-changelog-copy-direct", changelog: body);
+    using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
+    using var destination = new MemoryStream();
+
+    loaded.CopyChangelogTo(destination);
+
+    Assert.Equal(Encoding.UTF8.GetBytes(body), destination.ToArray());
+  }
+
+  [Fact]
+  public void TryCopyChangelogTo_ReturnsFalseWhenNoChangelog()
+  {
+    var installed = _environment.Install("pacpar-changelog-copy-none");
+    using var destination = new MemoryStream();
+
+    Assert.False(installed.TryCopyChangelogTo(destination));
+    Assert.Empty(destination.ToArray());
+  }
+
+  [Fact]
+  public void CopyChangelogTo_ThrowsWhenNoChangelog()
+  {
+    var installed = _environment.Install("pacpar-changelog-copy-throws");
+    using var destination = new MemoryStream();
+
+    Assert.Throws<InvalidOperationException>(() => installed.CopyChangelogTo(destination));
+  }
+
+  [Fact]
+  public void ChangelogStream_ReadRejectsOutOfRangeBoundsWithoutOverflow()
   {
     var archive = PackageArchive.Create(_environment.PackageDirectory, "pacpar-changelog-bounds", changelog: "body");
     using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);

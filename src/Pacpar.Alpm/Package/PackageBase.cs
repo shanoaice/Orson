@@ -594,12 +594,14 @@ public abstract unsafe partial class PackageBase
   /// Opens a stream for reading the package changelog, or returns <c>null</c> if no changelog is available.
   /// </summary>
   /// <remarks>
-  /// The returned stream owns a native archive handle. Dispose it (or use <see cref="ReadChangelog"/>,
-  /// which does) before the package or its session is released: the stream has no finalizer by design,
-  /// because closing the handle after <c>alpm_release</c> would touch a freed handle, and libalpm is not
-  /// thread-safe. A stream that is never disposed leaks the archive handle until the process exits.
+  /// Internal: the public surface exposes <see cref="ReadChangelog"/> and the copy methods, so no
+  /// caller can hold the native stream after the package or its session is released. The returned
+  /// stream owns a native archive handle. Dispose it before the package or its session is released:
+  /// the stream has no finalizer by design, because closing the handle after <c>alpm_release</c> would
+  /// touch a freed handle, and libalpm is not thread-safe. A stream that is never disposed leaks the
+  /// archive handle until the process exits.
   /// </remarks>
-  public Stream? OpenChangelogStream()
+  internal Stream? OpenChangelogStream()
   {
     var fp = NativeMethods.alpm_pkg_changelog_open(BackingStruct);
     if (fp == null) return null;
@@ -609,6 +611,10 @@ public abstract unsafe partial class PackageBase
   /// <summary>
   /// Reads the complete changelog text as a UTF-8 string, or returns <c>null</c> if none is available.
   /// </summary>
+  /// <remarks>
+  /// The native changelog is decoded from UTF-8 into a .NET string. To copy the original bytes without
+  /// the UTF-8 to UTF-16 conversion, use <see cref="TryCopyChangelogTo"/> or <see cref="CopyChangelogTo"/>.
+  /// </remarks>
   public string? ReadChangelog()
   {
     using var stream = OpenChangelogStream();
@@ -616,6 +622,53 @@ public abstract unsafe partial class PackageBase
 
     using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
     return reader.ReadToEnd();
+  }
+
+  /// <summary>
+  /// Copies the package changelog's raw UTF-8 bytes to <paramref name="destination"/>, or returns
+  /// <c>false</c> if the package has no changelog.
+  /// </summary>
+  /// <param name="destination">The stream that receives the bytes. It is not disposed.</param>
+  /// <returns>
+  /// <c>true</c> if the changelog was copied; <c>false</c> if the package carries no changelog.
+  /// </returns>
+  /// <remarks>
+  /// The bytes are copied without a UTF-8 to UTF-16 to UTF-8 round trip, so the destination receives
+  /// exactly what libalpm stores. The native stream is disposed before this method returns. A
+  /// <c>false</c> result means only that the package has no changelog.
+  /// </remarks>
+  /// <exception cref="ArgumentNullException"><paramref name="destination"/> is <c>null</c>.</exception>
+  /// <exception cref="AlpmException">The changelog could not be opened.</exception>
+  /// <exception cref="AlpmLifetimeException">The package's session has already been released.</exception>
+  public bool TryCopyChangelogTo(Stream destination)
+  {
+    ArgumentNullException.ThrowIfNull(destination);
+    using var stream = OpenChangelogStream();
+    if (stream is null) return false;
+
+    stream.CopyTo(destination);
+    return true;
+  }
+
+  /// <summary>
+  /// Copies the package changelog's raw UTF-8 bytes to <paramref name="destination"/>.
+  /// </summary>
+  /// <param name="destination">The stream that receives the bytes. It is not disposed.</param>
+  /// <remarks>
+  /// Use <see cref="TryCopyChangelogTo"/> when the package may have no changelog. The bytes are copied
+  /// without a UTF-8 to UTF-16 to UTF-8 round trip. The native stream is disposed before this method
+  /// returns.
+  /// </remarks>
+  /// <exception cref="ArgumentNullException"><paramref name="destination"/> is <c>null</c>.</exception>
+  /// <exception cref="InvalidOperationException">The package carries no changelog.</exception>
+  /// <exception cref="AlpmException">The changelog could not be opened.</exception>
+  /// <exception cref="AlpmLifetimeException">The package's session has already been released.</exception>
+  public void CopyChangelogTo(Stream destination)
+  {
+    if (!TryCopyChangelogTo(destination))
+    {
+      throw new InvalidOperationException("The package does not carry a changelog.");
+    }
   }
 
   /// <summary>
