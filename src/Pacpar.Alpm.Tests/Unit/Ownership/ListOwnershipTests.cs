@@ -10,10 +10,11 @@ namespace Pacpar.Alpm.Tests.Unit.Ownership;
 /// </summary>
 /// <remarks>
 /// <see cref="TakeOwned_FreesListAndStrings_RepeatedCallsDoNotGrowTheNativeHeap"/> measures the whole
-/// process' native heap, so it is the one test here that would be disturbed by another test
-/// allocating on that heap at the same time. xUnit runs a class serially, which is what keeps it
-/// alone; the collection it used to declare had no other member and no definition, so it did nothing.
+/// process' native heap. It joins the <c>ProcessWideNativeHeap</c> collection, whose definition
+/// disables parallelization; xUnit runs that collection after the parallel collections finish, so no
+/// other test allocates into the measured window.
 /// </remarks>
+[Collection("ProcessWideNativeHeap")]
 public sealed unsafe class ListOwnershipTests
 {
   [Fact]
