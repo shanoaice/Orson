@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
@@ -71,14 +72,19 @@ internal readonly record struct HazardSite(
 }
 
 /// <summary>The discovered hazard sites, their claimed mechanisms and their verdicts.</summary>
+internal readonly record struct AllowlistEntry(int ExpectedCount, string Mechanism, string Reason);
+
+/// <summary>The discovered hazard sites, their claimed mechanisms and their verdicts.</summary>
 internal sealed class AnchorAuditResult(
   IReadOnlyList<HazardSite> sites,
-  IReadOnlyDictionary<string, string> allowlist,
-  IReadOnlyList<string> staleAllowlistEntries)
+  IReadOnlyDictionary<string, AllowlistEntry> allowlist,
+  IReadOnlyList<string> staleAllowlistEntries,
+  IReadOnlyList<string> countMismatches)
 {
   public IReadOnlyList<HazardSite> Sites { get; } = sites;
-  public IReadOnlyDictionary<string, string> Allowlist { get; } = allowlist;
+  public IReadOnlyDictionary<string, AllowlistEntry> Allowlist { get; } = allowlist;
   public IReadOnlyList<string> StaleAllowlistEntries { get; } = staleAllowlistEntries;
+  public IReadOnlyList<string> CountMismatches { get; } = countMismatches;
 
   public IEnumerable<HazardSite> Unanchored => Sites.Where(s => s.Verdict == AnchorVerdict.Unsafe);
   public IEnumerable<HazardSite> RequiringReview => Sites.Where(s => s.Verdict == AnchorVerdict.NeedsReview);
@@ -128,11 +134,27 @@ internal static class GcAnchorAudit
       }
     }
 
-    var seen = sites.Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
-    var stale = allowlist.Keys
-      .Where(k => !seen.Contains(k) && !seen.Any(s => s.StartsWith(k + ".", StringComparison.Ordinal)))
+    var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+    foreach (var key in allowlist.Keys)
+    {
+      counts[key] = 0;
+    }
+
+    foreach (var site in sites.Where(s => s.Verdict == AnchorVerdict.NeedsReview))
+    {
+      if (MatchingAllowlistKey(allowlist, site) is { } matchedKey)
+      {
+        counts[matchedKey]++;
+      }
+    }
+
+    var stale = counts.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key).ToList();
+    var countMismatches = counts
+      .Where(kvp => kvp.Value > 0 && kvp.Value != allowlist[kvp.Key].ExpectedCount)
+      .Select(kvp => $"{kvp.Key}: expected {allowlist[kvp.Key].ExpectedCount} NeedsReview site(s), found {kvp.Value}")
       .ToList();
-    return new AnchorAuditResult(sites, allowlist, stale);
+
+    return new AnchorAuditResult(sites, allowlist, stale, countMismatches);
   }
 
   private static IEnumerable<MethodBase> GetScannableMethods(Type type) =>
@@ -740,18 +762,27 @@ internal static class GcAnchorAudit
   /// Parses <c>gc-anchor-allowlist.txt</c>. Each line is <c>site | mechanism | reason</c>, where
   /// <c>site</c> is <c>Type</c> or <c>Type.Member</c>. Blank lines and <c>#</c> comments are ignored.
   /// </summary>
-  public static Dictionary<string, string> ParseAllowlist(string text)
+  public static Dictionary<string, AllowlistEntry> ParseAllowlist(string text)
   {
-    var result = new Dictionary<string, string>(StringComparer.Ordinal);
+    var result = new Dictionary<string, AllowlistEntry>(StringComparer.Ordinal);
     foreach (var raw in text.Replace("\r", "").Split('\n'))
     {
       var line = raw.Trim();
       if (line.Length == 0 || line.StartsWith('#')) continue;
-      var parts = line.Split('|', 3);
-      if (parts.Length < 3) continue;
-      result[parts[0].Trim()] = $"{parts[1].Trim()}: {parts[2].Trim()}";
+      var parts = line.Split('|', 4);
+      if (parts.Length < 4) continue;
+      var count = int.Parse(parts[1].Trim(), CultureInfo.InvariantCulture);
+      result[parts[0].Trim()] = new AllowlistEntry(count, parts[2].Trim(), parts[3].Trim());
     }
     return result;
+  }
+
+  public static string? MatchingAllowlistKey(IReadOnlyDictionary<string, AllowlistEntry> allowlist, HazardSite site)
+  {
+    if (allowlist.ContainsKey(site.Key)) return site.Key;
+    if (site.Verdict == AnchorVerdict.Unsafe) return null;
+    int dot = site.Key.IndexOf('.');
+    return dot > 0 && allowlist.ContainsKey(site.Key[..dot]) ? site.Key[..dot] : null;
   }
 
   /// <summary>
@@ -760,7 +791,7 @@ internal static class GcAnchorAudit
   /// NeedsReview: a site that claims no mechanism at all must be named member by member, which
   /// stops a newly added unanchored member from hiding behind its type.
   /// </summary>
-  public static bool IsAllowlisted(IReadOnlyDictionary<string, string> allowlist, HazardSite site)
+  public static bool IsAllowlisted(IReadOnlyDictionary<string, AllowlistEntry> allowlist, HazardSite site)
   {
     if (allowlist.ContainsKey(site.Key)) return true;
     if (site.Verdict == AnchorVerdict.Unsafe) return false;
