@@ -37,7 +37,19 @@ remarks name the ledger entry and the libalpm behaviour that was measured for it
 The host must provide `libalpm`, `pkg-config`, Rust, a C compiler (`cc`, from `gcc` or `clang`), and the .NET SDK.
 
 ```bash
-dotnet test src/Pacpar.Alpm.Tests/Pacpar.Alpm.Tests.csproj
+dotnet test
+```
+
+Or targeting the test project specifically:
+
+```bash
+dotnet test --project src/Pacpar.Alpm.Tests/Pacpar.Alpm.Tests.csproj
+```
+
+Or executing the xUnit v3 test binary directly:
+
+```bash
+./src/Pacpar.Alpm.Tests/bin/Debug/net10.0/Pacpar.Alpm.Tests
 ```
 
 No filter is needed: every test here runs on the host. The ones that touch libalpm do it through
