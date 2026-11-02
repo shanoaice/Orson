@@ -35,9 +35,8 @@
   <Target Name="CompileTestNative"
           Inputs="$(PacparTestNativeSource)"
           Outputs="$(PacparTestNativeOutput)">
-    <MakeDir Directories="$(PacparTestNativeOutDir)" />
-    <Exec Command="&quot;$(PacparTestNativeCc)&quot; -shared -O2 -Wall -Wextra -fPIC -fvisibility=hidden -o &quot;$(PacparTestNativeOutput)&quot; &quot;$(PacparTestNativeSource)&quot;"
-          ConsoleToMsBuild="true" />
+    <MakeDir Directories="$(PacparTestNativeOutDir)"/>
+    <Exec Command="&quot;$(PacparTestNativeCc)&quot; -shared -O2 -Wall -Wextra -fPIC -fvisibility=hidden -o &quot;$(PacparTestNativeOutput)&quot; &quot;$(PacparTestNativeSource)&quot;"/>
   </Target>
 
   <!--
@@ -51,24 +50,21 @@
       <None Include="$(PacparTestNativeOutput)"
             Link="libpacpar_log_shim_test.so"
             CopyToOutputDirectory="PreserveNewest"
-            Visible="false" />
+            Visible="false"/>
     </ItemGroup>
   </Target>
 
   <ItemGroup>
-    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="xunit.v3.mtp-v2" Version="4.0.2" />
+    <PackageReference Include="coverlet.MTP" Version="10.1.0" />
+    <PackageReference Include="xunit.v3.mtp-v2" Version="4.0.2"/>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Pacpar.Alpm\Pacpar.Alpm.csproj" />
+    <ProjectReference Include="..\Pacpar.Alpm\Pacpar.Alpm.csproj"/>
   </ItemGroup>
 
 </Project>
