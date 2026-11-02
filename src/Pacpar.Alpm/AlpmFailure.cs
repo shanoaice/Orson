@@ -1,4 +1,5 @@
 using Pacpar.Alpm.Bindings;
+using Pacpar.Alpm.Interop;
 
 namespace Pacpar.Alpm;
 
@@ -84,18 +85,18 @@ internal sealed class AlpmFailure
     {
       AlpmFailureCode.UnsatisfiedDependencies =>
         new AlpmFailureDetail.MissingDependencies(
-          AlpmOwnedList<DepMissing>.Take(data, &DepMissing.Factory, &Interop.MemoryManagement.DepMissingFreeExtern)),
+          AlpmOwnedList<DepMissing>.Take(data, &DepMissing.Factory, &MemoryManagement.DepMissingFreeExtern)),
       AlpmFailureCode.ConflictingDependencies =>
         new AlpmFailureDetail.ConflictingDependencies(
-          AlpmOwnedList<Conflict>.Take(data, &Conflict.Factory, &Interop.MemoryManagement.ConflictFreeExtern)),
+          AlpmOwnedList<Conflict>.Take(data, &Conflict.Factory, &MemoryManagement.ConflictFreeExtern)),
       AlpmFailureCode.FileConflicts =>
         new AlpmFailureDetail.ConflictingFiles(
-          AlpmOwnedList<FileConflict>.Take(data, &FileConflict.Factory, &Interop.MemoryManagement.FileConflictFreeExtern)),
+          AlpmOwnedList<FileConflict>.Take(data, &FileConflict.Factory, &MemoryManagement.FileConflictFreeExtern)),
       AlpmFailureCode.PackageInvalid
         or AlpmFailureCode.PackageInvalidChecksum
         or AlpmFailureCode.PackageInvalidSignature
         or AlpmFailureCode.PackageInvalidArchitecture =>
-        new AlpmFailureDetail.RejectedPackages(AlpmStringList.TakeOwned(data, &Interop.MemoryManagement.CFreeExtern)),
+        new AlpmFailureDetail.RejectedPackages(AlpmStringList.TakeOwned(data, &MemoryManagement.CFreeExtern)),
       _ => null
     };
 
@@ -170,7 +171,7 @@ internal static class ErrorHandler
   /// <see cref="_alpm_errno_t.ALPM_ERR_OK"/> (there is no error to report).
   /// </summary>
   public static Exception? GetException(_alpm_errno_t errno)
-    => errno == _alpm_errno_t.ALPM_ERR_OK ? null : Create((int)errno, StrError(errno), null);
+    => errno == _alpm_errno_t.ALPM_ERR_OK ? null : Create((int)errno, StrError(errno));
 
   /// <summary>
   /// The <see cref="int"/> overload of <see cref="GetException(_alpm_errno_t)"/>.

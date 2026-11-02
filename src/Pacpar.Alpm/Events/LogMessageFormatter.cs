@@ -1,5 +1,6 @@
 #pragma warning disable SYSLIB1054
 using System.Runtime.InteropServices;
+using Pacpar.Alpm.Interop;
 
 namespace Pacpar.Alpm;
 
@@ -39,7 +40,7 @@ internal static unsafe partial class LogMessageFormatter
     finally
     {
       // vasprintf allocates with malloc, and CFree is libc's free.
-      Interop.MemoryManagement.CFree(buffer);
+      MemoryManagement.CFree(buffer);
     }
   }
 }

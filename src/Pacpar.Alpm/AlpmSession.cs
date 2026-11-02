@@ -289,7 +289,7 @@ public sealed partial class AlpmSession : IDisposable
   /// <param name="level">The signature verification requirements for loading the package.</param>
   /// <returns>A <see cref="LoadedPackage"/> representing the package file.</returns>
   /// <exception cref="AlpmException">Thrown if libalpm fails to load or parse the package archive.</exception>
-  public unsafe LoadedPackage LoadPackage(string filename, bool full, SigLevel level)
+  public LoadedPackage LoadPackage(string filename, bool full, SigLevel level)
   {
     if (!TryLoadPackage(filename, full, level, out var package, out var failure))
     {
@@ -370,7 +370,7 @@ public sealed partial class AlpmSession : IDisposable
   /// node, so a list view taken before this call stays safe to walk - but it cannot see the new
   /// database either, so take a fresh <see cref="GetSyncDatabases"/> afterwards.
   /// </remarks>
-  public unsafe Database RegisterSyncDatabase(string treename, SigLevel level)
+  public Database RegisterSyncDatabase(string treename, SigLevel level)
   {
     if (!TryRegisterSyncDatabase(treename, level, out var database, out var failure))
     {

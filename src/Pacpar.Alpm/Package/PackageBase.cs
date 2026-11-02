@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
+using System.Text;
 using Pacpar.Alpm.Bindings;
+using Pacpar.Alpm.Interop;
+
 namespace Pacpar.Alpm;
 
 /// <summary>
@@ -493,7 +495,7 @@ public abstract unsafe partial class PackageBase
   public IReadOnlyList<string> GetRequiredBy()
   {
     var list = AlpmStringList.TakeOwned(NativeMethods.alpm_pkg_compute_requiredby(BackingStruct),
-      &Interop.MemoryManagement.CFreeExtern);
+      &MemoryManagement.CFreeExtern);
     GC.KeepAlive(this);
     return list;
   }
@@ -504,7 +506,7 @@ public abstract unsafe partial class PackageBase
   public IReadOnlyList<string> GetOptionalFor()
   {
     var list = AlpmStringList.TakeOwned(NativeMethods.alpm_pkg_compute_optionalfor(BackingStruct),
-      &Interop.MemoryManagement.CFreeExtern);
+      &MemoryManagement.CFreeExtern);
     GC.KeepAlive(this);
     return list;
   }
@@ -570,7 +572,7 @@ public abstract unsafe partial class PackageBase
       if (buffer != null)
       {
         _signature = new Span<byte>(buffer, (int)len).ToArray();
-        Interop.MemoryManagement.CFree(buffer);
+        MemoryManagement.CFree(buffer);
       }
 
       _signatureLoaded = true;
@@ -619,7 +621,7 @@ public abstract unsafe partial class PackageBase
     using var stream = OpenChangelogStream();
     if (stream is null) return null;
 
-    using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+    using var reader = new StreamReader(stream, Encoding.UTF8);
     return reader.ReadToEnd();
   }
 

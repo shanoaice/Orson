@@ -8,7 +8,7 @@ public sealed unsafe partial class Database
   /// <summary>
   /// The failure-returning seam for <see cref="Search"/>.
   /// </summary>
-  internal unsafe bool TrySearch(
+  internal bool TrySearch(
     IEnumerable<string> needles,
     [NotNullWhen(true)] out IReadOnlyList<PackageView>? results,
     [NotNullWhen(false)] out AlpmFailure? failure)

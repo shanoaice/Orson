@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
@@ -34,7 +35,7 @@ public sealed unsafe class AlpmOptions
   /// The member that issued the call, so the failure names the option it was setting. Callers pass
   /// nothing; the compiler fills it in.
   /// </param>
-  private void ThrowIfError(int err, [System.Runtime.CompilerServices.CallerMemberName] string? operation = null)
+  private void ThrowIfError(int err, [CallerMemberName] string? operation = null)
   {
     if (err == 0) return;
     GC.KeepAlive(this);
@@ -57,21 +58,21 @@ public sealed unsafe class AlpmOptions
     return val;
   }
 
-  private void Write(delegate* managed<SafeAlpmHandle, int, int> writer, int value, [System.Runtime.CompilerServices.CallerMemberName] string? operation = null)
+  private void Write(delegate* managed<SafeAlpmHandle, int, int> writer, int value, [CallerMemberName] string? operation = null)
   {
     _stamp.ThrowIfStale();
     ThrowIfError(writer(_handle, value), operation);
     GC.KeepAlive(this);
   }
 
-  private void WriteUInt(delegate* managed<SafeAlpmHandle, uint, int> writer, uint value, [System.Runtime.CompilerServices.CallerMemberName] string? operation = null)
+  private void WriteUInt(delegate* managed<SafeAlpmHandle, uint, int> writer, uint value, [CallerMemberName] string? operation = null)
   {
     _stamp.ThrowIfStale();
     ThrowIfError(writer(_handle, value), operation);
     GC.KeepAlive(this);
   }
 
-  private void WriteUShort(delegate* managed<SafeAlpmHandle, ushort, int> writer, ushort value, [System.Runtime.CompilerServices.CallerMemberName] string? operation = null)
+  private void WriteUShort(delegate* managed<SafeAlpmHandle, ushort, int> writer, ushort value, [CallerMemberName] string? operation = null)
   {
     _stamp.ThrowIfStale();
     ThrowIfError(writer(_handle, value), operation);
@@ -89,7 +90,7 @@ public sealed unsafe class AlpmOptions
   /// </para>
   /// </remarks>
   private void SetStringOption(string value, delegate* managed<SafeAlpmHandle, byte*, int> setter,
-    [System.Runtime.CompilerServices.CallerMemberName] string? operation = null)
+    [CallerMemberName] string? operation = null)
   {
     ArgumentNullException.ThrowIfNull(value);
     _stamp.ThrowIfStale();
