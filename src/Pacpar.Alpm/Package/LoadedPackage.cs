@@ -74,6 +74,14 @@ public sealed unsafe class LoadedPackage : PackageBase, IDisposable
     _lifetime.Invalidate("the hand-over to a transaction");
   }
 
+  /// <summary>
+  /// Releases the unmanaged resources used by the <see cref="LoadedPackage"/>.
+  /// </summary>
+  /// <remarks>
+  /// Invalidates the package lifetime token and frees the underlying unmanaged package structure.
+  /// If the package was transferred to a transaction via <see cref="Transaction.AddPackage(LoadedPackage)"/>,
+  /// disposal is a no-op because the transaction assumes ownership.
+  /// </remarks>
   public void Dispose()
   {
     if (Disposed) return;

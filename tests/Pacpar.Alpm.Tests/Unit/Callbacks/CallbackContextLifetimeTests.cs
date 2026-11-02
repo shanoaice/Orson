@@ -53,7 +53,7 @@ public sealed class CallbackContextLifetimeTests
   private static (WeakReference Callback, string Workspace) CreateAlpmWithoutDisposing()
   {
     var environment = new IsolatedAlpmEnvironment();
-    var weak = new WeakReference(environment.AlpmSession.Callback);
+    var weak = new WeakReference(environment.AlpmSession.Callbacks);
 
     // Intentionally not disposed: this exercises SafeAlpmHandle's critical finalizer.
     return (weak, environment.WorkspaceRoot);
@@ -139,7 +139,7 @@ public sealed class CallbackContextLifetimeTests
   {
     using var environment = new IsolatedAlpmEnvironment();
     var alpm = environment.AlpmSession;
-    var callback = alpm.Callback;
+    var callback = alpm.Callbacks;
     callback.LogHandler = (_, _) => { };
 
     alpm.Dispose();
@@ -157,7 +157,7 @@ public sealed class CallbackContextLifetimeTests
   /// </summary>
   private static AlpmCallbacks DisposeAlpmWithAnUnreleasableHandle(AlpmSession alpm)
   {
-    var callback = alpm.Callback;
+    var callback = alpm.Callbacks;
     // Registration is presence-driven: without a handler no thunk is registered and the leaked
     // handle never dereferences the ctx. The log thunk is the one teardown would enter.
     callback.LogHandler = (_, _) => { };
@@ -192,8 +192,8 @@ public sealed class CallbackContextLifetimeTests
   private static (WeakReference Callback, string Workspace) CreateAlpmWithAnUnreleasableHandle()
   {
     var environment = new IsolatedAlpmEnvironment();
-    environment.AlpmSession.Callback.LogHandler = (_, _) => { };
-    var weak = new WeakReference(environment.AlpmSession.Callback);
+    environment.AlpmSession.Callbacks.LogHandler = (_, _) => { };
+    var weak = new WeakReference(environment.AlpmSession.Callbacks);
     _ = environment.AlpmSession.BeginTransaction();
     environment.AlpmSession.CurrentTransaction = null;
 
@@ -238,7 +238,7 @@ public sealed class CallbackContextLifetimeTests
   {
     var environment = new IsolatedAlpmEnvironment();
     var alpm = environment.AlpmSession;
-    var callback = alpm.Callback;
+    var callback = alpm.Callbacks;
     var received = new List<string>();
     callback.LogHandler = (_, message) => received.Add(message);
     _ = alpm.BeginTransaction();

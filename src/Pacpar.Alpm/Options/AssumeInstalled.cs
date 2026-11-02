@@ -7,10 +7,9 @@ namespace Pacpar.Alpm;
 /// <see cref="ICollection{T}"/> of <see cref="Depend"/> snapshots.
 /// </summary>
 /// <remarks>
-/// Unlike the string option lists, libalpm stores its <i>own</i> copy of a dependency: a probe that
-/// added a hand-built struct and then searched the list with <c>alpm_list_find_ptr</c> found a copy
-/// rather than the pointer it passed in. Both directions of the hand-back therefore need care, and
-/// they are not the same operation:
+/// Unlike the string option lists, libalpm stores its <i>own</i> copy of a dependency rather
+/// than retaining the passed-in pointer. Both directions of the hand-back therefore need care,
+/// and they are not the same operation:
 /// <list type="bullet">
 /// <item><description>
 /// <b>Add</b> materialises the snapshot (<see cref="Depend.ToNative"/>) and lets libalpm copy it.

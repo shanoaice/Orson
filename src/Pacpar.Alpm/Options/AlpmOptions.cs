@@ -107,63 +107,109 @@ public sealed unsafe class AlpmOptions
     ThrowIfError(setter(_handle, buffer.Ptr), operation);
   }
 
+  /// <summary>Gets the collection of CPU architectures accepted by the session.</summary>
   public ICollection<string> Architectures { get; }
 
+  /// <summary>Gets the collection of virtual dependencies assumed to already be installed.</summary>
   public ICollection<Depend> AssumeInstalled { get; }
 
+  /// <summary>Gets the collection of package cache directories.</summary>
   public ICollection<string> CacheDirectories { get; }
 
+  /// <summary>Gets the collection of glob patterns specifying files that may be overwritten without conflict.</summary>
   public ICollection<string> OverwritableFiles { get; }
 
+  /// <summary>Gets the collection of directories searched for ALPM hooks.</summary>
   public ICollection<string> HookDirectories { get; }
 
+  /// <summary>Gets the collection of package group names to ignore during system upgrades.</summary>
   public ICollection<string> IgnoreGroups { get; }
 
+  /// <summary>Gets the collection of package names to ignore during system upgrades.</summary>
   public ICollection<string> IgnorePackages { get; }
 
+  /// <summary>Gets the collection of path patterns for files that should not be extracted from packages.</summary>
   public ICollection<string> NoExtract { get; }
 
+  /// <summary>Gets the collection of path patterns for files that should not be upgraded.</summary>
   public ICollection<string> NoUpgrade { get; }
+  /// <summary>Gets or sets a value indicating whether disk space should be checked before transactions.</summary>
   public bool CheckSpace
   {
     get => Read(&NativeMethods.alpm_option_get_checkspace) != 0;
     set => Write(&NativeMethods.alpm_option_set_checkspace, value ? 1 : 0);
   }
 
+  /// <summary>Gets or sets the file extension used for sync database files.</summary>
   public string DatabaseExtension
   {
     get => ReadString(&NativeMethods.alpm_option_get_dbext)!;
     set => SetStringOption(value, &NativeMethods.alpm_option_set_dbext);
   }
 
+  /// <summary>
+  /// Gets the directory path of the local and sync package databases.
+  /// </summary>
+  /// <remarks>
+  /// This path is configured when creating the <see cref="AlpmSession"/>.
+  /// libalpm guarantees this string ends with a directory separator.
+  /// </remarks>
   public string DatabasePath
   {
     get => ReadString(&NativeMethods.alpm_option_get_dbpath)!;
   }
 
+  /// <summary>
+  /// Gets the root filesystem directory for package operations.
+  /// </summary>
+  /// <remarks>
+  /// This path is configured when creating the <see cref="AlpmSession"/>.
+  /// File extractions, scriptlets, and hook executions occur relative to this root path.
+  /// </remarks>
   public string Root
   {
     get => ReadString(&NativeMethods.alpm_option_get_root)!;
   }
 
+  /// <summary>
+  /// Gets or sets the default PGP signature verification policy for databases and packages.
+  /// </summary>
+  /// <remarks>
+  /// Serves as the fallback verification policy when a database or package does not specify its own signature level.
+  /// </remarks>
   public SigLevel DefaultSigLevel
   {
     get => (SigLevel)Read(&NativeMethods.alpm_option_get_default_siglevel);
     set => Write(&NativeMethods.alpm_option_set_default_siglevel, (int)value);
   }
 
+  /// <summary>
+  /// Gets or sets the PGP signature verification policy for local package files.
+  /// </summary>
+  /// <remarks>
+  /// Governs signature checks when loading package archives directly from disk.
+  /// Defaults to or inherits from <see cref="DefaultSigLevel"/> unless overridden.
+  /// </remarks>
   public SigLevel LocalFileSigLevel
   {
     get => (SigLevel)Read(&NativeMethods.alpm_option_get_local_file_siglevel);
     set => Write(&NativeMethods.alpm_option_set_local_file_siglevel, (int)value);
   }
 
+  /// <summary>
+  /// Gets or sets the PGP signature verification policy for remote databases and downloaded packages.
+  /// </summary>
+  /// <remarks>
+  /// Governs signature verification during sync operations and remote package downloads.
+  /// Defaults to or inherits from <see cref="DefaultSigLevel"/> unless overridden.
+  /// </remarks>
   public SigLevel RemoteFileSigLevel
   {
     get => (SigLevel)Read(&NativeMethods.alpm_option_get_remote_file_siglevel);
     set => Write(&NativeMethods.alpm_option_set_remote_file_siglevel, (int)value);
   }
 
+  /// <summary>Gets or sets the maximum number of concurrent package downloads allowed.</summary>
   public int ParallelDownloads
   {
     get => Read(&NativeMethods.alpm_option_get_parallel_downloads);
@@ -184,12 +230,20 @@ public sealed unsafe class AlpmOptions
     set => SetStringOption(value, &NativeMethods.alpm_option_set_logfile);
   }
 
+  /// <summary>Gets or sets a value indicating whether log messages should be copied to syslog.</summary>
   public bool UseSyslog
   {
     get => Read(&NativeMethods.alpm_option_get_usesyslog) != 0;
     set => Write(&NativeMethods.alpm_option_set_usesyslog, value ? 1 : 0);
   }
 
+  /// <summary>
+  /// Gets the filesystem path of the database lockfile.
+  /// </summary>
+  /// <remarks>
+  /// Points to <c>&lt;dbpath&gt;/db.lck</c>.
+  /// A transaction creates this file to prevent concurrent access to the ALPM database.
+  /// </remarks>
   public string Lockfile
   {
     get => ReadString(&NativeMethods.alpm_option_get_lockfile)!;

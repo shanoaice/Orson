@@ -10,10 +10,10 @@ namespace Pacpar.Alpm;
 /// <remarks>
 /// libalpm keeps one errno per handle and does not clear it on success: whether a given entry point
 /// resets it on entry is an implementation detail that varies function by function and is not
-/// documented in <c>alpm.h</c>. Measured against libalpm 16.0.1: <c>alpm_db_get_servers</c> never
-/// touches errno at all, while <c>alpm_db_get_pkgcache</c> clears it in its first statement, and both
-/// succeed. Reading errno after a successful call therefore reports whatever the previous failure
-/// left behind, and reading it after another native call reports that call's state instead.
+/// documented in <c>alpm.h</c>. In libalpm, entry points differ in how they handle errno:
+/// <c>alpm_db_get_servers</c> never touches errno at all, while <c>alpm_db_get_pkgcache</c> clears it
+/// in its first statement, and both succeed. Reading errno after a successful call therefore reports
+/// whatever the previous failure left behind, and reading it after another native call reports that call's state instead.
 /// <para>
 /// Both are avoided by the rule this type exists to enforce: <b>the return value is the only
 /// authority on whether a call failed, and errno is read here, as the first thing that happens after

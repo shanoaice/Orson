@@ -159,9 +159,18 @@ public sealed class DepMissing
       NativeString.FromNative((nint)((_alpm_depmissing_t*)native)->causingpkg),
       ((_alpm_depmissing_t*)native)->depend != null ? new Depend(((_alpm_depmissing_t*)native)->depend) : null);
 
+  /// <summary>
+  /// The dependency requirement that could not be satisfied.
+  /// </summary>
   public Depend? Depend { get; }
 
+  /// <summary>
+  /// The name of the package that caused this dependency to be required, if known.
+  /// </summary>
   public string? CausingPkg { get; }
 
+  /// <summary>
+  /// The target package or resource name that triggered the dependency check.
+  /// </summary>
   public string? Target { get; }
 }

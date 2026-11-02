@@ -27,6 +27,9 @@ public sealed class AlpmStringList : AlpmList<string>
   {
   }
 
+  /// <summary>
+  /// Initializes a new, empty instance of the <see cref="AlpmStringList"/> class.
+  /// </summary>
   public unsafe AlpmStringList() : base(null, &StringFactory, null)
   {
   }

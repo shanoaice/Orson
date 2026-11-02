@@ -11,9 +11,10 @@ namespace Pacpar.Alpm;
 /// it is constructed and keeps no native pointer at all: it stays readable after the owning database is
 /// unregistered, after the handle is released, and while a transaction commits.
 /// <para>
-/// The copy costs what an eager read costs - roughly 27 times a lazy scan of the local database
-/// (measured by the benchmark suite) - which is why it is opt-in per package. Scan through the view,
-/// and snapshot only what has to outlive the scan.
+/// Creating a snapshot eagerly reads all package metadata from disk or database caches,
+/// which is substantially more expensive than iterating a lazy <see cref="PackageView"/>.
+/// Callers should iterate views by default and snapshot only packages that must outlive
+/// the originating database or transaction.
 /// </para>
 /// <para>
 /// Values are captured once. The fields libalpm mutates - <see cref="Reason"/>, <see cref="InstallDate"/>
@@ -64,29 +65,40 @@ public sealed class PackageSnapshot
     if (includeFiles) Files = [.. package.Files];
   }
 
+  /// <summary>Gets the package name.</summary>
   public string Name { get; }
 
+  /// <summary>Gets the package version.</summary>
   public PackageVersion Version { get; }
 
+  /// <summary>Gets the filename of the package archive, or <c>null</c> if not applicable.</summary>
   public string? Filename { get; }
 
+  /// <summary>Gets the package base name, or <c>null</c> if none was specified.</summary>
   public string? Base { get; }
 
+  /// <summary>Gets the description of the package, or <c>null</c> if none was provided.</summary>
   public string? Description { get; }
 
+  /// <summary>Gets the home page URL of the package, or <c>null</c> if not specified.</summary>
   public string? Url { get; }
 
+  /// <summary>Gets the date and time when the package was built.</summary>
   public DateTimeOffset BuildDate { get; }
 
   /// <summary>When the package was installed, or <c>null</c> when it is not installed.</summary>
   public DateTimeOffset? InstallDate { get; }
 
+  /// <summary>Gets the name and contact information of the packager, or <c>null</c> if not specified.</summary>
   public string? Packager { get; }
 
+  /// <summary>Gets the MD5 checksum of the package, or <c>null</c> if none is recorded.</summary>
   public string? Md5Sum { get; }
 
+  /// <summary>Gets the SHA-256 checksum of the package, or <c>null</c> if none is recorded.</summary>
   public string? Sha256Sum { get; }
 
+  /// <summary>Gets the target architecture of the package, or <c>null</c> if not specified.</summary>
   public string? Arch { get; }
 
   /// <summary>The package size in bytes, as libalpm reports it.</summary>
@@ -95,6 +107,7 @@ public sealed class PackageSnapshot
   /// <summary>The installed size in bytes, as libalpm reports it.</summary>
   public long InstalledSize { get; }
 
+  /// <summary>Gets the source or origin of the package.</summary>
   public PackageOrigin Origin { get; }
 
   /// <summary>Why the package is installed; frozen at the moment of the copy.</summary>
@@ -103,18 +116,25 @@ public sealed class PackageSnapshot
   /// <summary>Which validations libalpm had performed; frozen at the moment of the copy.</summary>
   public PackageValidation Validation { get; }
 
+  /// <summary>Gets the list of software licenses covering the package.</summary>
   public IReadOnlyList<string> Licenses { get; }
 
+  /// <summary>Gets the list of package groups this package belongs to.</summary>
   public IReadOnlyList<string> Groups { get; }
 
+  /// <summary>Gets the list of mandatory package dependencies.</summary>
   public IReadOnlyList<Depend> Depends { get; }
 
+  /// <summary>Gets the list of optional package dependencies.</summary>
   public IReadOnlyList<Depend> OptionalDepends { get; }
 
+  /// <summary>Gets the list of packages that conflict with this package.</summary>
   public IReadOnlyList<Depend> Conflicts { get; }
 
+  /// <summary>Gets the list of virtual provisions supplied by this package.</summary>
   public IReadOnlyList<Depend> Provides { get; }
 
+  /// <summary>Gets the list of packages this package replaces.</summary>
   public IReadOnlyList<Depend> Replaces { get; }
 
   /// <summary>The copied backup-file entries, frozen at the moment of the copy.</summary>

@@ -22,7 +22,7 @@ public sealed class FetchPackageUrlTests
     using var environment = new IsolatedAlpmEnvironment();
     var alpm = environment.AlpmSession;
     var seen = new List<string>();
-    alpm.Callback.FetchHandler = (url, _, _) =>
+    alpm.Callbacks.FetchHandler = (url, _, _) =>
     {
       seen.Add(url);
       return FetchResult.Error;
@@ -41,7 +41,7 @@ public sealed class FetchPackageUrlTests
   {
     using var environment = new IsolatedAlpmEnvironment();
     var alpm = environment.AlpmSession;
-    alpm.Callback.FetchHandler = (_, _, _) => FetchResult.Error;
+    alpm.Callbacks.FetchHandler = (_, _, _) => FetchResult.Error;
 
     Assert.ThrowsAny<AlpmException>(() => alpm.FetchPackageUrls([Url, Url]));
   }

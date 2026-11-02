@@ -101,7 +101,6 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
     /// no call site can advance past the guard. A view that only checked on the first step would
     /// read freed memory here: advancing reads the previously visited node's <c>next</c>, which is
     /// exactly the case a same-thread <c>foreach</c> body can trigger by releasing the owner.
-    /// Measured cost is ~8.5ns per element (ADR 0010).
     /// </remarks>
     private _alpm_list_t* Advance()
     {
@@ -131,6 +130,9 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       return true;
     }
 
+    /// <summary>
+    /// Gets the element in the collection at the current position of the enumerator.
+    /// </summary>
     public T Current
     {
       get
@@ -145,6 +147,9 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       }
     }
 
+    /// <summary>
+    /// Advances the enumerator to the next element of the collection.
+    /// </summary>
     public bool MoveNext()
     {
       if (_disposed) throw new ObjectDisposedException(GetType().FullName);
@@ -156,6 +161,9 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       return _current != null; // comparing the pointer value needs no validation
     }
 
+    /// <summary>
+    /// Sets the enumerator to its initial position, which is before the first element in the collection.
+    /// </summary>
     public void Reset()
     {
       if (_disposed) throw new ObjectDisposedException(GetType().FullName);
@@ -163,6 +171,9 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       _started = false;
     }
 
+    /// <summary>
+    /// Releases all resources used by the <see cref="Enumerator"/>.
+    /// </summary>
     public void Dispose()
     {
       _disposed = true;
@@ -171,6 +182,9 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
     object IEnumerator.Current => Current!;
   }
 
+  /// <summary>
+  /// Returns an enumerator that iterates through the <see cref="AlpmList{T}"/>.
+  /// </summary>
   public Enumerator GetEnumerator()
   {
     Lifetime?.ThrowIfStale();

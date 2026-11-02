@@ -93,6 +93,16 @@ public enum TransactionFlags : uint
   NoLock = 131072,
 }
 
+/// <summary>
+/// Represents an active package transaction within an <see cref="AlpmSession"/>.
+/// </summary>
+/// <remarks>
+/// A transaction modifies local packages and databases in atomic phases.
+/// Only one transaction can exist per session at any time.
+/// The lifecycle consists of adding operations, calling <see cref="Prepare"/>, and calling <see cref="Commit"/>.
+/// Acquires the database lock unless <see cref="TransactionFlags.NoLock"/> is configured.
+/// Disposing the transaction releases the lock and native transaction memory.
+/// </remarks>
 public sealed partial class Transaction : IDisposable
 {
   private enum CompletionState : byte
@@ -172,8 +182,7 @@ public sealed partial class Transaction : IDisposable
   /// Prepares the transaction: the dependency, conflict and architecture checks.
   /// </summary>
   /// <remarks>
-  /// A successful call has nothing to report - libalpm leaves the list it dumps into the output
-  /// parameter empty (measured), which is why this method answers <c>void</c>. A failure is reported
+  /// A successful call returns normally without diagnostics. A failure is reported
   /// as the <see cref="AlpmTransactionException"/> case that matches the errno, carrying the payload
   /// as a managed snapshot; the native list is freed at the same moment, with the element destructor
   /// the errno requires.
@@ -273,8 +282,7 @@ public sealed partial class Transaction : IDisposable
   /// Commits the transaction.
   /// </summary>
   /// <remarks>
-  /// A successful commit has nothing to report - libalpm leaves the output parameter empty
-  /// (measured), which is why this method answers <c>void</c>. A failure is reported as the
+  /// A successful commit returns normally without diagnostics. A failure is reported as the
   /// <see cref="AlpmTransactionException"/> case that matches the errno: conflicting files, or a list
   /// of package names, depending on the errno. The native list is freed at the same moment, with the
   /// element destructor that errno requires.

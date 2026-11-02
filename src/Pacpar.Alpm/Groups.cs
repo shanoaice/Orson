@@ -35,6 +35,9 @@ public sealed class Group
   }
 
   // ReSharper disable once MemberCanBePrivate.Global
+  /// <summary>
+  /// The name of the package group.
+  /// </summary>
   public string Name { get; }
 
   /// <summary>

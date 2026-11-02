@@ -17,11 +17,12 @@ namespace Pacpar.Alpm;
 /// <para>
 /// That equality is a different relation from <see cref="CompareTo(PackageVersion)"/> returning 0,
 /// and the two cannot be made to agree. <c>alpm_pkg_vercmp</c> skips the package release when
-/// either side omits it, and it compares numeric segments numerically - probed against libalpm
-/// 16.0.1, <c>"1.0"</c> compares equal to <c>"1.0-1"</c> and to <c>"1.0-2"</c>, while
-/// <c>"1.0-1"</c> and <c>"1.0-2"</c> do not compare equal to each other. A relation that behaves
-/// that way is not transitive, so it cannot back equality or a hash code. Equality compares the
-/// text; <see cref="CompareTo(PackageVersion)"/> answers a question about ordering only.
+/// either side omits it, and compares numeric segments numerically. For example,
+/// <c>"1.0"</c> compares equal to both <c>"1.0-1"</c> and <c>"1.0-2"</c>, while
+/// <c>"1.0-1"</c> and <c>"1.0-2"</c> do not compare equal to each other. Because this comparison
+/// is not transitive, it cannot satisfy the requirements of equality or hash codes.
+/// <see cref="Equals(PackageVersion)"/> compares the version text, whereas
+/// <see cref="CompareTo(PackageVersion)"/> provides version ordering.
 /// </para>
 /// </remarks>
 public sealed class PackageVersion : IComparable<PackageVersion>, IEquatable<PackageVersion>

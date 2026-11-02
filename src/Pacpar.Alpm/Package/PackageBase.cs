@@ -513,6 +513,9 @@ public abstract unsafe partial class PackageBase
 
   private bool _base64SignatureLoaded;
 
+  /// <summary>
+  /// Gets the base64-encoded PGP signature of the package, or <c>null</c> if none is present.
+  /// </summary>
   public string? Base64Signature
   {
     get
@@ -527,6 +530,9 @@ public abstract unsafe partial class PackageBase
     }
   }
 
+  /// <summary>
+  /// Gets a value indicating whether the package contains an install or upgrade scriptlet.
+  /// </summary>
   public bool HasScriptlet
   {
     get

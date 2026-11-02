@@ -161,10 +161,9 @@ public class AlpmTransactionException(int errno, string? strError = null, string
   /// (<c>ALPM_ERR_PKG_INVALID_ARCH</c>).
   /// </summary>
   /// <remarks>
-  /// The strings are libalpm's own rendering of the offending packages -
-  /// <c>pkgname-pkgver-pkgarch</c>, measured with an architecture-restricted handle and two
-  /// foreign-architecture packages - and not the file names they were loaded from, so a caller cannot
-  /// map them back to the path it passed to <c>alpm_pkg_load</c>.
+  /// The strings are libalpm's own rendering of the offending packages (<c>pkgname-pkgver-pkgarch</c>)
+  /// rather than the archive filenames or paths passed to <see cref="AlpmSession.LoadPackage"/>,
+  /// so callers cannot map them back to input file paths.
   /// </remarks>
   public sealed class InvalidPackageArchitecture(IReadOnlyList<string> packages, string? context = null)
     : AlpmTransactionException((int)_alpm_errno_t.ALPM_ERR_PKG_INVALID_ARCH, context: context)

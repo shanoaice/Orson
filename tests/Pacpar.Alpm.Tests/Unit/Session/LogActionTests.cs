@@ -86,7 +86,7 @@ public sealed class LogActionTests : IDisposable
     using (environment)
     {
       var logged = new List<string>();
-      alpm.Callback.LogHandler = (_, message) => logged.Add(message);
+      alpm.Callbacks.LogHandler = (_, message) => logged.Add(message);
 
       alpm.LogAction("PACPAR", "this must not reach the callback");
 

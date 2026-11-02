@@ -10,7 +10,7 @@ public sealed class FetchFallbackTests
     using var env = new IsolatedAlpmEnvironment();
 
     var events = new List<AlpmEvent>();
-    env.AlpmSession.Callback.EventHandler = events.Add;
+    env.AlpmSession.Callbacks.EventHandler = events.Add;
 
     Assert.ThrowsAny<AlpmException>(() =>
       env.AlpmSession.FetchPackageUrls(["http://127.0.0.1:1/x-1.0-1-x86_64.pkg.tar.zst"]));

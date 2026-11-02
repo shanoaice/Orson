@@ -30,7 +30,7 @@ public sealed class CallbackRegistrationTests
     using var env = new IsolatedAlpmEnvironment();
     var handle = env.AlpmSession.Handle;
 
-    var cb = env.AlpmSession.Callback;
+    var cb = env.AlpmSession.Callbacks;
 
     // Assert.Null and Assert.NotNull cannot be used on unmanaged function pointers (delegate*).
 #pragma warning disable xUnit2024
@@ -81,7 +81,7 @@ public sealed class CallbackRegistrationTests
 
     using (var environment = new IsolatedAlpmEnvironment())
     {
-      var callback = environment.AlpmSession.Callback;
+      var callback = environment.AlpmSession.Callbacks;
       callback.HandlerException = observed.Add;
       callback.LogHandler = (_, _) =>
       {
@@ -96,7 +96,7 @@ public sealed class CallbackRegistrationTests
   public void DisposedHandle_ThrowsObjectDisposedException_WhenMutatingHandler()
   {
     var environment = new IsolatedAlpmEnvironment();
-    var callback = environment.AlpmSession.Callback;
+    var callback = environment.AlpmSession.Callbacks;
     environment.Dispose();
 
     Assert.Throws<ObjectDisposedException>(() => callback.EventHandler = _ => { });
@@ -112,7 +112,7 @@ public sealed class CallbackRegistrationTests
   {
     using var environment = new IsolatedAlpmEnvironment();
     var alpm = environment.AlpmSession;
-    var callback = alpm.Callback;
+    var callback = alpm.Callbacks;
     _ = alpm.BeginTransaction();
     alpm.CurrentTransaction = null; // hide transaction so alpm_release fails
     alpm.Dispose(); // alpm_release fails; _detached remains false, but root lifetime is invalidated

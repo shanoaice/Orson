@@ -29,6 +29,9 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
     _lifetime = lifetime?.Capture();
   }
 
+  /// <summary>
+  /// Gets the number of files in the file list.
+  /// </summary>
   public int Count
   {
     get
@@ -100,21 +103,36 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
   {
     private int _index = -1;
 
+    /// <summary>
+    /// Gets the <see cref="PackageFile"/> at the current position of the enumerator.
+    /// </summary>
     public PackageFile Current => _index < 0 || _index >= fileList.Count
       ? throw new InvalidOperationException()
       : fileList[_index];
 
     object IEnumerator.Current => Current;
 
+    /// <summary>
+    /// Advances the enumerator to the next <see cref="PackageFile"/> in the file list.
+    /// </summary>
     public bool MoveNext() => ++_index < fileList.Count;
 
+    /// <summary>
+    /// Sets the enumerator to its initial position, which is before the first element in the file list.
+    /// </summary>
     public void Reset() => _index = -1;
 
+    /// <summary>
+    /// Releases all resources used by the <see cref="Enumerator"/>.
+    /// </summary>
     public void Dispose()
     {
     }
   }
 
+  /// <summary>
+  /// Returns an enumerator that iterates through the <see cref="FileList"/>.
+  /// </summary>
   public Enumerator GetEnumerator()
   {
     _lifetime?.ThrowIfStale();

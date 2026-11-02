@@ -2,12 +2,10 @@
 items:
 - name: Core
   items:
-  - name: Alpm
-    uid: Pacpar.Alpm.Alpm
+  - name: AlpmSession
+    uid: Pacpar.Alpm.AlpmSession
   - name: AlpmOptions
     uid: Pacpar.Alpm.AlpmOptions
-  - name: AlpmBindingConfig
-    uid: Pacpar.Alpm.AlpmBindingConfig
 
 - name: Databases
   items:

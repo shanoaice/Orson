@@ -31,13 +31,9 @@ public enum Capability : uint
 /// </summary>
 /// <remarks>
 /// libalpm is not thread-safe, so a session, the databases and transactions that hang off it, and
-/// every view they issue belong to one thread at a time. This is the one place the contract is
-/// stated; the rest of the library assumes it. Concurrent work belongs on other threads that hand
-/// results back to the session's thread, and anything that must cross a thread boundary is copied
-/// out with <see cref="PackageBase.ToSnapshot"/> first. The two places where the thread model is
-/// spelled out again are where libalpm crosses back into consumer code:
-/// <see cref="AlpmCallbacks"/> handlers and the questions raised through
-/// <see cref="AlpmCallbacks.QuestionHandler"/>.
+/// every view they issue belong to one thread at a time. The rest of the library assumes this contract, and if you violates it, bad things WILL happen. Concurrent work belongs on other threads that hand
+/// results back to the session's thread, and anything that must cross a thread boundary should be copied
+/// out with <see cref="PackageBase.ToSnapshot"/> first.
 /// </remarks>
 public sealed partial class AlpmSession : IDisposable
 {
@@ -58,7 +54,7 @@ public sealed partial class AlpmSession : IDisposable
     _lifetime = RootLifetime.Create(this, "the ALPM handle");
     _handle.OwnDomain(_lifetime);
     Options = new AlpmOptions(_handle, _lifetime);
-    Callback = new AlpmCallbacks(_handle, _lifetime);
+    Callbacks = new AlpmCallbacks(_handle, _lifetime);
   }
 
   private static SafeAlpmHandle InitializeOrThrow(string root, string dbpath)
@@ -151,12 +147,7 @@ public sealed partial class AlpmSession : IDisposable
   /// <summary>
   /// Exposes properties to configure libalpm callbacks on demand.
   /// </summary>
-  /// <remarks>
-  /// The property stays singular because it holds one configuration object, the way
-  /// <see cref="Options"/> does; the type carries the <c>Alpm</c> prefix and the plural, since
-  /// what it groups is a set of callbacks.
-  /// </remarks>
-  public AlpmCallbacks Callback
+  public AlpmCallbacks Callbacks
   {
     get
     {
@@ -227,14 +218,9 @@ public sealed partial class AlpmSession : IDisposable
   /// The handle's current errno, as reported by libalpm.
   /// </summary>
   /// <remarks>
-  /// Read from the handle itself (<c>alpm_errno(handle)</c>). The out-parameter of
-  /// <c>alpm_initialize</c> is a different value: libalpm writes it only when initialization fails,
-  /// so using it here reported <c>ALPM_ERR_OK</c> for the entire lifetime of a healthy handle.
-  /// </remarks>
-  /// <remarks>
   /// The value is libalpm's own numbering; consult <c>alpm.h</c>. It carries no stability promise of
   /// its own - match on the exception hierarchy, and use this only to distinguish or report a case
-  /// the hierarchy deliberately collapses.
+  /// the hierarchy collapsed.
   /// </remarks>
   public int Errno
   {
@@ -251,12 +237,13 @@ public sealed partial class AlpmSession : IDisposable
   /// Gets the textual description of the last error reported by libalpm on this handle.
   /// </summary>
   /// <returns>
-  /// A string describing the current error. Measured against libalpm 16.0.1: <c>alpm_strerror</c>
-  /// answers every code it has no entry for with <c>"unexpected error"</c>, and the ok code is one
-  /// of those, so a healthy handle reads <c>"unexpected error"</c> rather than <c>null</c>. To ask
-  /// whether there is an error at all, read <see cref="Errno"/> or call
-  /// <see cref="GetCurrentError"/>, which answers <c>null</c> when there is none.
+  /// A string describing the current error.
   /// </returns>
+  /// <remarks>
+  /// Libalpm returns "unexpected error" for a healthy handle because errno 0 is
+  /// out of the mapping range. To ask whether there is an error at all, read <see cref="Errno"/>
+  ///  or call <see cref="GetCurrentError"/>, which answers <c>null</c> when there is none.
+  /// </remarks>
   public unsafe string? GetCurrentErrorString()
   {
     ThrowIfDisposed();
@@ -559,6 +546,14 @@ public sealed partial class AlpmSession : IDisposable
     _localDatabaseLifetime = null;
   }
 
+  /// <summary>
+  /// Releases all unmanaged resources used by the <see cref="AlpmSession"/> and invalidates associated handles.
+  /// </summary>
+  /// <remarks>
+  /// Disposes any active transaction before releasing the native handle.
+  /// Invalidates the root lifetime token to invalidate all derived child views and package objects.
+  /// Frees all undisposed file-loaded packages tracked by this session.
+  /// </remarks>
   public void Dispose()
   {
     Dispose(true);
@@ -588,7 +583,7 @@ public sealed partial class AlpmSession : IDisposable
     // dispose the callback context GCHandle.
     if (_handle.ReleaseSucceeded)
     {
-      Callback.Dispose();
+      Callbacks.Dispose();
     }
 
     Volatile.Write(ref _disposedFlag, 1);
