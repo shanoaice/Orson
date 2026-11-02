@@ -44,13 +44,7 @@ public sealed partial class AlpmSession : IDisposable
   // opaque handle to libalpm wrapped in a SafeHandle
   private readonly SafeAlpmHandle _handle;
 
-  // Registry tracking file-loaded packages for session-scoped cleanup. The lock is defensive rather
-  // than a promise: this list belongs to the session's thread like everything else (see the class
-  // remarks), and under concurrent use libalpm's own state would break first. It is cheap - the
-  // sweep and the load/unload paths, never a per-element read - so it stays. The lifetime domains
-  // take the other route and are deliberately unsynchronized; see the registry note on Lifetime.
-  private readonly List<nint> _loadedPackages = [];
-  private readonly Lock _loadedPackagesLock = new();
+  private readonly LoadedPackageRegistry _loadedPackages = new();
 
   private readonly RootLifetime _lifetime;
   private ChildLifetime? _localDatabaseLifetime;
@@ -565,20 +559,6 @@ public sealed partial class AlpmSession : IDisposable
     _localDatabaseLifetime = null;
   }
 
-  internal unsafe void UnregisterLoadedPackage(_alpm_pkg_t* pkg, bool freeNative)
-  {
-    bool wasTracked;
-    lock (_loadedPackagesLock)
-    {
-      wasTracked = _loadedPackages.Remove((nint)pkg);
-    }
-
-    if (wasTracked && freeNative)
-    {
-      NativeMethods.alpm_pkg_free(pkg);
-    }
-  }
-
   public void Dispose()
   {
     Dispose(true);
@@ -599,15 +579,7 @@ public sealed partial class AlpmSession : IDisposable
     _localDatabaseLifetime = null;
 
     // Free any undisposed file-loaded packages from this session
-    lock (_loadedPackagesLock)
-    {
-      foreach (var ptr in _loadedPackages)
-      {
-        NativeMethods.alpm_pkg_free((_alpm_pkg_t*)ptr);
-      }
-
-      _loadedPackages.Clear();
-    }
+    _loadedPackages.Dispose();
 
     // Release the native library handle. SafeAlpmHandle.ReleaseHandle calls alpm_release.
     _handle.Dispose();

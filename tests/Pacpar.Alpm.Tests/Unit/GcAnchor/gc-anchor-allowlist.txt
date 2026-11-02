@@ -57,7 +57,8 @@ PackageVersion.CompareTo | 1 | owns no native memory | The type holds only a man
 PackageView | 10 | delegated to caller | Factory(void*, Lifetime?) receives the package pointer as a parameter. The constructor only stores the pointer and the token; it dereferences nothing, so the caller's view keeps both alive.
 Transaction | 1 | token-carrying construction | AddPackage builds PackageView from the transaction's own non-nullable Lifetime, which is a child of the handle's root token. The view therefore roots the handle that owns the package memory for as long as the caller holds the view.
 
-AlpmSession.UnregisterLoadedPackage | 1 | delegated to caller | the native pointer is a method parameter: the anchoring obligation belongs to the call site
+LoadedPackageRegistry.Unregister | 1 | delegated to caller | the native pointer is a method parameter: the anchoring obligation belongs to the call site
+LoadedPackageRegistry.Dispose | 1 | receiver on stack | The registry holds the raw pointers and disposes them in a sweep when the owning AlpmSession is disposed before releasing the native handle.
 
 AlpmSession.get_Version | 1 | static library call | alpm_version takes no handle and returns a static string pointer valid for the process lifetime.
 

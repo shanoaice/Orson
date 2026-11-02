@@ -30,13 +30,13 @@ namespace Pacpar.Alpm;
 /// </remarks>
 public sealed unsafe class LoadedPackage : PackageBase, IDisposable
 {
-  private readonly AlpmSession _alpm;
+  private readonly LoadedPackageRegistry _registry;
   private readonly ChildLifetime _lifetime;
   private nint _rawPackage;
 
-  internal LoadedPackage(AlpmSession alpm, _alpm_pkg_t* backingStruct, ChildLifetime lifetime) : base(backingStruct)
+  internal LoadedPackage(LoadedPackageRegistry registry, _alpm_pkg_t* backingStruct, ChildLifetime lifetime) : base(backingStruct)
   {
-    _alpm = alpm ?? throw new ArgumentNullException(nameof(alpm));
+    _registry = registry ?? throw new ArgumentNullException(nameof(registry));
     _rawPackage = (nint)backingStruct;
     _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
     Lifetime = _lifetime.Capture();
@@ -70,7 +70,7 @@ public sealed unsafe class LoadedPackage : PackageBase, IDisposable
     var pkg = (_alpm_pkg_t*)Interlocked.Exchange(ref _rawPackage, 0);
     if (pkg == null) return;
     Disposed = true;
-    _alpm.UnregisterLoadedPackage(pkg, freeNative: false);
+    _registry.Unregister(pkg, freeNative: false);
     _lifetime.Invalidate("the hand-over to a transaction");
   }
 
@@ -81,6 +81,6 @@ public sealed unsafe class LoadedPackage : PackageBase, IDisposable
     var pkg = (_alpm_pkg_t*)Interlocked.Exchange(ref _rawPackage, 0);
     if (pkg == null) return;
     _lifetime.Invalidate("LoadedPackage.Dispose()");
-    _alpm.UnregisterLoadedPackage(pkg, freeNative: true);
+    _registry.Unregister(pkg, freeNative: true);
   }
 }

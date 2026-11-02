@@ -53,13 +53,10 @@ public sealed partial class AlpmSession
       return false;
     }
 
-    lock (_loadedPackagesLock)
-    {
-      _loadedPackages.Add((nint)rawPkg);
-    }
+    _loadedPackages.Register(rawPkg);
 
     var pkgLifetime = _lifetime.CreateChild("a loaded package");
-    package = new LoadedPackage(this, rawPkg, pkgLifetime);
+    package = new LoadedPackage(_loadedPackages, rawPkg, pkgLifetime);
     failure = null;
     return true;
   }
