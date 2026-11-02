@@ -1,6 +1,6 @@
 using Pacpar.Alpm.Bindings;
 
-namespace Pacpar.Alpm.List;
+namespace Pacpar.Alpm;
 
 /// <summary>
 /// Read-only view over an <c>alpm_list_t</c> of C strings.

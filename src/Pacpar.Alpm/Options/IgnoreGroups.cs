@@ -1,6 +1,6 @@
 using Pacpar.Alpm.Bindings;
 
-namespace Pacpar.Alpm.Options;
+namespace Pacpar.Alpm;
 
 internal sealed unsafe class IgnoreGroups(SafeAlpmHandle handle, Lifetime lifetime)
   : AlpmStringOptionList(handle, lifetime)

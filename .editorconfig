@@ -13,3 +13,7 @@ insert_final_newline = true
 
 [*.md]
 trim_trailing_whitespace = false
+
+[*.cs]
+# Allow namespaces to decouple from physical folder structure (folders organize files, namespaces organize public API)
+dotnet_diagnostic.IDE0130.severity = none

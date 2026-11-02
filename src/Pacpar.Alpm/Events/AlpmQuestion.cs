@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Pacpar.Alpm.Bindings;
-using Pacpar.Alpm.List;
 
 namespace Pacpar.Alpm;
 

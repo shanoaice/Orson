@@ -1,9 +1,8 @@
 using System.Collections;
 using System.Runtime.InteropServices;
 using Pacpar.Alpm.Bindings;
-using Pacpar.Alpm.List;
 
-namespace Pacpar.Alpm.Options;
+namespace Pacpar.Alpm;
 
 /// <summary>
 /// Template for the <see cref="AlpmOptions"/> properties that libalpm exposes as an

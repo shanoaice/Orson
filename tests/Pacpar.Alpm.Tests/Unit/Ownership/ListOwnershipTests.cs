@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
 using Pacpar.Alpm.Bindings;
 using Pacpar.Alpm.Interop;
-using Pacpar.Alpm.List;
 
 namespace Pacpar.Alpm.Tests.Unit.Ownership;
 

@@ -220,11 +220,11 @@ items:
 - name: Collections
   items:
   - name: AlpmList<T>
-    uid: Pacpar.Alpm.List.AlpmList`1
+    uid: Pacpar.Alpm.AlpmList`1
   - name: AlpmList<T>.Enumerator
-    uid: Pacpar.Alpm.List.AlpmList`1.Enumerator
+    uid: Pacpar.Alpm.AlpmList`1.Enumerator
   - name: AlpmStringList
-    uid: Pacpar.Alpm.List.AlpmStringList
+    uid: Pacpar.Alpm.AlpmStringList
 
 - name: Low-Level Bindings
   items:

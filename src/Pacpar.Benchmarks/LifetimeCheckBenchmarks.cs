@@ -1,7 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using Pacpar.Alpm;
-using Pacpar.Alpm.List;
 
 namespace Pacpar.Benchmarks;
 

@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Pacpar.Alpm.List;
 using Pacpar.Alpm.Tests.Fixtures;
 
 namespace Pacpar.Alpm.Tests.Unit.ObjectLifetime;

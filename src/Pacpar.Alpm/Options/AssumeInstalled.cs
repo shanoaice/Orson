@@ -1,7 +1,6 @@
 using Pacpar.Alpm.Bindings;
-using Pacpar.Alpm.List;
 
-namespace Pacpar.Alpm.Options;
+namespace Pacpar.Alpm;
 
 /// <summary>
 /// <c>alpm_option_get_assumeinstalled</c> and its add/remove pair, as an

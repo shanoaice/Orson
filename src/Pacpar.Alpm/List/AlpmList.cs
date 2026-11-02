@@ -2,7 +2,7 @@ using System.Collections;
 using System.Runtime.InteropServices;
 using Pacpar.Alpm.Bindings;
 
-namespace Pacpar.Alpm.List;
+namespace Pacpar.Alpm;
 
 /// <summary>
 /// Read-only view over an <c>alpm_list_t</c>.
