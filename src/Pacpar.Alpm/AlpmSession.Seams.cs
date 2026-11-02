@@ -4,7 +4,7 @@ using Pacpar.Alpm.List;
 
 namespace Pacpar.Alpm;
 
-public partial class AlpmSession
+public sealed partial class AlpmSession
 {
   /// <summary>
   /// The failure-returning seam for creating an <see cref="AlpmSession"/> session.

@@ -40,7 +40,7 @@ public enum Capability : uint
 /// <see cref="AlpmCallbacks"/> handlers and the questions raised through
 /// <see cref="AlpmCallbacks.QuestionHandler"/>.
 /// </remarks>
-public partial class AlpmSession : IDisposable
+public sealed partial class AlpmSession : IDisposable
 {
   // opaque handle to libalpm wrapped in a SafeHandle
   private readonly SafeAlpmHandle _handle;
@@ -586,7 +586,7 @@ public partial class AlpmSession : IDisposable
     GC.SuppressFinalize(this);
   }
 
-  protected virtual unsafe void Dispose(bool disposing)
+  private unsafe void Dispose(bool disposing)
   {
     if (Interlocked.CompareExchange(ref _disposeStarted, 1, 0) != 0) return;
 
