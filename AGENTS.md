@@ -28,7 +28,7 @@ When Rider MCP is absent, use standard `dotnet` CLI tools and SharpLens instead.
 
 ## Documentation Lifecycle
 
-- `docs/adr/` holds intermediate ADRs: one decision per file. They may overlap or contradict in-flight siblings; when that happens, ask.
+- `docs/adr/` holds intermediate ADRs.
 - When the work stabilizes, revise, compact, and merge the related ADRs into the matching `docfx/` chapter, then supersede or remove the originals.
 
 ## Output Style
@@ -36,3 +36,9 @@ When Rider MCP is absent, use standard `dotnet` CLI tools and SharpLens instead.
 - 中文：尽量遵循受控中文技术写作的风格，使用适当长度的句子、主动语态、结论先行、适当分句，避免生硬翻译腔或过于凝练的词汇，禁用空泛词。
 - English: Follow ASD-STE100 where possible. Active voice, one instruction per sentence. Use less than 20 words per sentence.
 - 代码、命令和 API 名称一律保持原样。觉得冗长时只提建议，不要自行改动。清晰优先，不为简洁牺牲准确性。
+
+## Code Style
+
+- Never write tests for contract that should be enforced by compilers and conventions.
+- Write XML documentation (`///`) from the consumer's perspective. NEVER include agent investigation notes, design debates, test setups, or probe narratives (e.g., "tested against", "probed with", "(measured)").
+- When documenting non-obvious upstream behavior or quirks, state the facts, constraints, and counterexamples directly without referencing internal tests or benchmark measurements.
