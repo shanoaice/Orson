@@ -555,7 +555,7 @@ The F# API separates three outcomes that must not be collapsed into one error ch
 
 `Pacpar.Alpm` provides an internal, failure-returning core to this project through `InternalsVisibleTo`. That core preserves the native contract at one place: it reads the handle error immediately after the call, distinguishes empty values from failures, and consumes payload-bearing transaction lists with the correct element destructor. It returns typed managed failure values to F#; F# maps them to operation-specific public discriminated unions. The public F# surface therefore exposes neither raw pointers nor generated `_alpm_errno_t` values.
 
-The existing C# facade remains exception-based and delegates to the same core. It is not necessary for F# to catch those exceptions on ordinary expected failure paths. Unknown but valid libalpm errnos map to a generic ALPM operation failure so a newer libalpm remains representable; `ALPM_ERR_MEMORY` remains a thrown out-of-memory condition. See [ADR 0002](../../docs/adr/0002-fsharp-error-boundary.md) and [ADR 0003](../../docs/adr/0003-stable-failure-codes-for-fsharp.md) for the trade-offs.
+The existing C# facade remains exception-based and delegates to the same core. It is not necessary for F# to catch those exceptions on ordinary expected failure paths. Unknown but valid libalpm errnos map to a generic ALPM operation failure so a newer libalpm remains representable; `ALPM_ERR_MEMORY` remains a thrown out-of-memory condition. See [ADR 0001](../../docs/adr/0001-fsharp-interop-boundary-and-try-seam.md) for the trade-offs.
 
 ## 9. C# Support for the F# Boundary
 

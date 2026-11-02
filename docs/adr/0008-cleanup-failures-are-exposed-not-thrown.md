@@ -20,3 +20,8 @@ conflates two sources, it may never have been registered, and teardown is when i
 **Consequences.** `Dispose` stays silent by contract, so "did the lock actually get released?" becomes
 an explicit question the caller (or bracket) has to ask rather than something inferred from the
 absence of an exception.
+
+## See also
+
+- [ADR 0001: F# interop boundary and Try seam](./0001-fsharp-interop-boundary-and-try-seam.md)
+- [ADR 0007: Native errno capture and exception mapping](./0007-native-errno-and-exception-contract.md)

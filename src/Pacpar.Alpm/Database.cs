@@ -9,7 +9,7 @@ namespace Pacpar.Alpm;
 /// </summary>
 /// <remarks>
 /// A projection of libalpm's own <c>alpm_db_usage_t</c> bit values, so the numbering is libalpm's
-/// and there is no zero member: libalpm defines none. ADR 0014.
+/// and there is no zero member: libalpm defines none. ADR 0019.
 /// </remarks>
 [Flags]
 public enum DatabaseUsage : uint
@@ -205,7 +205,7 @@ public sealed unsafe partial class Database
   /// property for the opposite reason - <c>alpm_db_get_servers</c> hands back a list libalpm already
   /// holds and does no work. Later calls answer from the populated cache and are cheap, but the
   /// shape has to price the first one, and a property that occasionally costs a full parse is a
-  /// silent lie about what <c>db.PackageCache.Count</c> does.
+  /// silent lie about what <c>db.PackageCache.Count</c> does. ADR 0018.
   /// <para>
   /// A <c>null</c> native cache with an ok errno is a legitimately empty cache and yields an empty
   /// view; a non-ok errno means loading the cache failed and is thrown. That rule is sound here and

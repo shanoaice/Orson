@@ -54,7 +54,7 @@ public sealed unsafe partial class Database
   /// <returns><c>true</c> when the cache was read.</returns>
   /// <remarks>
   /// The first of the seam's two shapes: an entry point libalpm resets <c>pm_errno</c> in, so the
-  /// handle's errno after the call is this call's own and no return value says failure (ADR 0012).
+  /// handle's errno after the call is this call's own and no return value says failure (ADR 0007).
   /// An ok errno means "empty cache", not "no failure to report".
   /// </remarks>
   internal bool TryLoadPackageCache([NotNullWhen(true)] out AlpmList<PackageView>? cache,

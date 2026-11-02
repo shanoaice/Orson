@@ -9,7 +9,7 @@ namespace Pacpar.Alpm;
 /// package loading all consume this enum, which is why it has a file of its own (ADR 0014).
 /// <para>
 /// The type name stays singular and close to the native typedef; the member names drop the
-/// <c>AlpmSig</c> prefix, and each member records the constant it projects. ADR 0014.
+/// <c>AlpmSig</c> prefix, and each member records the constant it projects. ADR 0019.
 /// </para>
 /// </remarks>
 [Flags]

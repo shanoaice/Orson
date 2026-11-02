@@ -18,7 +18,7 @@ namespace Pacpar.Alpm;
 /// pass.
 /// <para>
 /// The member names drop the <c>AlpmTransFlag</c> prefix, and each member records the constant it
-/// projects. ADR 0014.
+/// projects. ADR 0019.
 /// </para>
 /// </remarks>
 [Flags]

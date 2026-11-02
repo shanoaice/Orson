@@ -35,7 +35,7 @@ internal sealed class AlpmFailure
 
   /// <summary>
   /// libalpm's own <c>pm_errno</c>, kept for diagnostics and for the codes
-  /// <see cref="AlpmFailureCode"/> collapses (ADR 0009). It carries no stability promise.
+  /// <see cref="AlpmFailureCode"/> collapses (ADR 0007). It carries no stability promise.
   /// </summary>
   internal int NativeCode { get; }
 

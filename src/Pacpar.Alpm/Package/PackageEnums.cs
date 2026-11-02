@@ -3,7 +3,7 @@ namespace Pacpar.Alpm;
 /// <summary>Specifies the source or origin of a package.</summary>
 /// <remarks>
 /// A projection of libalpm's own <c>_alpm_pkgfrom_t</c>, which starts at 1, so there is no zero
-/// member. ADR 0014.
+/// member. ADR 0019.
 /// </remarks>
 public enum PackageOrigin : uint
 {
@@ -20,7 +20,7 @@ public enum PackageOrigin : uint
 /// <summary>Why a package was installed on the system.</summary>
 /// <remarks>
 /// A projection of libalpm's own <c>_alpm_pkgreason_t</c>. This one does have a zero member,
-/// because libalpm defines one. ADR 0014.
+/// because libalpm defines one. ADR 0019.
 /// </remarks>
 public enum PackageReason : uint
 {
@@ -43,7 +43,7 @@ public enum PackageReason : uint
 /// <remarks>
 /// A projection of libalpm's own <c>alpm_pkgvalidation_t</c> bit values: the numbering is
 /// libalpm's, and <see cref="None"/> is <c>1</c> rather than <c>0</c> because that is where
-/// libalpm puts it. The zero member is <see cref="Unknown"/>. ADR 0014.
+/// libalpm puts it. The zero member is <see cref="Unknown"/>. ADR 0019.
 /// </remarks>
 [Flags]
 public enum PackageValidation : uint

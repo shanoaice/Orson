@@ -10,7 +10,7 @@ namespace Pacpar.Alpm;
 /// </summary>
 /// <remarks>
 /// A projection of libalpm's own <c>alpm_capability_t</c> bit values, so the numbering is libalpm's
-/// and there is no zero member: libalpm defines none. ADR 0014.
+/// and there is no zero member: libalpm defines none. ADR 0019.
 /// </remarks>
 [Flags]
 public enum Capability : uint

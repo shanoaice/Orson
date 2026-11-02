@@ -7,7 +7,7 @@ namespace Pacpar.Alpm;
 /// <summary>The version comparison a dependency uses (libalpm's <c>_alpm_depmod_t</c>).</summary>
 /// <remarks>
 /// A projection of libalpm's own numbering, which starts at 1, so there is no zero member.
-/// ADR 0014.
+/// ADR 0019.
 /// </remarks>
 public enum DepMod : uint
 {

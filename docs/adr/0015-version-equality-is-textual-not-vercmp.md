@@ -1,7 +1,7 @@
 # PackageVersion equality is textual; CompareTo stays an ordering
 
 ---
-status: proposed
+status: accepted
 ---
 
 `PackageVersion` has value semantics. `Equals`, `GetHashCode` and the `==` operator compare the

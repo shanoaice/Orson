@@ -17,7 +17,7 @@ The error boundary is:
 - `Remove` returning “not present” remains a successful `false` result.
 - Argument errors, disposed objects, stale lifetime tokens, invalid state transitions, OOM, missing native error state, and cleanup/release failures remain exceptions.
 
-The agreed shape is `TryX + out value + out failure`, not an `AlpmResult<T>` type. The failure contract uses stable `AlpmFailureCode` values plus a numeric `NativeCode` fallback. See [ADR 0002](../../docs/adr/0002-fsharp-error-boundary.md) and [ADR 0003](../../docs/adr/0003-stable-failure-codes-for-fsharp.md).
+The agreed shape is `TryX + out value + out failure`, not an `AlpmResult<T>` type. The failure contract uses stable `AlpmFailureCode` values plus a numeric `NativeCode` fallback. See [ADR 0001](../../docs/adr/0001-fsharp-interop-boundary-and-try-seam.md).
 
 ## 2. Project-Level Impact
 
@@ -195,5 +195,4 @@ This bridge does not redesign callbacks, event streaming, transaction ownership,
 
 - [F# wrapper design](../Pacpar.Alpm.FSharp/DESIGN.md)
 - [Glossary](../../GLOSSARY.md)
-- [ADR 0002: failure boundary](../../docs/adr/0002-fsharp-error-boundary.md)
-- [ADR 0003: stable failure codes](../../docs/adr/0003-stable-failure-codes-for-fsharp.md)
+- [ADR 0001: F# interop boundary and Try seam](../../docs/adr/0001-fsharp-interop-boundary-and-try-seam.md)

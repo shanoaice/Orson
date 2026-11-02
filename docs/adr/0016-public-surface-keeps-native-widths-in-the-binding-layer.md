@@ -1,7 +1,7 @@
 # The public surface keeps native widths inside the binding layer
 
 ---
-status: proposed
+status: accepted
 ---
 
 The public API uses `int` for item counts and `long` for byte sizes. It does not use `nuint` or
@@ -58,5 +58,5 @@ The public surface has eight native-width members, all of them in the event laye
   documentation cannot make `UIntPtr` CLS-compliant.
 - **Use `ulong` for counts.** It matches neither existing convention (`int` for counts, `long`
   for sizes) and only changes the width of the leak.
-- **Ban `uint` throughout.** Out of scope. ADR 0014 owns enum shape, and the bound enums keep
+- **Ban `uint` throughout.** Out of scope. ADR 0019 owns bound enum values, which keep
   libalpm's numbering.

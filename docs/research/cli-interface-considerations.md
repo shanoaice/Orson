@@ -118,7 +118,7 @@ Two parity details that are easy to lose in a TUI refresh:
   stdin, and `--noconfirm` must make them deterministic (pacman picks defaults; match its
   choices).
 - **Exit codes.** Keep pacman-ish semantics (0 success, 1 failure, 130 SIGINT); the F#
-  layer's stable failure codes (`docs/adr/0002-stable-failure-codes-for-fsharp.md`) are the
+  layer's stable failure codes (`docs/adr/0001-fsharp-interop-boundary-and-try-seam.md`) are the
   natural mapping source.
 
 ### 3.3 One open decision: bare invocation
@@ -257,7 +257,7 @@ and `reports/repo-audit-report-cycle1.md`):
   delta, origin database name, and (later) an AUR/repo tag. It is the view model.
 - Keep the event structs (`[<Struct>] ProgressInfo` etc.) and the split channel design as
   the UI feed contract; the CLI should consume `EventSink.toChannel`, not raw callbacks.
-- Stable failure codes (`docs/adr/0002-...`) become exit codes and error rendering; per
+- Stable failure codes (`docs/adr/0001-...`) become exit codes and error rendering; per
   the glossary, surface "ALPM operation failure" with its "Failure detail" (dep lists,
   conflicts — already snapshotted in `AlpmTransactionException`), and keep "Query miss" a
   non-failure.

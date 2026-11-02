@@ -31,3 +31,8 @@ kept trivial.
 The check is a same-thread guard, not a synchronisation primitive: a concurrent disposer can still
 win the race between validation and dereference. That residual is governed by the documented
 single-thread affinity of `alpm_handle_t` and is not something the wrapper can fix without locking.
+
+## See also
+
+- [ADR 0011: Sessions are single-threaded](./0011-sessions-are-single-threaded.md)
+- [ADR 0017: Child domains own facets](./0017-child-domains-own-facets.md)

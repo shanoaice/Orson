@@ -17,12 +17,11 @@ Mechanically this is one line. `csbindgen`'s class accessibility is configured i
 the generator instead of by editing generated output — which is also the one file in that helper
 project that may be edited at all.
 
-**Consequences.** Every public member that currently names a binding type has to change: `AlpmSession.Errno`,
-`AlpmException.Errno`, and the public exception constructors that take `_alpm_errno_t`. The public
-error surface should adopt the stable `AlpmFailureCode` plus numeric native code vocabulary that
-[ADR 0003](./0003-stable-failure-codes-for-fsharp.md) already defines. `PublicApiSurfaceTests` can
-then stop skipping the `Pacpar.Alpm.Bindings` namespace and become a real guard.
-
+**Consequences.** Every public member that previously named a binding type changed: `AlpmSession.Errno`,
+`AlpmException.Errno`, and public exception constructors that took `_alpm_errno_t`. The public
+error surface adopts a numeric native code vocabulary, while the internal failure seam adopts
+`AlpmFailureCode` as [ADR 0001](./0001-fsharp-interop-boundary-and-try-seam.md) defines. `PublicApiSurfaceTests`
+guards the `Pacpar.Alpm.Bindings` namespace from external export.
 ## Implementation notes (2026-10-02)
 
 Landed. What the change actually turned out to require:
@@ -32,11 +31,11 @@ Landed. What the change actually turned out to require:
   enums and every struct, fixed buffer and the `NativeMethods` class itself became internal together.
   The hand-written `bindings/NativeMethods.SafeHandle.cs` partial had to match, since partial
   declarations may not disagree about accessibility.
-- **The public error surface moved to `int`**, following [ADR 0009](./0009-public-errors-expose-a-numeric-native-code.md)
-  rather than introducing `AlpmFailureCode` here: `AlpmSession.Errno`, `AlpmException.Errno` and the public
-  exception constructors now take and return the raw `int`. The semantic-code half of ADR 0003 stays
-  with the F# bridge, which does not exist yet; inventing the enum now would freeze a shape with no
-  consumer. Messages keep the readable `ALPM_ERR_*` name through a new `ErrorHandler.NameOf(int)`.
+- **The public error surface moved to `int`**, following [ADR 0007](./0007-native-errno-and-exception-contract.md)
+  rather than introducing `AlpmFailureCode` directly onto public exceptions: `AlpmSession.Errno`,
+  `AlpmException.Errno` and the public exception constructors take and return the raw `int`. The semantic-code
+  half is implemented in `AlpmFailure.cs` for the internal `Try*` seam and F# bridge (ADR 0001).
+  Messages keep the readable `ALPM_ERR_*` name through `ErrorHandler.NameOf(int)`.
 - **`AlpmQuestion` needed a real edit, not just a type swap.** Its primary constructor was
   `protected` (the compiler makes an abstract type's primary constructor protected), and a protected
   member of a public class is public API, so it could not keep naming an internal type. It is now an
@@ -50,5 +49,4 @@ Landed. What the change actually turned out to require:
   new test pins `Pacpar.Alpm.Bindings` as unexported so a libalpm upgrade plus regeneration cannot
   quietly widen the surface again.
 
-Verified: the whole solution builds, and the host-side suite (integration filtered out) passes with
-168 tests.
+Verified: the whole solution builds, and `PublicApiSurfaceTests` guards the boundary.

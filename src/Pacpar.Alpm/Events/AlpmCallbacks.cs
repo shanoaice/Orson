@@ -7,7 +7,7 @@ namespace Pacpar.Alpm;
 
 /// <summary>The phase a progress callback reports (libalpm's <c>_alpm_progress_t</c>).</summary>
 /// <remarks>
-/// A projection of libalpm's own numbering, which happens to start at 0 here. ADR 0014.
+/// A projection of libalpm's own numbering, which happens to start at 0 here. ADR 0019.
 /// </remarks>
 public enum ProgressType : uint
 {
@@ -71,7 +71,7 @@ public enum LogLevel : uint
 /// defines, so returning an arbitrary number should not be expressible.
 /// <para>
 /// Unlike the enums above, this one is not a projection of a native enum: it is this library's
-/// rendering of a documented contract, which is why it carries a zero member of its own. ADR 0014.
+/// rendering of a documented contract, which is why it carries a zero member of its own. ADR 0019.
 /// </para>
 /// </remarks>
 public enum FetchResult
