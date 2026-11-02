@@ -64,7 +64,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Pacpar.Alpm\Pacpar.Alpm.csproj"/>
+    <ProjectReference Include="..\..\src\Pacpar.Alpm\Pacpar.Alpm.csproj" />
   </ItemGroup>
 
 </Project>
