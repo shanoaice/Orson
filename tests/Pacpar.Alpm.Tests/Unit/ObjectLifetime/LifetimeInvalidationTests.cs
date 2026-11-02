@@ -21,7 +21,9 @@ public sealed class LifetimeInvalidationTests : IDisposable
   private string PackageDirectory => _environment.PackageDirectory;
 
   private string Archive(string name, string? depend = null)
-    => PackageArchive.Create(PackageDirectory, name, depend: depend);
+    => depend == null
+      ? PackageArchive.Create(PackageDirectory, name)
+      : PackageArchive.Create(PackageDirectory, new PackageSpec(name) { Depend = depend });
 
   private void Install(string name, string? depend = null)
   {

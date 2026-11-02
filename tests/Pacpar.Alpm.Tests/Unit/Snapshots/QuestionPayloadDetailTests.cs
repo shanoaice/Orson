@@ -92,7 +92,7 @@ public sealed unsafe class QuestionPayloadDetailTests : IDisposable
 
   private LoadedPackage Load(string name, string file)
     => _environment.AlpmSession.LoadPackage(
-      PackageArchive.Create(PackageDirectory, name, file: file),
+      PackageArchive.Create(PackageDirectory, new PackageSpec(name) { File = file }),
       full: true,
       SigLevel.UseDefault);
 }

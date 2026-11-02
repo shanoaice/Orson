@@ -66,7 +66,7 @@ public sealed class PackageMetadataTests : IDisposable
   {
     const string body = "the changelog body";
 
-    var archive = PackageArchive.Create(_environment.PackageDirectory, "pacpar-changelog", changelog: body);
+    var archive = PackageArchive.Create(_environment.PackageDirectory, new PackageSpec("pacpar-changelog") { Changelog = body });
     using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
 
     var changelog = loaded.ReadChangelog();
@@ -82,7 +82,7 @@ public sealed class PackageMetadataTests : IDisposable
   {
     const string body = "the changelog body \u00e9";
 
-    var archive = PackageArchive.Create(_environment.PackageDirectory, "pacpar-changelog-copy", changelog: body);
+    var archive = PackageArchive.Create(_environment.PackageDirectory, new PackageSpec("pacpar-changelog-copy") { Changelog = body });
     using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
     using var destination = new MemoryStream();
 
@@ -96,7 +96,7 @@ public sealed class PackageMetadataTests : IDisposable
   {
     const string body = "another changelog body";
 
-    var archive = PackageArchive.Create(_environment.PackageDirectory, "pacpar-changelog-copy-direct", changelog: body);
+    var archive = PackageArchive.Create(_environment.PackageDirectory, new PackageSpec("pacpar-changelog-copy-direct") { Changelog = body });
     using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
     using var destination = new MemoryStream();
 
@@ -127,7 +127,7 @@ public sealed class PackageMetadataTests : IDisposable
   [Fact]
   public void ChangelogStream_ReadRejectsOutOfRangeBoundsWithoutOverflow()
   {
-    var archive = PackageArchive.Create(_environment.PackageDirectory, "pacpar-changelog-bounds", changelog: "body");
+    var archive = PackageArchive.Create(_environment.PackageDirectory, new PackageSpec("pacpar-changelog-bounds") { Changelog = "body" });
     using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
     using var stream = loaded.OpenChangelogStream();
     Assert.NotNull(stream);
@@ -143,26 +143,28 @@ public sealed class PackageMetadataTests : IDisposable
   {
     var archive = PackageArchive.Create(
       _environment.PackageDirectory,
-      "meta-pkg",
-      version: "2.1-3",
-      pkgbase: "meta-base",
-      desc: "Full description",
-      url: "https://example.org",
-      packager: "Test Packager <test@example.org>",
-      builddate: 1700000000L,
-      size: 4096L,
-      license: "MIT",
-      group: "base-devel",
-      depend: "glibc>=2.38",
-      optdepend: "python: scripting",
-      checkdepend: "pytest",
-      makedepend: "cmake",
-      conflict: "legacy-meta",
-      provides: "virtual-meta=2.1",
-      replaces: "old-meta",
-      backup: "etc/meta.conf",
-      file: "etc/meta.conf",
-      installScriptlet: "post_install() { true; }\n");
+      new PackageSpec("meta-pkg")
+      {
+        Version = "2.1-3",
+        Base = "meta-base",
+        Description = "Full description",
+        Url = "https://example.org",
+        Packager = "Test Packager <test@example.org>",
+        BuildDate = 1700000000L,
+        Size = 4096L,
+        License = "MIT",
+        Group = "base-devel",
+        Depend = "glibc>=2.38",
+        OptDepend = "python: scripting",
+        CheckDepend = "pytest",
+        MakeDepend = "cmake",
+        Conflict = "legacy-meta",
+        Provide = "virtual-meta=2.1",
+        Replace = "old-meta",
+        Backup = "etc/meta.conf",
+        File = "etc/meta.conf",
+        InstallScriptlet = "post_install() { true; }\n",
+      });
 
     using (var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault))
     {
@@ -227,9 +229,11 @@ public sealed class PackageMetadataTests : IDisposable
 
     var depArchive = PackageArchive.Create(
       _environment.PackageDirectory,
-      "dep-pkg",
-      depend: "meta-pkg",
-      optdepend: "meta-pkg: optional integration");
+      new PackageSpec("dep-pkg")
+      {
+        Depend = "meta-pkg",
+        OptDepend = "meta-pkg: optional integration",
+      });
 
     var depLoad = _environment.AlpmSession.LoadPackage(depArchive, full: true, SigLevel.UseDefault);
     using (var tx = _environment.AlpmSession.BeginTransaction(TransactionFlags.NoDeps))
@@ -256,8 +260,10 @@ public sealed class PackageMetadataTests : IDisposable
   {
     var archive = PackageArchive.Create(
       _environment.PackageDirectory,
-      "files-pkg",
-      files: ["etc/a.conf", "usr/bin/tool"]);
+      new PackageSpec("files-pkg")
+      {
+        Files = ["etc/a.conf", "usr/bin/tool"],
+      });
 
     using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
     using (var tx = _environment.AlpmSession.BeginTransaction(TransactionFlags.NoDeps))

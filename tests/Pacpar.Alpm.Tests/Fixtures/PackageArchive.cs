@@ -19,62 +19,55 @@ internal static class PackageArchive
   /// <summary>The version every generated package uses, so assertions can spell the names out.</summary>
   internal const string Version = "1.0-1";
 
-  /// <summary>Writes a package and returns the path it was written to.</summary>
+  /// <summary>Writes a default package and returns the path it was written to.</summary>
   /// <param name="directory">Where to write; it must already exist.</param>
   /// <param name="name">The package name (<c>pkgname</c>).</param>
-  /// <param name="arch">The architecture recorded in <c>.PKGINFO</c>.</param>
-  /// <param name="depend">Optional <c>depend</c> entry.</param>
-  /// <param name="conflict">Optional <c>conflict</c> entry.</param>
-  /// <param name="file">Optional file the package owns, for example <c>usr/bin/probe-file</c>.</param>
-  /// <param name="mtree">Optional <c>.MTREE</c> contents.</param>
-  /// <param name="changelog">Optional <c>.CHANGELOG</c> contents, the one place libalpm reads a
-  /// changelog from for a package loaded from a file.</param>
-  internal static string Create(string directory, string name, string arch = "x86_64", string? depend = null,
-    string? conflict = null, string? file = null, string? mtree = null, string? changelog = null,
-    string version = Version, string? pkgbase = null, string? desc = null, string? url = null,
-    string? packager = null, long? builddate = null, long? size = null, string? license = null,
-    string? group = null, string? optdepend = null, string? checkdepend = null, string? makedepend = null,
-    string? provides = null, string? replaces = null, string? backup = null, string? installScriptlet = null,
-    IEnumerable<string>? files = null)
+  internal static string Create(string directory, string name)
+    => Create(directory, new PackageSpec(name));
+
+  /// <summary>Writes a package matching <paramref name="spec"/> and returns the path it was written to.</summary>
+  /// <param name="directory">Where to write; it must already exist.</param>
+  /// <param name="spec">The package specification.</param>
+  internal static string Create(string directory, PackageSpec spec)
   {
     var info = new StringBuilder()
-      .AppendLine($"pkgname = {name}")
-      .AppendLine($"pkgbase = {pkgbase ?? name}")
-      .AppendLine($"pkgver = {version}")
-      .AppendLine($"pkgdesc = {desc ?? "test package"}")
-      .AppendLine($"url = {url ?? "https://example.invalid"}")
-      .AppendLine($"builddate = {builddate ?? 0}")
-      .AppendLine($"packager = {packager ?? "test"}")
-      .AppendLine($"size = {size ?? 1}")
-      .AppendLine($"arch = {arch}");
+      .AppendLine($"pkgname = {spec.Name}")
+      .AppendLine($"pkgbase = {spec.Base ?? spec.Name}")
+      .AppendLine($"pkgver = {spec.Version}")
+      .AppendLine($"pkgdesc = {spec.Description ?? "test package"}")
+      .AppendLine($"url = {spec.Url ?? "https://example.invalid"}")
+      .AppendLine($"builddate = {spec.BuildDate ?? 0}")
+      .AppendLine($"packager = {spec.Packager ?? "test"}")
+      .AppendLine($"size = {spec.Size ?? 1}")
+      .AppendLine($"arch = {spec.Arch}");
 
-    if (license != null) info.AppendLine($"license = {license}");
-    if (group != null) info.AppendLine($"group = {group}");
-    if (depend != null) info.AppendLine($"depend = {depend}");
-    if (optdepend != null) info.AppendLine($"optdepend = {optdepend}");
-    if (checkdepend != null) info.AppendLine($"checkdepend = {checkdepend}");
-    if (makedepend != null) info.AppendLine($"makedepend = {makedepend}");
-    if (conflict != null) info.AppendLine($"conflict = {conflict}");
-    if (provides != null) info.AppendLine($"provides = {provides}");
-    if (replaces != null) info.AppendLine($"replaces = {replaces}");
-    if (backup != null) info.AppendLine($"backup = {backup}");
+    foreach (var license in spec.Licenses) info.AppendLine($"license = {license}");
+    foreach (var group in spec.Groups) info.AppendLine($"group = {group}");
+    foreach (var depend in spec.Depends) info.AppendLine($"depend = {depend}");
+    foreach (var optdepend in spec.OptDepends) info.AppendLine($"optdepend = {optdepend}");
+    foreach (var checkdepend in spec.CheckDepends) info.AppendLine($"checkdepend = {checkdepend}");
+    foreach (var makedepend in spec.MakeDepends) info.AppendLine($"makedepend = {makedepend}");
+    foreach (var conflict in spec.Conflicts) info.AppendLine($"conflict = {conflict}");
+    foreach (var provide in spec.Provides) info.AppendLine($"provides = {provide}");
+    foreach (var replace in spec.Replaces) info.AppendLine($"replaces = {replace}");
+    foreach (var backup in spec.BackupFiles) info.AppendLine($"backup = {backup}");
 
-    var path = Path.Combine(directory, $"{name}-{version}-{arch}.pkg.tar");
+    var path = Path.Combine(directory, $"{spec.Name}-{spec.Version}-{spec.Arch}.pkg.tar");
 
     using (var stream = File.Create(path))
     using (var writer = new TarWriter(stream, TarEntryFormat.Pax))
     {
       writer.WriteEntry(TextEntry(".PKGINFO", info.ToString()));
 
-      if (changelog != null) writer.WriteEntry(TextEntry(".CHANGELOG", changelog));
-      if (installScriptlet != null) writer.WriteEntry(TextEntry(".INSTALL", installScriptlet));
-      if (mtree != null)
+      if (spec.Changelog != null) writer.WriteEntry(TextEntry(".CHANGELOG", spec.Changelog));
+      if (spec.InstallScriptlet != null) writer.WriteEntry(TextEntry(".INSTALL", spec.InstallScriptlet));
+      if (spec.MTree != null)
       {
         using var gzStream = new MemoryStream();
         using (var gz = new System.IO.Compression.GZipStream(gzStream, System.IO.Compression.CompressionMode.Compress, leaveOpen: true))
         using (var gzWriter = new StreamWriter(gz, new UTF8Encoding(false)))
         {
-          gzWriter.Write(mtree);
+          gzWriter.Write(spec.MTree);
         }
         var gzBytes = gzStream.ToArray();
         var mtreeEntry = new PaxTarEntry(TarEntryType.RegularFile, ".MTREE")
@@ -83,19 +76,16 @@ internal static class PackageArchive
         };
         writer.WriteEntry(mtreeEntry);
       }
-      if (file != null)
+      if (spec.File != null)
       {
         writer.WriteEntry(new PaxTarEntry(TarEntryType.Directory, "usr/"));
         writer.WriteEntry(new PaxTarEntry(TarEntryType.Directory, "usr/bin/"));
-        writer.WriteEntry(TextEntry(file, "packaged contents"));
+        writer.WriteEntry(TextEntry(spec.File, "packaged contents"));
       }
 
-      if (files != null)
+      foreach (var f in spec.Files)
       {
-        foreach (var f in files)
-        {
-          writer.WriteEntry(TextEntry(f, "packaged contents"));
-        }
+        writer.WriteEntry(TextEntry(f, "packaged contents"));
       }
     }
 

@@ -50,16 +50,28 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
   /// <param name="conflict">Optional <c>conflict</c> entry.</param>
   internal PackageView Install(string name, string? file = null, string? mtree = null, string? depend = null,
     string? conflict = null, TransactionFlags flags = 0)
+    => Install(new PackageSpec(name)
+    {
+      File = file,
+      MTree = mtree,
+      Depend = depend,
+      Conflict = conflict,
+    }, flags);
+
+  /// <summary>
+  /// Builds a synthetic package from <paramref name="spec"/> in <see cref="PackageDirectory"/>, commits it,
+  /// and answers with the view the local database holds for it afterwards.
+  /// </summary>
+  internal PackageView Install(PackageSpec spec, TransactionFlags flags = 0)
   {
-    var archive = PackageArchive.Create(PackageDirectory, name, file: file, mtree: mtree, depend: depend,
-      conflict: conflict);
+    var archive = PackageArchive.Create(PackageDirectory, spec);
 
     using var transaction = AlpmSession.BeginTransaction(flags);
     transaction.AddPackage(AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault));
     transaction.Prepare();
     transaction.Commit();
 
-    var installed = AlpmSession.GetLocalDatabase().GetPackage(name);
+    var installed = AlpmSession.GetLocalDatabase().GetPackage(spec.Name);
     Assert.NotNull(installed);
     return installed!;
   }
