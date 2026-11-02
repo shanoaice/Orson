@@ -17,7 +17,7 @@ public sealed class DatabaseServerTests
   private const string Url = "https://example.invalid/$repo/os/$arch";
   private const string OtherUrl = "https://other.invalid/$repo/os/$arch";
 
-  private static Database RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("pacpar-test", (SigLevel)0);
+  private static Database RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("pacpar-test", 0);
 
   [Fact]
   public void Servers_StartEmpty()
@@ -135,7 +135,7 @@ public sealed class DatabaseServerTests
 
     db.RemoveServer(Url);
 
-    var thrown = Assert.Throws<AlpmLifetimeException>(() => retained.ToArray());
+    var thrown = Assert.Throws<AlpmLifetimeException>(retained.ToArray);
     Assert.Equal("the server list", thrown.Target);
     Assert.Equal("Database.RemoveServer", thrown.InvalidatedBy);
 

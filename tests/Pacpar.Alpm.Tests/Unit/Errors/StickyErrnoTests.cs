@@ -15,7 +15,7 @@ namespace Pacpar.Alpm.Tests.Unit.Errors;
 /// </remarks>
 public sealed class StickyErrnoTests
 {
-  private static Database RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("pacpar-sticky", (SigLevel)0);
+  private static Database RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("pacpar-sticky", 0);
 
   /// <summary>
   /// Leaves a non-OK errno on the handle: <c>alpm_db_get_pkg</c> sets

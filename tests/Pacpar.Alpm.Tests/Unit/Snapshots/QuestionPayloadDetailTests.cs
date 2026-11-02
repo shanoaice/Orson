@@ -18,7 +18,7 @@ public sealed unsafe class QuestionPayloadDetailTests : IDisposable
   private string PackageDirectory => _environment.PackageDirectory;
 
   private static AlpmQuestion.InstallIgnoredPackage QuestionFor(
-    AlpmSession alpm, _alpm_pkg_t* package, ChildLifetime? lifetime = null)
+    _alpm_pkg_t* package, ChildLifetime? lifetime = null)
   {
     var native = (_alpm_question_t*)NativeMemory.AllocZeroed((nuint)sizeof(_alpm_question_t));
 
@@ -43,7 +43,7 @@ public sealed unsafe class QuestionPayloadDetailTests : IDisposable
     using var pkg = Load("pacpar-payload-default", file: "usr/bin/probe");
     var frameLifetime = _environment.AlpmSession.RootLifetime.CreateChild("test frame");
 
-    var question = QuestionFor(_environment.AlpmSession, pkg.BackingStruct, frameLifetime);
+    var question = QuestionFor(pkg.BackingStruct, frameLifetime);
 
     Assert.Equal("pacpar-payload-default", question.Package.Name);
     Assert.NotNull(question.Package.Files);
@@ -56,7 +56,7 @@ public sealed unsafe class QuestionPayloadDetailTests : IDisposable
     using var pkg = Load("pacpar-payload-frame-dies", file: "usr/bin/probe");
     var frameLifetime = _environment.AlpmSession.RootLifetime.CreateChild("test frame");
 
-    var question = QuestionFor(_environment.AlpmSession, pkg.BackingStruct, frameLifetime);
+    var question = QuestionFor(pkg.BackingStruct, frameLifetime);
     Assert.Equal("pacpar-payload-frame-dies", question.Package.Name);
 
     // Frame ends
@@ -75,7 +75,7 @@ public sealed unsafe class QuestionPayloadDetailTests : IDisposable
 
     using (var pkg = Load("pacpar-payload-detached", file: "usr/bin/probe"))
     {
-      var question = QuestionFor(_environment.AlpmSession, pkg.BackingStruct, frameLifetime);
+      var question = QuestionFor(pkg.BackingStruct, frameLifetime);
       snapshot = question.Package.ToSnapshot(includeFiles: true);
       Assert.Equal("pacpar-payload-detached", snapshot.Name);
     }

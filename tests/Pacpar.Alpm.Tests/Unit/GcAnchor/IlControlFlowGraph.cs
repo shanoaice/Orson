@@ -83,7 +83,7 @@ internal sealed class IlControlFlowGraph
     var leaders = new SortedSet<int> { 0 };
     foreach (var instruction in _instructions)
     {
-      int target = instruction.BranchTarget;
+      var target = instruction.BranchTarget;
       if (target >= 0) leaders.Add(target);
       foreach (var t in instruction.SwitchTargets()) leaders.Add(t);
       if (!instruction.FallsThrough || instruction.IsBranch) leaders.Add(instruction.NextOffset);
@@ -99,7 +99,7 @@ internal sealed class IlControlFlowGraph
     var instructionOffsets = new HashSet<int>(_instructions.Select(i => i.Offset));
     var validLeaders = new HashSet<int>(leaders.Where(l => l == 0 || instructionOffsets.Contains(l)));
 
-    int blockIndex = 0;
+    var blockIndex = 0;
     IlBlock? current = null;
     foreach (var instruction in _instructions)
     {
@@ -113,7 +113,7 @@ internal sealed class IlControlFlowGraph
       current.EndOffset = instruction.NextOffset;
     }
 
-    for (int i = 0; i < _blocks.Count; i++)
+    for (var i = 0; i < _blocks.Count; i++)
     {
       var block = _blocks[i];
       var last = _byOffset[block.InstructionOffsets[^1]];
@@ -128,8 +128,8 @@ internal sealed class IlControlFlowGraph
       }
 
       // Fall-through exists for straight-line code, conditional branches and switches.
-      bool fallsThrough = last.OpCode.FlowControl is FlowControl.Cond_Branch
-        || (last.FallsThrough && !last.IsBranch && last.OpCode.OperandType != OperandType.InlineSwitch);
+      var fallsThrough = last.OpCode.FlowControl is FlowControl.Cond_Branch
+                         || (last.FallsThrough && !last.IsBranch && last.OpCode.OperandType != OperandType.InlineSwitch);
       if (fallsThrough && i + 1 < _blocks.Count) block.Successors.Add(_blocks[i + 1].Index);
 
       if (last.OpCode.FlowControl is FlowControl.Return or FlowControl.Throw) block.ExitsMethod = true;
@@ -138,7 +138,7 @@ internal sealed class IlControlFlowGraph
     // Conservative exception edges: anything inside a protected region can reach its handler.
     foreach (var clause in body.ExceptionHandlingClauses)
     {
-      int tryEnd = clause.TryOffset + clause.TryLength;
+      var tryEnd = clause.TryOffset + clause.TryLength;
       var handlerBlock = BlockAtOrAfter(clause.HandlerOffset);
       if (handlerBlock == null) continue;
       foreach (var block in _blocks)
@@ -156,17 +156,17 @@ internal sealed class IlControlFlowGraph
 
   private HashSet<int>[] ComputePostDominators()
   {
-    int n = _blocks.Count;
+    var n = _blocks.Count;
     var sets = new HashSet<int>[n];
     var all = new HashSet<int>(Enumerable.Range(0, n));
-    for (int i = 0; i < n; i++) sets[i] = new HashSet<int>(all);
+    for (var i = 0; i < n; i++) sets[i] = new HashSet<int>(all);
 
-    bool changed = true;
-    int guard = 0;
+    var changed = true;
+    var guard = 0;
     while (changed && guard++ < 64)
     {
       changed = false;
-      for (int i = 0; i < n; i++)
+      for (var i = 0; i < n; i++)
       {
         if (_blocks[i].ExitsMethod)
         {

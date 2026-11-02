@@ -53,11 +53,11 @@ internal readonly record struct IlInstruction(
   public ReadOnlySpan<int> SwitchTargets()
   {
     if (OpCode.OperandType != OperandType.InlineSwitch) return ReadOnlySpan<int>.Empty;
-    int count = BitConverter.ToInt32(OperandBytes, 0);
-    if (count < 0 || count > 4096) return ReadOnlySpan<int>.Empty;
+    var count = BitConverter.ToInt32(OperandBytes, 0);
+    if (count is < 0 or > 4096) return ReadOnlySpan<int>.Empty;
     var targets = new int[count];
-    int baseOffset = NextOffset;
-    for (int i = 0; i < count; i++)
+    var baseOffset = NextOffset;
+    for (var i = 0; i < count; i++)
     {
       targets[i] = baseOffset + BitConverter.ToInt32(OperandBytes, 4 + 4 * i);
     }
@@ -117,12 +117,12 @@ internal static class IlDecoder
   public static List<IlInstruction> Decode(byte[] il)
   {
     var result = new List<IlInstruction>(Math.Max(4, il.Length / 3));
-    int offset = 0;
+    var offset = 0;
     while (offset < il.Length)
     {
-      int start = offset;
+      var start = offset;
       int b = il[offset++];
-      int key = b;
+      var key = b;
       if (b == 0xFE)
       {
         if (offset >= il.Length) break;
@@ -131,12 +131,12 @@ internal static class IlDecoder
 
       if (!Table.TryGetValue(key, out var entry)) break;
 
-      int size = entry.Size;
+      var size = entry.Size;
       if (size == -1)
       {
         if (offset + 4 > il.Length) break;
-        int count = BitConverter.ToInt32(il, offset);
-        if (count < 0 || count > 4096) break;
+        var count = BitConverter.ToInt32(il, offset);
+        if (count is < 0 or > 4096) break;
         size = 4 + 4 * count;
       }
 

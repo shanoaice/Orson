@@ -3,20 +3,19 @@ namespace Pacpar.Alpm.Tests.Fixtures;
 /// <summary>
 /// An isolated libalpm handle for tests that must run without the project container: a unique
 /// root/dbpath tree under <see cref="Path.GetTempPath()"/>, with no assertion that the container is
-/// running. It also provides <see cref="Install"/>, the synthetic package every feature test starts
+/// running. It also provides <see cref="Install(PackageSpec, TransactionFlags)"/>, the synthetic package every feature test starts
 /// from.
 /// </summary>
 internal sealed class IsolatedAlpmEnvironment : IDisposable
 {
-  private readonly string _workspaceRoot;
 
   internal IsolatedAlpmEnvironment()
   {
-    _workspaceRoot = Path.Combine(Path.GetTempPath(), "pacpar-isolated", Guid.NewGuid().ToString("n"));
-    var root = Path.Combine(_workspaceRoot, "root");
-    var dbpath = Path.Combine(_workspaceRoot, "var", "lib", "pacman");
+    WorkspaceRoot = Path.Combine(Path.GetTempPath(), "pacpar-isolated", Guid.NewGuid().ToString("n"));
+    var root = Path.Combine(WorkspaceRoot, "root");
+    var dbpath = Path.Combine(WorkspaceRoot, "var", "lib", "pacman");
 
-    PackageDirectory = Path.Combine(_workspaceRoot, "packages");
+    PackageDirectory = Path.Combine(WorkspaceRoot, "packages");
 
     Directory.CreateDirectory(root);
     Directory.CreateDirectory(Path.Combine(dbpath, "local"));
@@ -28,15 +27,15 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
   }
 
   internal AlpmSession AlpmSession { get; }
-  internal string WorkspaceRoot => _workspaceRoot;
+  internal string WorkspaceRoot { get; }
 
   /// <summary>The fake installation root the handle was opened on.</summary>
-  internal string Root => Path.Combine(_workspaceRoot, "root");
+  internal string Root => Path.Combine(WorkspaceRoot, "root");
   /// <summary>The database path for this isolated environment.</summary>
-  internal string DatabasePath => Path.Combine(_workspaceRoot, "var", "lib", "pacman");
+  internal string DatabasePath => Path.Combine(WorkspaceRoot, "var", "lib", "pacman");
 
 
-  /// <summary>Where <see cref="Install"/> writes the packages it builds.</summary>
+  /// <summary>Where <see cref="Install(PackageSpec, TransactionFlags)"/> writes the packages it builds.</summary>
   internal string PackageDirectory { get; }
 
   /// <summary>
@@ -48,6 +47,7 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
   /// <param name="mtree">Optional <c>.MTREE</c> contents.</param>
   /// <param name="depend">Optional <c>depend</c> entry.</param>
   /// <param name="conflict">Optional <c>conflict</c> entry.</param>
+  /// <param name="flags">Transaction flags to commit with.</param>
   internal PackageView Install(string name, string? file = null, string? mtree = null, string? depend = null,
     string? conflict = null, TransactionFlags flags = 0)
     => Install(new PackageSpec(name)
@@ -55,7 +55,7 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
       File = file,
       MTree = mtree,
       Depend = depend,
-      Conflict = conflict,
+      Conflict = conflict
     }, flags);
 
   /// <summary>
@@ -73,16 +73,16 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
 
     var installed = AlpmSession.GetLocalDatabase().GetPackage(spec.Name);
     Assert.NotNull(installed);
-    return installed!;
+    return installed;
   }
 
   public void Dispose()
   {
     AlpmSession.Dispose();
 
-    if (Directory.Exists(_workspaceRoot))
+    if (Directory.Exists(WorkspaceRoot))
     {
-      Directory.Delete(_workspaceRoot, recursive: true);
+      Directory.Delete(WorkspaceRoot, recursive: true);
     }
   }
 }

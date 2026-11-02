@@ -4,7 +4,7 @@ namespace Pacpar.Alpm.Tests.Unit.Callbacks;
 
 /// <summary>
 /// The log callback is the one handler whose payload libalpm does not expand for us, so
-/// it is the only one that cannot be covered by <see cref="AlpmCallbacks.SafeInvoke"/> tests alone. These
+/// it is the only one that cannot be covered by <see cref="AlpmCallbacks.SafeInvoke(System.Action, System.Action{System.Exception})"/> tests alone. These
 /// drive the whole production path on a real handle: native <c>alpm_cb_log</c> → the log thunk →
 /// <see cref="LogMessageFormatter"/> → <see cref="AlpmCallbacks.LogHandler"/>.
 /// </summary>

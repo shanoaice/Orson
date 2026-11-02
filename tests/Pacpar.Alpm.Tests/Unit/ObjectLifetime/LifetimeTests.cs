@@ -145,7 +145,7 @@ public sealed unsafe class LifetimeTests
   public void Registry_ReturnsTheSameDomainForTheSamePointer()
   {
     var owner = Root();
-    void* handle = (void*)0x1234; // only ever used as a dictionary key
+    var handle = (void*)0x1234; // only ever used as a dictionary key
 
     var first = owner.GetLifetimeTokenForHandle(handle, "the sync database core");
     var second = owner.GetLifetimeTokenForHandle(handle, "a differently spelled target");
@@ -163,7 +163,7 @@ public sealed unsafe class LifetimeTests
   public void ForgetHandle_LetsTheSameAddressGetAFreshDomain()
   {
     var owner = Root();
-    void* handle = (void*)0x1234;
+    var handle = (void*)0x1234;
 
     var first = owner.GetLifetimeTokenForHandle(handle, "the sync database core");
     owner.ForgetHandle(handle);
@@ -182,8 +182,8 @@ public sealed unsafe class LifetimeTests
   public void InvalidateHandles_RetiresEveryRegisteredDomain_AndClearsTheRegistry()
   {
     var owner = Root();
-    void* core = (void*)0x1234;
-    void* extra = (void*)0x5678;
+    var core = (void*)0x1234;
+    var extra = (void*)0x5678;
     var coreDomain = owner.GetLifetimeTokenForHandle(core, "the sync database core");
     var extraDomain = owner.GetLifetimeTokenForHandle(extra, "the sync database extra");
     var coreStamp = coreDomain.Capture();

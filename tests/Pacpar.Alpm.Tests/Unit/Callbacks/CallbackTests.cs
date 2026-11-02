@@ -8,7 +8,6 @@ namespace Pacpar.Alpm.Tests.Unit.Callbacks;
 /// owned by <see cref="AlpmSession"/> and has no public release path - its lifetime is pinned by
 /// <see cref="CallbackContextLifetimeTests"/>.
 /// </summary>
-/// </remarks>
 public sealed class CallbackTests
 {
   [Fact]

@@ -12,7 +12,7 @@ public sealed class DatabaseUsageTests
   public void Usage_DefaultsToAll()
   {
     using var environment = new IsolatedAlpmEnvironment();
-    var db = environment.AlpmSession.RegisterSyncDatabase("pacpar-test", (SigLevel)0);
+    var db = environment.AlpmSession.RegisterSyncDatabase("pacpar-test", 0);
 
     Assert.Equal(DatabaseUsage.All, db.Usage);
   }
@@ -21,7 +21,7 @@ public sealed class DatabaseUsageTests
   public void Usage_RoundTrips()
   {
     using var environment = new IsolatedAlpmEnvironment();
-    var db = environment.AlpmSession.RegisterSyncDatabase("pacpar-test", (SigLevel)0);
+    var db = environment.AlpmSession.RegisterSyncDatabase("pacpar-test", 0);
 
     db.Usage = DatabaseUsage.Search | DatabaseUsage.Install;
     Assert.Equal(DatabaseUsage.Search | DatabaseUsage.Install, db.Usage);

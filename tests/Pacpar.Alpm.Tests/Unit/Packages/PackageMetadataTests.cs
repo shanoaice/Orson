@@ -38,7 +38,7 @@ public sealed class PackageMetadataTests : IDisposable
 
     var found = pkg.Files.FindFile(filePath);
     Assert.NotNull(found);
-    Assert.Equal(filePath, found!.Value.Name);
+    Assert.Equal(filePath, found.Value.Name);
 
     Assert.Null(pkg.Files.FindFile("usr/bin/nonexistent-binary"));
   }
@@ -285,7 +285,7 @@ public sealed class PackageMetadataTests : IDisposable
     Assert.Throws<ArgumentNullException>(() => pkg.Files.Contains(null!));
     Assert.Throws<ArgumentNullException>(() => pkg.Files.FindFile(null!));
 
-    var enumerator = pkg.Files.GetEnumerator();
+    using var enumerator = pkg.Files.GetEnumerator();
     Assert.Throws<InvalidOperationException>(() => _ = enumerator.Current);
 
     Assert.True(enumerator.MoveNext());

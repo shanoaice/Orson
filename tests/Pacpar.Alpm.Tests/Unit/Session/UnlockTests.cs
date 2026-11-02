@@ -27,11 +27,11 @@ public sealed class UnlockTests
     using var environment = new IsolatedAlpmEnvironment();
     using (environment.AlpmSession.BeginTransaction())
     {
-      Assert.True(System.IO.File.Exists(environment.AlpmSession.Options.Lockfile));
+      Assert.True(File.Exists(environment.AlpmSession.Options.Lockfile));
 
       environment.AlpmSession.Unlock();
 
-      Assert.False(System.IO.File.Exists(environment.AlpmSession.Options.Lockfile));
+      Assert.False(File.Exists(environment.AlpmSession.Options.Lockfile));
     }
   }
 
@@ -62,12 +62,12 @@ public sealed class UnlockTests
   {
     using var environment = new IsolatedAlpmEnvironment();
     var lockPath = environment.AlpmSession.Options.Lockfile;
-    System.IO.File.WriteAllText(lockPath, "");
-    Assert.True(System.IO.File.Exists(lockPath));
+    File.WriteAllText(lockPath, "");
+    Assert.True(File.Exists(lockPath));
 
     environment.AlpmSession.Unlock();
 
-    Assert.True(System.IO.File.Exists(lockPath));
+    Assert.True(File.Exists(lockPath));
   }
 
   [Fact]

@@ -90,7 +90,7 @@ public sealed class ErrorHandlerTests
   {
     foreach (var errno in Enum.GetValues<_alpm_errno_t>())
     {
-      if (errno == _alpm_errno_t.ALPM_ERR_OK || errno == _alpm_errno_t.ALPM_ERR_MEMORY) continue;
+      if (errno is _alpm_errno_t.ALPM_ERR_OK or _alpm_errno_t.ALPM_ERR_MEMORY) continue;
 
       var failure = AlpmFailure.Of((int)errno, "test");
       var ex = failure.ToException();

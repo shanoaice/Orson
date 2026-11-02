@@ -5,7 +5,7 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Alpm.Tests.Unit.Interop;
 
 /// <summary>
-/// Guards the hand-written <c>[LibraryImport]</c> layer in
+/// Guards the handwritten <c>[LibraryImport]</c> layer in
 /// <c>src/Pacpar.Alpm/Interop/NativeMethods.SafeHandle.cs</c> against drift in the csbindgen-generated
 /// <c>[DllImport]</c> declarations.
 /// </summary>
@@ -13,14 +13,14 @@ namespace Pacpar.Alpm.Tests.Unit.Interop;
 /// Both sets of declarations live on the same partial class <see cref="NativeMethods"/>, so
 /// reflection sees them together and the two can be paired by their <c>EntryPoint</c>.
 /// <see cref="DllImportAttribute.EntryPoint"/> is populated on the generated methods and
-/// <see cref="LibraryImportAttribute.EntryPoint"/> survives on the hand-written ones, which is what
+/// <see cref="LibraryImportAttribute.EntryPoint"/> survives on the handwritten ones, which is what
 /// makes the pairing possible without any native library present: reflection never invokes the
 /// methods, so this suite runs everywhere the rest of the host unit tests do.
 /// </remarks>
 public sealed class SafeBindingPairingTests
 {
   /// <summary>
-  /// Parameters of this CLR type in a hand-written overload stand for a raw pointer of this type in
+  /// Parameters of this CLR type in a handwritten overload stand for a raw pointer of this type in
   /// the generated declaration, because the <c>[LibraryImport]</c> SafeHandle marshaller turns the
   /// handle into its underlying pointer for the duration of the call.
   /// </summary>
@@ -31,16 +31,16 @@ public sealed class SafeBindingPairingTests
 
   /// <summary>
   /// Entry points that must keep the raw generated declaration because a <c>SafeHandle</c> cannot be
-  /// marshalled from inside its own <c>ReleaseHandle</c>: <c>alpm_release</c> is the native release
+  /// marshaled from inside its own <c>ReleaseHandle</c>: <c>alpm_release</c> is the native release
   /// routine itself, called by <see cref="SafeAlpmHandle.ReleaseHandle"/> with the raw handle value.
   /// </summary>
   private static readonly string[] RawOnlyEntryPoints = ["alpm_release"];
 
   /// <summary>
-  /// Hand-written overloads that deliberately deviate from their generated declaration: entry point
+  /// Handwritten overloads that deliberately deviate from their generated declaration: entry point
   /// to the indices of the parameters whose types intentionally differ. The log callback keeps its
   /// <c>va_list</c> argument opaque (<c>void*</c> instead of the generated <c>__va_list_tag*</c>)
-  /// so that regenerating the bindings can never re-materialise a typed <c>va_list</c> in the
+  /// so that regenerating the bindings can never re-materialize a typed <c>va_list</c> in the
   /// native thunk signature: <c>AlpmCallbacks.LogAgent</c> forwards it unchanged to the native
   /// <c>vasprintf</c> shim (see <c>LogMessageFormatter</c>). Everything else about the overload -
   /// entry point, arity, the other parameter types, the return type - is still paired and checked.
@@ -72,7 +72,7 @@ public sealed class SafeBindingPairingTests
 
 
   /// <summary>
-  /// Every hand-written overload must match the generated declaration it mirrors: same entry point,
+  /// Every handwritten overload must match the generated declaration it mirrors: same entry point,
   /// same arity, same parameter types (with <see cref="SafeAlpmHandle"/> standing in for the raw
   /// handle pointer), and the same return type. This is the check that catches libalpm signature
   /// drift, which would otherwise silently corrupt the stack at the call boundary. The only

@@ -20,7 +20,7 @@ public sealed class PackageSatisfierTests : IDisposable
 
     var found = PackageView.FindSatisfier([pkg], "pacpar-satisfier-target");
     Assert.NotNull(found);
-    Assert.Equal("pacpar-satisfier-target", found!.Name);
+    Assert.Equal("pacpar-satisfier-target", found.Name);
 
     var notFound = PackageView.FindSatisfier([pkg], "nonexistent-dep");
     Assert.Null(notFound);
@@ -34,7 +34,7 @@ public sealed class PackageSatisfierTests : IDisposable
 
     var found = _environment.AlpmSession.ResolveDependency([localDb], "pacpar-dbs-satisfier-target");
     Assert.NotNull(found);
-    Assert.Equal("pacpar-dbs-satisfier-target", found!.Name);
+    Assert.Equal("pacpar-dbs-satisfier-target", found.Name);
 
     var notFound = _environment.AlpmSession.ResolveDependency([localDb], "no-such-pkg");
     Assert.Null(notFound);
@@ -63,8 +63,8 @@ public sealed class PackageSatisfierTests : IDisposable
 
     localDb.InvalidateViews("Database.Update");
 
-    var thrown = Assert.Throws<AlpmLifetimeException>(() => viaGetPackage!.Name);
+    var thrown = Assert.Throws<AlpmLifetimeException>(() => viaGetPackage.Name);
     Assert.Equal("the local database", thrown.Target);
-    Assert.Throws<AlpmLifetimeException>(() => viaResolveDependency!.Name);
+    Assert.Throws<AlpmLifetimeException>(() => viaResolveDependency.Name);
   }
 }

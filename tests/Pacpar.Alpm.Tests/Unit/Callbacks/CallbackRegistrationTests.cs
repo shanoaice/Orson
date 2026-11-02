@@ -11,12 +11,17 @@ public sealed class CallbackRegistrationTests
     using var env = new IsolatedAlpmEnvironment();
     var handle = env.AlpmSession.Handle;
 
+    // Assert.Null and Assert.NotNull cannot be used on unmanaged function pointers (delegate*).
+#pragma warning disable xUnit2024
+    // ReSharper disable ConditionIsAlwaysTrueOrFalse
     Assert.True(NativeMethods.alpm_option_get_eventcb(handle) == null, "eventcb should not be registered initially");
     Assert.True(NativeMethods.alpm_option_get_fetchcb(handle) == null, "fetchcb should not be registered initially");
     Assert.True(NativeMethods.alpm_option_get_questioncb(handle) == null, "questioncb should not be registered initially");
     Assert.True(NativeMethods.alpm_option_get_progresscb(handle) == null, "progresscb should not be registered initially");
     Assert.True(NativeMethods.alpm_option_get_dlcb(handle) == null, "dlcb should not be registered initially");
     Assert.True(NativeMethods.alpm_option_get_logcb(handle) == null, "logcb should not be registered initially");
+    // ReSharper restore ConditionIsAlwaysTrueOrFalse
+#pragma warning restore xUnit2024
   }
 
   [Fact]
@@ -24,8 +29,12 @@ public sealed class CallbackRegistrationTests
   {
     using var env = new IsolatedAlpmEnvironment();
     var handle = env.AlpmSession.Handle;
+
     var cb = env.AlpmSession.Callback;
 
+    // Assert.Null and Assert.NotNull cannot be used on unmanaged function pointers (delegate*).
+#pragma warning disable xUnit2024
+    // ReSharper disable ConditionIsAlwaysTrueOrFalse
     Assert.True(NativeMethods.alpm_option_get_eventcb(handle) == null);
     cb.EventHandler = _ => { };
     Assert.True(NativeMethods.alpm_option_get_eventcb(handle) != null);
@@ -61,6 +70,8 @@ public sealed class CallbackRegistrationTests
     Assert.True(NativeMethods.alpm_option_get_logcb(handle) != null);
     cb.LogHandler = null;
     Assert.True(NativeMethods.alpm_option_get_logcb(handle) == null);
+    // ReSharper restore ConditionIsAlwaysTrueOrFalse
+#pragma warning restore xUnit2024
   }
 
   [Fact]
@@ -70,10 +81,11 @@ public sealed class CallbackRegistrationTests
 
     using (var environment = new IsolatedAlpmEnvironment())
     {
-      environment.AlpmSession.Callback.HandlerException = observed.Add;
-      environment.AlpmSession.Callback.LogHandler = (_, _) =>
+      var callback = environment.AlpmSession.Callback;
+      callback.HandlerException = observed.Add;
+      callback.LogHandler = (_, _) =>
       {
-        environment.AlpmSession.Callback.FetchHandler = (_, _, _) => FetchResult.Success;
+        callback.FetchHandler = (_, _, _) => FetchResult.Success;
       };
     }
 

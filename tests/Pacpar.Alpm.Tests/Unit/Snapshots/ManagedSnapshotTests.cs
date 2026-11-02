@@ -3,7 +3,6 @@ using System.Text;
 using Pacpar.Alpm.Bindings;
 using Pacpar.Alpm.Tests.Fixtures;
 
-
 namespace Pacpar.Alpm.Tests.Unit.Snapshots;
 
 /// <summary>
@@ -192,7 +191,7 @@ public sealed unsafe class ManagedSnapshotTests
         {
           name = buffers[i],
           mode = (uint)i,
-          size = new CLong(i),
+          size = new CLong(i)
         };
       }
 
@@ -470,7 +469,6 @@ public sealed unsafe class ManagedSnapshotTests
       var remove = Assert.IsType<AlpmQuestion.RemovePkgs>(payload);
       Assert.False(remove.Skip);
       Assert.Equal("pacpar-member-list", Assert.Single(remove.Packages).Name);
-      pkg.Dispose();
     }
     finally
     {

@@ -109,7 +109,7 @@ public sealed class LifetimeInvalidationTests : IDisposable
     var localDb = _environment.AlpmSession.GetLocalDatabase();
     var held = localDb.GetPackage("pacpar-lifetime-first");
     Assert.NotNull(held);
-    Assert.Equal("pacpar-lifetime-first", held!.Name);
+    Assert.Equal("pacpar-lifetime-first", held.Name);
 
     // The second commit rewrites the local database caches again.
     Install("pacpar-lifetime-second");
@@ -178,7 +178,7 @@ public sealed class LifetimeInvalidationTests : IDisposable
     // Taken after the commit, so the cache view carries a live token.
     var cache = _environment.AlpmSession.GetLocalDatabase().LoadPackageCache();
 
-    var enumerator = cache.GetEnumerator();
+    using var enumerator = cache.GetEnumerator();
     Assert.True(enumerator.MoveNext());
 
     // Materialize one element, so the enumerator now holds a native node to advance from.
@@ -194,7 +194,7 @@ public sealed class LifetimeInvalidationTests : IDisposable
   [Fact]
   public void FindGroupPackages_AcrossDatabases_InvalidatesUnregisteredDatabaseMembers()
   {
-    var dbpath = _environment.AlpmSession.Options.DatabasePath!;
+    var dbpath = _environment.AlpmSession.Options.DatabasePath;
     PackageArchive.CreateSyncDatabase(dbpath, "repo-a", "pkg-a", "shared-group");
     PackageArchive.CreateSyncDatabase(dbpath, "repo-b", "pkg-b", "shared-group");
 

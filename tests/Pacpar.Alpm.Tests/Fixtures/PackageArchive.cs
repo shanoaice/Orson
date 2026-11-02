@@ -1,11 +1,12 @@
 using System.Formats.Tar;
+using System.IO.Compression;
 using System.Text;
 
 namespace Pacpar.Alpm.Tests.Fixtures;
 
 /// <summary>
 /// Builds the smallest package <c>alpm_pkg_load</c> accepts, so tests that need a real package file
-/// do not need the integration container. <see cref="IsolatedAlpmEnvironment.Install"/> is the way to
+/// do not need the integration container. <see cref="IsolatedAlpmEnvironment.Install(PackageSpec, TransactionFlags)"/> is the way to
 /// get one of these into a database.
 /// </summary>
 /// <remarks>
@@ -54,39 +55,38 @@ internal static class PackageArchive
 
     var path = Path.Combine(directory, $"{spec.Name}-{spec.Version}-{spec.Arch}.pkg.tar");
 
-    using (var stream = File.Create(path))
-    using (var writer = new TarWriter(stream, TarEntryFormat.Pax))
+    using var stream = File.Create(path);
+    using var writer = new TarWriter(stream, TarEntryFormat.Pax);
+
+    writer.WriteEntry(TextEntry(".PKGINFO", info.ToString()));
+
+    if (spec.Changelog != null) writer.WriteEntry(TextEntry(".CHANGELOG", spec.Changelog));
+    if (spec.InstallScriptlet != null) writer.WriteEntry(TextEntry(".INSTALL", spec.InstallScriptlet));
+    if (spec.MTree != null)
     {
-      writer.WriteEntry(TextEntry(".PKGINFO", info.ToString()));
+      using var gzStream = new MemoryStream();
+      using (var gz = new GZipStream(gzStream, CompressionMode.Compress, leaveOpen: true))
+      using (var gzWriter = new StreamWriter(gz, new UTF8Encoding(false)))
+      {
+        gzWriter.Write(spec.MTree);
+      }
+      var gzBytes = gzStream.ToArray();
+      var mtreeEntry = new PaxTarEntry(TarEntryType.RegularFile, ".MTREE")
+      {
+        DataStream = new MemoryStream(gzBytes)
+      };
+      writer.WriteEntry(mtreeEntry);
+    }
+    if (spec.File != null)
+    {
+      writer.WriteEntry(new PaxTarEntry(TarEntryType.Directory, "usr/"));
+      writer.WriteEntry(new PaxTarEntry(TarEntryType.Directory, "usr/bin/"));
+      writer.WriteEntry(TextEntry(spec.File, "packaged contents"));
+    }
 
-      if (spec.Changelog != null) writer.WriteEntry(TextEntry(".CHANGELOG", spec.Changelog));
-      if (spec.InstallScriptlet != null) writer.WriteEntry(TextEntry(".INSTALL", spec.InstallScriptlet));
-      if (spec.MTree != null)
-      {
-        using var gzStream = new MemoryStream();
-        using (var gz = new System.IO.Compression.GZipStream(gzStream, System.IO.Compression.CompressionMode.Compress, leaveOpen: true))
-        using (var gzWriter = new StreamWriter(gz, new UTF8Encoding(false)))
-        {
-          gzWriter.Write(spec.MTree);
-        }
-        var gzBytes = gzStream.ToArray();
-        var mtreeEntry = new PaxTarEntry(TarEntryType.RegularFile, ".MTREE")
-        {
-          DataStream = new MemoryStream(gzBytes)
-        };
-        writer.WriteEntry(mtreeEntry);
-      }
-      if (spec.File != null)
-      {
-        writer.WriteEntry(new PaxTarEntry(TarEntryType.Directory, "usr/"));
-        writer.WriteEntry(new PaxTarEntry(TarEntryType.Directory, "usr/bin/"));
-        writer.WriteEntry(TextEntry(spec.File, "packaged contents"));
-      }
-
-      foreach (var f in spec.Files)
-      {
-        writer.WriteEntry(TextEntry(f, "packaged contents"));
-      }
+    foreach (var f in spec.Files)
+    {
+      writer.WriteEntry(TextEntry(f, "packaged contents"));
     }
 
     return path;
@@ -120,6 +120,6 @@ internal static class PackageArchive
   private static PaxTarEntry TextEntry(string name, string contents)
     => new(TarEntryType.RegularFile, name)
     {
-      DataStream = new MemoryStream(Encoding.UTF8.GetBytes(contents)),
+      DataStream = new MemoryStream(Encoding.UTF8.GetBytes(contents))
     };
 }

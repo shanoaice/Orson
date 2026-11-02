@@ -191,7 +191,7 @@ internal static class GcAnchorAudit
     var instructions = graph.Instructions;
     var module = method.Module;
 
-    for (int i = 0; i < instructions.Count; i++)
+    for (var i = 0; i < instructions.Count; i++)
     {
       var hazard = instructions[i];
 
@@ -210,7 +210,7 @@ internal static class GcAnchorAudit
       // while never reaching the call that actually enters native code.
       if (hazard.OpCode == OpCodes.Ldftn || hazard.OpCode == OpCodes.Ldvirtftn) continue;
 
-      int methodToken = hazard.MethodToken;
+      var methodToken = hazard.MethodToken;
       if (methodToken == 0) continue;
 
       MethodBase? target;
@@ -264,12 +264,12 @@ internal static class GcAnchorAudit
   {
     var instructions = graph.Instructions;
     var hazard = instructions[hazardIndex];
-    bool isStatic = method.IsStatic;
+    var isStatic = method.IsStatic;
 
     // M6: the raw handle or pointer leaves this frame, so the anchoring obligation is the caller's.
     // That is exactly the SafeHandle contract: DangerousGetHandle is legal only when the caller has
     // "otherwise ensured" the handle is not released.
-    if (kind == HazardKind.DangerousGetHandle || PointerCameFromParameter(module, method, instructions, hazardIndex))
+    if (kind == HazardKind.DangerousGetHandle || PointerCameFromParameter(method, instructions, hazardIndex))
     {
       return new HazardSite(type.Name, method.Name, hazard.Offset, kind, detail,
         AnchorMechanism.DelegatedToCaller, AnchorVerdict.NeedsReview,
@@ -341,7 +341,7 @@ internal static class GcAnchorAudit
             "no mechanism claimed; provenance did not tie the pointer to the instance "
             + "(owns={0}, fromParameter={1}, fromThis={2}, isStatic={3})",
             ownership,
-            PointerCameFromParameter(module, method, instructions, hazardIndex),
+            PointerCameFromParameter(method, instructions, hazardIndex),
             PointerCameFromInstanceField(module, instructions, hazardIndex, type),
             isStatic)
           + " window=[" + string.Join(" ", instructions
@@ -379,7 +379,7 @@ internal static class GcAnchorAudit
     Module module, IReadOnlyList<IlInstruction> instructions, int hazardIndex, IlControlFlowGraph graph)
   {
     var hazard = instructions[hazardIndex];
-    for (int j = hazardIndex + 1; j < instructions.Count; j++)
+    for (var j = hazardIndex + 1; j < instructions.Count; j++)
     {
       var candidate = instructions[j];
       if (candidate.MethodToken == 0) continue;
@@ -397,13 +397,13 @@ internal static class GcAnchorAudit
   }
 
   private static bool IsLoadThis(IlInstruction instruction) =>
-    instruction.OpCode.Value is unchecked(0x02) // ldarg.0
-    || (instruction.OpCode.Value is unchecked(0x0E) && instruction.VariableIndex == 0); // ldarg.s 0
+    instruction.OpCode.Value is 0x02 // ldarg.0
+    || (instruction.OpCode.Value is 0x0E && instruction.VariableIndex == 0); // ldarg.s 0
 
   private static bool UsesThisAfter(
     Module module, IReadOnlyList<IlInstruction> instructions, int hazardIndex, Type type)
   {
-    for (int j = hazardIndex + 1; j < instructions.Count; j++)
+    for (var j = hazardIndex + 1; j < instructions.Count; j++)
     {
       if (IsLoadThis(instructions[j])) return true;
 
@@ -439,13 +439,13 @@ internal static class GcAnchorAudit
   private static bool ThisIsOnEvaluationStack(
     Module module, IReadOnlyList<IlInstruction> instructions, int hazardIndex)
   {
-    for (int c = hazardIndex - 1; c >= 0 && c >= hazardIndex - 24; c--)
+    for (var c = hazardIndex - 1; c >= 0 && c >= hazardIndex - 24; c--)
     {
       if (!IsLoadThis(instructions[c])) continue;
 
-      int depth = 1;
-      bool consumed = false;
-      for (int j = c + 1; j < hazardIndex; j++)
+      var depth = 1;
+      var consumed = false;
+      for (var j = c + 1; j < hazardIndex; j++)
       {
         var op = instructions[j].OpCode;
         if (op.FlowControl is FlowControl.Branch or FlowControl.Cond_Branch
@@ -513,14 +513,14 @@ internal static class GcAnchorAudit
         var instructions = graph.Instructions;
         var module = method.Module;
 
-        for (int i = 0; i < instructions.Count; i++)
+        for (var i = 0; i < instructions.Count; i++)
         {
           if (instructions[i].OpCode != OpCodes.Throw) continue;
 
           // Walk back over the expression that produced the thrown value: it starts out needing the
           // one value the throw consumes, and ends when every value it uses is accounted for.
-          int need = 1;
-          for (int j = i - 1; j >= 0 && need > 0; j--)
+          var need = 1;
+          for (var j = i - 1; j >= 0 && need > 0; j--)
           {
             var current = instructions[j];
             if (current.IsBranch) break;
@@ -547,7 +547,7 @@ internal static class GcAnchorAudit
   private static bool CallReachesNativeMemory(Module module, IlInstruction ins)
   {
     if (ins.MethodToken == 0) return false;
-    if (Resolve(module, ins.MethodToken) is not MethodBase target) return false;
+    if (Resolve(module, ins.MethodToken) is not { } target) return false;
 
     if (target.DeclaringType?.FullName?.StartsWith("Pacpar.Alpm.Bindings.NativeMethods", StringComparison.Ordinal) == true)
     {
@@ -597,7 +597,7 @@ internal static class GcAnchorAudit
   {
     var fieldNames = InstanceFieldNames(type).ToHashSet(StringComparer.Ordinal);
 
-    for (int j = hazardIndex - 1; j >= 0 && j >= hazardIndex - 12; j--)
+    for (var j = hazardIndex - 1; j >= 0 && j >= hazardIndex - 12; j--)
     {
       // Only an IMMEDIATELY preceding ldarg.0 pairs with an ldfld: IL pushes the object reference
       // and consumes it on the next instruction. Pairing across a gap mismatches the two (seen on
@@ -635,30 +635,29 @@ internal static class GcAnchorAudit
   /// True when the hazard's native pointer arrived as a method parameter rather than being read
   /// from an instance field of <c>this</c>. The anchoring obligation is then the caller's.
   /// </summary>
-  private static bool PointerCameFromParameter(
-    Module module, MethodBase method, IReadOnlyList<IlInstruction> instructions, int hazardIndex)
+  private static bool PointerCameFromParameter(MethodBase method, IReadOnlyList<IlInstruction> instructions, int hazardIndex)
   {
     var parameters = method.GetParameters();
-    int thisOffset = method.IsStatic ? 0 : 1;
+    var thisOffset = method.IsStatic ? 0 : 1;
 
-    for (int j = hazardIndex - 1; j >= 0 && j >= hazardIndex - 12; j--)
+    for (var j = hazardIndex - 1; j >= 0 && j >= hazardIndex - 12; j--)
     {
       var value = instructions[j].OpCode.Value;
-      int argIndex = value switch
+      var argIndex = value switch
       {
-        _ when value == unchecked(0x02) => 0, // ldarg.0
-        _ when value == unchecked(0x03) => 1, // ldarg.1
-        _ when value == unchecked(0x04) => 2, // ldarg.2
-        _ when value == unchecked(0x05) => 3, // ldarg.3
+        0x02 => 0, // ldarg.0
+        0x03 => 1, // ldarg.1
+        0x04 => 2, // ldarg.2
+        0x05 => 3, // ldarg.3
         // ldarg.s / ldarga.s carry the index in the operand byte.
-        _ when value == unchecked(0x0E) || value == unchecked(0x0F) => instructions[j].VariableIndex,
+        0x0E or 0x0F => instructions[j].VariableIndex,
         _ => -1,
       };
       if (argIndex < 0) continue;
 
       // The obligation moves to the call site only when the POINTER itself arrived as a parameter.
       // Seeing a string or a flags argument beside the native call proves nothing about ownership.
-      int parameterIndex = argIndex - thisOffset;
+      var parameterIndex = argIndex - thisOffset;
       if (parameterIndex >= 0 && parameterIndex < parameters.Length
           && parameters[parameterIndex].ParameterType.IsPointer)
       {
@@ -706,9 +705,9 @@ internal static class GcAnchorAudit
     Module module, IReadOnlyList<IlInstruction> instructions, int hazardIndex)
   {
     bool addRef = false, releaseAfter = false;
-    for (int j = 0; j < instructions.Count; j++)
+    for (var j = 0; j < instructions.Count; j++)
     {
-      int token = instructions[j].MethodToken;
+      var token = instructions[j].MethodToken;
       if (token == 0) continue;
       var target = Resolve(module, token);
       if (target == DangerousAddRefMethod && j < hazardIndex) addRef = true;
@@ -781,7 +780,7 @@ internal static class GcAnchorAudit
   {
     if (allowlist.ContainsKey(site.Key)) return site.Key;
     if (site.Verdict == AnchorVerdict.Unsafe) return null;
-    int dot = site.Key.IndexOf('.');
+    var dot = site.Key.IndexOf('.');
     return dot > 0 && allowlist.ContainsKey(site.Key[..dot]) ? site.Key[..dot] : null;
   }
 
@@ -795,7 +794,7 @@ internal static class GcAnchorAudit
   {
     if (allowlist.ContainsKey(site.Key)) return true;
     if (site.Verdict == AnchorVerdict.Unsafe) return false;
-    int dot = site.Key.IndexOf('.');
+    var dot = site.Key.IndexOf('.');
     return dot > 0 && allowlist.ContainsKey(site.Key[..dot]);
   }
 }

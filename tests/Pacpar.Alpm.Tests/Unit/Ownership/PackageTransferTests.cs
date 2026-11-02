@@ -80,12 +80,12 @@ public sealed class PackageTransferTests : IDisposable
   public void AddPackage_OfAViewWhoseTransactionWasReleased_Throws()
   {
     PackageView stale;
-    using (var owner = _environment.AlpmSession.BeginTransaction(NoFlags))
+    using (var owner = _environment.AlpmSession.BeginTransaction())
     {
       stale = owner.AddPackage(Load("pacpar-stale-view"));
     }
 
-    using var receiver = _environment.AlpmSession.BeginTransaction(NoFlags);
+    using var receiver = _environment.AlpmSession.BeginTransaction();
 
     Assert.Throws<AlpmLifetimeException>(() => receiver.AddPackage(stale));
   }

@@ -37,7 +37,12 @@ public sealed unsafe class Utf8StringTests
   [Fact]
   public void ToNative_Null_IsANullPointer()
   {
+    // Assert.Null cannot be used on unmanaged pointers (byte*).
+#pragma warning disable xUnit2024
+    // ReSharper disable ConditionIsAlwaysTrueOrFalse
     Assert.True(NativeString.ToNative(null) == null);
+    // ReSharper restore ConditionIsAlwaysTrueOrFalse
+#pragma warning restore xUnit2024
   }
 
   [Fact]

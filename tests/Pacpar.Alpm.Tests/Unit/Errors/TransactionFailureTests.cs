@@ -199,6 +199,7 @@ public sealed unsafe class TransactionFailureTests : IDisposable
     // Crucial: pkg2 is still owned by the caller and was not disowned.
     Assert.True(pkg2.OwnsPackage);
     // pkg2 can be disposed cleanly without throwing.
+    // ReSharper disable once DisposeOnUsingVariable
     pkg2.Dispose();
     Assert.False(pkg2.OwnsPackage);
   }

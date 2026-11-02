@@ -1,3 +1,4 @@
+#pragma warning disable SYSLIB1054
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -35,7 +36,7 @@ public sealed unsafe class LogMessageFormatterTests
   {
     var received = Capture("log %s #%d %.0f", "中文 / ünïcødé", 42, 1000.0);
 
-    Assert.Equal(new[] { "log 中文 / ünïcødé #42 1000" }, received);
+    Assert.Equal(["log 中文 / ünïcødé #42 1000"], received);
   }
 
   [Fact]
@@ -43,7 +44,7 @@ public sealed unsafe class LogMessageFormatterTests
   {
     var received = Capture(null, "ignored", 0, 0);
 
-    Assert.Equal(new string?[] { null }, received);
+    Assert.Equal([null], received);
   }
 
   /// <summary>

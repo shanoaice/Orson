@@ -17,7 +17,7 @@ public sealed class LogActionTests : IDisposable
 
   public void Dispose()
   {
-    if (System.IO.File.Exists(_logPath)) System.IO.File.Delete(_logPath);
+    if (File.Exists(_logPath)) File.Delete(_logPath);
   }
 
   private AlpmSession CreateAlpmWithLogFile(out IsolatedAlpmEnvironment environment)
@@ -35,7 +35,7 @@ public sealed class LogActionTests : IDisposable
     {
       alpm.LogAction("PACPAR", "hello from the test");
 
-      var log = System.IO.File.ReadAllText(_logPath);
+      var log = File.ReadAllText(_logPath);
       Assert.Contains("[PACPAR]", log);
       Assert.Contains("hello from the test", log);
     }
@@ -53,7 +53,7 @@ public sealed class LogActionTests : IDisposable
     {
       alpm.LogAction("PACPAR", "100% done, %s and %d stay literal");
 
-      var log = System.IO.File.ReadAllText(_logPath);
+      var log = File.ReadAllText(_logPath);
       Assert.Contains("100% done, %s and %d stay literal", log);
       Assert.DoesNotContain("100%%", log);
     }
@@ -68,7 +68,7 @@ public sealed class LogActionTests : IDisposable
       alpm.LogAction("PACPAR", "first");
       alpm.LogAction("PACPAR", "second");
 
-      var lines = System.IO.File.ReadAllLines(_logPath);
+      var lines = File.ReadAllLines(_logPath);
       Assert.Contains(lines, line => line.EndsWith("first", StringComparison.Ordinal));
       Assert.Contains(lines, line => line.EndsWith("second", StringComparison.Ordinal));
     }
