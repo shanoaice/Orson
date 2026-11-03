@@ -4,13 +4,7 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// Compile-time capabilities of libalpm.
-/// </summary>
-/// <remarks>
-/// A projection of libalpm's own <c>alpm_capability_t</c> bit values, so the numbering is libalpm's
-/// and there is no zero member: libalpm defines none. ADR 0019.
-/// </remarks>
+/// <summary>Compile-time feature flags supported by libalpm.</summary>
 [Flags]
 public enum Capability : uint
 {
@@ -26,14 +20,14 @@ public enum Capability : uint
 
 // ReSharper disable once ClassNeverInstantiated.Global
 /// <summary>
-/// A live session with libalpm: the root object that owns the native handle and is the entry point
-/// for databases and transactions.
+/// A live session with libalpm: the root object that owns the native handle and is the entry point for databases
+/// and transactions.
 /// </summary>
 /// <remarks>
-/// libalpm is not thread-safe, so a session, the databases and transactions that hang off it, and
-/// every view they issue belong to one thread at a time. The rest of the library assumes this contract, and if you violates it, bad things WILL happen. Concurrent work belongs on other threads that hand
-/// results back to the session's thread, and anything that must cross a thread boundary should be copied
-/// out with <see cref="PackageBase.ToSnapshot"/> first.
+/// libalpm is not thread-safe, so a session, the databases and transactions that hang off it, and every view they
+/// issue belong to one thread at a time. The rest of the library assumes this contract, and if you violates it, bad things
+/// WILL happen. Concurrent work belongs on other threads that hand results back to the session's thread, and anything that
+/// must cross a thread boundary should be copied out with <see cref="PackageBase.ToSnapshot" /> first.
 /// </remarks>
 public sealed partial class AlpmSession : IDisposable
 {
@@ -107,19 +101,13 @@ public sealed partial class AlpmSession : IDisposable
     return true;
   }
 
-  /// <summary>
-  /// Gets the version of libalpm.
-  /// </summary>
+  /// <summary>Gets the version of libalpm.</summary>
   public static unsafe string Version => NativeString.FromNative((nint)NativeMethods.alpm_version())!;
 
-  /// <summary>
-  /// Gets the compile-time capabilities of libalpm.
-  /// </summary>
+  /// <summary>Gets the compile-time capabilities of libalpm.</summary>
   public static Capability Capabilities => (Capability)(uint)NativeMethods.alpm_capabilities();
 
-  /// <summary>
-  /// Initializes a new instance of the <see cref="AlpmSession"/> library handle.
-  /// </summary>
+  /// <summary>Initializes a new instance of the <see cref="AlpmSession" /> library handle.</summary>
   /// <param name="root">The root directory of the installation (e.g. <c>"/"</c>).</param>
   /// <param name="dbpath">The path to the pacman database directory (e.g. <c>"/var/lib/pacman"</c>).</param>
   /// <exception cref="AlpmException">Thrown if libalpm fails to initialize.</exception>
@@ -132,9 +120,7 @@ public sealed partial class AlpmSession : IDisposable
     ObjectDisposedException.ThrowIf(Disposed, this);
   }
 
-  /// <summary>
-  /// Exposes properties to set libalpm options.
-  /// </summary>
+  /// <summary>Exposes properties to set libalpm options.</summary>
   public AlpmOptions Options
   {
     get
@@ -144,9 +130,7 @@ public sealed partial class AlpmSession : IDisposable
     }
   }
 
-  /// <summary>
-  /// Exposes properties to configure libalpm callbacks on demand.
-  /// </summary>
+  /// <summary>Exposes properties to configure libalpm callbacks on demand.</summary>
   public AlpmCallbacks Callbacks
   {
     get
@@ -156,18 +140,15 @@ public sealed partial class AlpmSession : IDisposable
     }
   }
 
-  /// <summary>
-  /// The transaction currently initialized on this handle, or <c>null</c> when there is none.
-  /// </summary>
+  /// <summary>The transaction currently initialized on this handle, or <c>null</c> when there is none.</summary>
   /// <remarks>
-  /// libalpm allows one transaction per handle at a time, and <see cref="BeginTransaction"/> hands
-  /// this one back instead of initializing a second (it refuses the join when the requested flags
-  /// differ). The property is cleared when the transaction is disposed.
+  /// libalpm allows one transaction per handle at a time, and <see cref="BeginTransaction" /> hands this one back instead of
+  /// initializing a second (it refuses the join when the requested flags differ). The property is cleared when the
+  /// transaction is disposed.
   /// <para>
-  /// <see cref="Dispose()"/> releases this transaction before releasing the handle: an initialized
-  /// transaction holds the database lock, and <c>alpm_release</c> refuses to run while one exists
-  /// (<c>ALPM_ERR_TRANS_NOT_NULL</c>, freeing nothing), which would leak the handle and
-  /// <c>db.lck</c>.
+  /// <see cref="Dispose()" /> releases this transaction before releasing the handle: an initialized transaction holds
+  /// the database lock, and <c>alpm_release</c> refuses to run while one exists (<c>ALPM_ERR_TRANS_NOT_NULL</c>, freeing
+  /// nothing), which would leak the handle and <c>db.lck</c>.
   /// </para>
   /// </remarks>
   public Transaction? CurrentTransaction
@@ -181,29 +162,25 @@ public sealed partial class AlpmSession : IDisposable
   }
 
   /// <summary>
-  /// Whether the handle is fully released. Published with a volatile write at the end of teardown
-  /// and read with <c>Volatile.Read</c>, so a concurrent caller never sees a half-disposed handle
-  /// as usable.
+  /// Whether the handle is fully released. Published with a volatile write at the end of teardown and read with
+  /// <c>Volatile.Read</c>, so a concurrent caller never sees a half-disposed handle as usable.
   /// </summary>
   internal bool Disposed => Volatile.Read(ref _disposedFlag) != 0;
 
   /// <summary>
-  /// The root of this handle's lifetime token tree. Transactions, the local-database token and the
-  /// sync-database handle registry all hang off it, and a successful <see cref="Dispose()"/>
-  /// retires every wrapper and view issued from this handle in one step.
+  /// The root of this handle's lifetime token tree. Transactions, the local-database token and the sync-database
+  /// handle registry all hang off it, and a successful <see cref="Dispose()" /> retires every wrapper and view issued from
+  /// this handle in one step.
   /// </summary>
   internal RootLifetime RootLifetime => _lifetime;
 
-  /// <summary>
-  /// The safe handle that owns this instance's libalpm context.
-  /// </summary>
+  /// <summary>The safe handle that owns this instance's libalpm context.</summary>
   /// <remarks>
-  /// Handing this to the <c>[LibraryImport]</c> overloads in <see cref="NativeMethods"/> routes the
-  /// call through the runtime's SafeHandle marshaller, which takes a refcount on the handle for the
-  /// whole duration of the native call and releases it afterwards. That is what keeps
-  /// <c>alpm_release</c> from running underneath an in-flight call, so it replaces both the
-  /// per-call-site <c>GC.KeepAlive</c> sprinkling and the former public raw-handle escape hatch:
-  /// nothing outside this assembly can reach a bare <c>_alpm_handle_t*</c> any more.
+  /// Handing this to the <c>[LibraryImport]</c> overloads in <see cref="NativeMethods" /> routes the call through
+  /// the runtime's SafeHandle marshaller, which takes a refcount on the handle for the whole duration of the native call and
+  /// releases it afterwards. That is what keeps <c>alpm_release</c> from running underneath an in-flight call, so it
+  /// replaces both the per-call-site <c>GC.KeepAlive</c> sprinkling and the former public raw-handle escape hatch: nothing
+  /// outside this assembly can reach a bare <c>_alpm_handle_t*</c> any more.
   /// </remarks>
   internal SafeAlpmHandle Handle
   {
@@ -214,13 +191,10 @@ public sealed partial class AlpmSession : IDisposable
     }
   }
 
-  /// <summary>
-  /// The handle's current errno, as reported by libalpm.
-  /// </summary>
+  /// <summary>The handle's current errno, as reported by libalpm.</summary>
   /// <remarks>
-  /// The value is libalpm's own numbering; consult <c>alpm.h</c>. It carries no stability promise of
-  /// its own - match on the exception hierarchy, and use this only to distinguish or report a case
-  /// the hierarchy collapsed.
+  /// The value is libalpm's own numbering; consult <c>alpm.h</c>. It carries no stability promise of its own -
+  /// match on the exception hierarchy, and use this only to distinguish or report a case the hierarchy collapsed.
   /// </remarks>
   public int Errno
   {
@@ -233,16 +207,12 @@ public sealed partial class AlpmSession : IDisposable
     }
   }
 
-  /// <summary>
-  /// Gets the textual description of the last error reported by libalpm on this handle.
-  /// </summary>
-  /// <returns>
-  /// A string describing the current error.
-  /// </returns>
+  /// <summary>Gets the textual description of the last error reported by libalpm on this handle.</summary>
+  /// <returns>A string describing the current error.</returns>
   /// <remarks>
-  /// Libalpm returns "unexpected error" for a healthy handle because errno 0 is
-  /// out of the mapping range. To ask whether there is an error at all, read <see cref="Errno"/>
-  ///  or call <see cref="GetCurrentError"/>, which answers <c>null</c> when there is none.
+  /// Libalpm returns "unexpected error" for a healthy handle because errno 0 is out of the mapping range. To ask
+  /// whether there is an error at all, read <see cref="Errno" /> or call <see cref="GetCurrentError" />, which answers
+  /// <c>null</c> when there is none.
   /// </remarks>
   public unsafe string? GetCurrentErrorString()
   {
@@ -253,22 +223,21 @@ public sealed partial class AlpmSession : IDisposable
   }
 
   /// <summary>
-  /// Gets the current error reported by libalpm on this handle as an <see cref="Exception"/>, or <c>null</c> if there is no error.
+  /// Gets the current error reported by libalpm on this handle as an <see cref="Exception" />, or <c>null</c> if
+  /// there is no error.
   /// </summary>
-  /// <returns>An exception representing the current error, or <c>null</c> if <see cref="Errno"/> is OK.</returns>
+  /// <returns>An exception representing the current error, or <c>null</c> if <see cref="Errno" /> is OK.</returns>
   public Exception? GetCurrentError()
   {
     ThrowIfDisposed();
     return ErrorHandler.GetException(Errno);
   }
 
-  /// <summary>
-  /// Loads a package archive from disk.
-  /// </summary>
+  /// <summary>Loads a package archive from disk.</summary>
   /// <param name="filename">The path to the package archive file.</param>
   /// <param name="full">Whether to load all package metadata eagerly into memory.</param>
   /// <param name="level">The signature verification requirements for loading the package.</param>
-  /// <returns>A <see cref="LoadedPackage"/> representing the package file.</returns>
+  /// <returns>A <see cref="LoadedPackage" /> representing the package file.</returns>
   /// <exception cref="AlpmException">Thrown if libalpm fails to load or parse the package archive.</exception>
   public LoadedPackage LoadPackage(string filename, bool full, SigLevel level)
   {
@@ -281,22 +250,22 @@ public sealed partial class AlpmSession : IDisposable
   }
 
   /// <summary>
-  /// Returns the transaction this handle has initialized, beginning one with <paramref name="flags"/>
-  /// when there is none.
+  /// Returns the transaction this handle has initialized, beginning one with <paramref name="flags" /> when there
+  /// is none.
   /// </summary>
   /// <param name="flags">
   /// The transaction's flags. The default, <c>0</c>, is libalpm's fully-checked mode - see
-  /// <see cref="TransactionFlags"/> for what each deviation from it means.
+  /// <see cref="TransactionFlags" /> for what each deviation from it means.
   /// </param>
   /// <returns>The new transaction, or the active one this call joined.</returns>
   /// <remarks>
-  /// libalpm initializes at most one transaction per handle, so an active transaction is joined
-  /// instead of a second native one being refused.
+  /// libalpm initializes at most one transaction per handle, so an active transaction is joined instead of a second
+  /// native one being refused.
   /// </remarks>
   /// <exception cref="InvalidOperationException">
-  /// A transaction is already active and was initialized with different flags. The flags decide
-  /// whether the transaction locks the database, writes to the filesystem and runs hooks, so a
-  /// request for one mode must not be answered with a transaction configured for another.
+  /// A transaction is already active and was initialized with different flags.
+  /// The flags decide whether the transaction locks the database, writes to the filesystem and runs hooks, so a request for
+  /// one mode must not be answered with a transaction configured for another.
   /// </exception>
   public Transaction BeginTransaction(TransactionFlags flags = default)
   {
@@ -308,13 +277,11 @@ public sealed partial class AlpmSession : IDisposable
     return transaction;
   }
 
-  /// <summary>
-  /// The local database of this handle.
-  /// </summary>
+  /// <summary>The local database of this handle.</summary>
   /// <remarks>
-  /// Repeated calls return wrappers that are retired together. A successful transaction commit
-  /// retires the ones issued before it - committing frees libalpm's in-memory package caches - and
-  /// the next call returns a fresh wrapper for the re-opened database.
+  /// Repeated calls return wrappers that are retired together. A successful transaction commit retires the ones
+  /// issued before it - committing frees libalpm's in-memory package caches - and the next call returns a fresh wrapper for
+  /// the re-opened database.
   /// </remarks>
   public unsafe Database GetLocalDatabase()
   {
@@ -329,10 +296,8 @@ public sealed partial class AlpmSession : IDisposable
     return new Database(databasePtr, _localDatabaseLifetime, isLocal: true);
   }
 
-  /// <summary>
-  /// Gets the list of registered sync package databases.
-  /// </summary>
-  /// <returns>A read-only <see cref="AlpmList{Database}"/> of sync databases.</returns>
+  /// <summary>Gets the list of registered sync package databases.</summary>
+  /// <returns>A read-only <see cref="AlpmList{Database}" /> of sync databases.</returns>
   public unsafe AlpmList<Database> GetSyncDatabases()
   {
     ThrowIfDisposed();
@@ -340,16 +305,14 @@ public sealed partial class AlpmSession : IDisposable
     return AlpmList<Database>.Borrow(syncDatabases, &Database.Factory, _lifetime);
   }
 
-  /// <summary>
-  /// Registers a new sync package database on this handle.
-  /// </summary>
+  /// <summary>Registers a new sync package database on this handle.</summary>
   /// <param name="treename">The name of the database repository (e.g. "core", "extra").</param>
   /// <param name="level">The signature verification requirements for this database.</param>
-  /// <returns>The newly registered <see cref="Database"/>.</returns>
+  /// <returns>The newly registered <see cref="Database" />.</returns>
   /// <remarks>
-  /// The registration appends a node to the handle's sync-database list. It never frees an existing
-  /// node, so a list view taken before this call stays safe to walk - but it cannot see the new
-  /// database either, so take a fresh <see cref="GetSyncDatabases"/> afterwards.
+  /// The registration appends a node to the handle's sync-database list. It never frees an existing node, so a list
+  /// view taken before this call stays safe to walk - but it cannot see the new database either, so take a fresh
+  /// <see cref="GetSyncDatabases" /> afterwards.
   /// </remarks>
   public Database RegisterSyncDatabase(string treename, SigLevel level)
   {
@@ -361,9 +324,7 @@ public sealed partial class AlpmSession : IDisposable
     return database;
   }
 
-  /// <summary>
-  /// Unregisters every sync database from this handle.
-  /// </summary>
+  /// <summary>Unregisters every sync database from this handle.</summary>
   public void UnregisterAllSyncDatabases()
   {
     if (!TryUnregisterAllSyncDatabases(out var failure))
@@ -372,22 +333,18 @@ public sealed partial class AlpmSession : IDisposable
     }
   }
 
-  /// <summary>
-  /// Updates the specified synchronization databases from their configured download servers.
-  /// </summary>
+  /// <summary>Updates the specified synchronization databases from their configured download servers.</summary>
   /// <param name="databases">The databases to update.</param>
   /// <param name="force">If <c>true</c>, forces the download even if local copies are current.</param>
   /// <returns>
-  /// <c>true</c> if at least one file was downloaded, including a forced download of content that did
-  /// not change; <c>false</c> if every file was already current.
+  /// <c>true</c> if at least one file was downloaded, including a forced download of content that did not change;
+  /// <c>false</c> if every file was already current.
   /// </returns>
-  /// <exception cref="ArgumentException">
-  /// <paramref name="databases"/> is empty.
-  /// </exception>
+  /// <exception cref="ArgumentException"><paramref name="databases" /> is empty.</exception>
   /// <remarks>
-  /// Every database in <paramref name="databases"/> is invalidated before the download starts, so its
-  /// existing views are invalid even when the call fails. A forced update downloads the files again;
-  /// it does not promise that their contents changed.
+  /// Every database in <paramref name="databases" /> is invalidated before the download starts, so its existing
+  /// views are invalid even when the call fails. A forced update downloads the files again; it does not promise that their
+  /// contents changed.
   /// </remarks>
   public bool UpdateDatabases(IEnumerable<Database> databases, bool force = false)
   {
@@ -400,34 +357,29 @@ public sealed partial class AlpmSession : IDisposable
     return updated;
   }
 
-  /// <summary>
-  /// Releases the database lock this session holds.
-  /// </summary>
+  /// <summary>Releases the database lock this session holds.</summary>
   /// <remarks>
   /// <para>
-  /// The lock is not owned by a transaction but by the handle, and libalpm represents it as a pair:
-  /// an open file descriptor on the lock file, and the file itself, created with
-  /// <c>open(O_CREAT | O_EXCL)</c> — there is no <c>flock</c>, so the file's existence <i>is</i> the
-  /// lock. This method drops both halves in the order libalpm requires: it closes the descriptor
-  /// first, so the handle stops believing it is locked, and unlinks afterwards. Removing the file
-  /// with <see cref="System.IO.File"/> instead leaves the descriptor open, and libalpm then answers
-  /// every later lock attempt with "already locked" — a session that can no longer take the lock it
-  /// thinks it holds, while other sessions are free to create their own.
+  /// The lock is not owned by a transaction but by the handle, and libalpm represents it as a pair: an open file
+  /// descriptor on the lock file, and the file itself, created with <c>open(O_CREAT | O_EXCL)</c> — there is no <c>flock</c>
+  /// , so the file's existence <i>is</i> the lock. This method drops both halves in the order libalpm requires: it closes
+  /// the descriptor first, so the handle stops believing it is locked, and unlinks afterwards. Removing the file with
+  /// <see cref="System.IO.File" /> instead leaves the descriptor open, and libalpm then answers every later lock attempt
+  /// with "already locked" — a session that can no longer take the lock it thinks it holds, while other sessions are free to
+  /// create their own.
   /// </para>
   /// <para>
   /// Releasing is meaningful only while this session holds the lock, which is only ever true between
-  /// <see cref="BeginTransaction"/> and the transaction's release, or inside
-  /// <see cref="UpdateDatabases"/>. With nothing locked, libalpm returns success without doing
-  /// anything, and so does this method.
+  /// <see cref="BeginTransaction" /> and the transaction's release, or inside <see cref="UpdateDatabases" />. With nothing
+  /// locked, libalpm returns success without doing anything, and so does this method.
   /// </para>
   /// <para>
-  /// What this deliberately does <b>not</b> do: remove a lock file some other session — or a crashed
-  /// one — left behind. A lock left by a dead process looks exactly like a lock held by a live one
-  /// (an empty, mode-0000 file carrying no holder information), so the two cannot be told apart by
-  /// looking at it; the decision belongs to whoever knows no other instance is running. Delete the
-  /// file with <see cref="System.IO.File"/> once you have decided that, not through this method —
-  /// letting every caller of <see cref="Unlock"/> delete whatever they find turns a no-op into a
-  /// silent unlock of someone else's session.
+  /// What this deliberately does <b>not</b> do: remove a lock file some other session — or a crashed one — left
+  /// behind. A lock left by a dead process looks exactly like a lock held by a live one (an empty, mode-0000 file carrying
+  /// no holder information), so the two cannot be told apart by looking at it; the decision belongs to whoever knows no
+  /// other instance is running. Delete the file with <see cref="System.IO.File" /> once you have decided that, not through
+  /// this method — letting every caller of <see cref="Unlock" /> delete whatever they find turns a no-op into a silent
+  /// unlock of someone else's session.
   /// </para>
   /// </remarks>
   public void Unlock()
@@ -439,9 +391,7 @@ public sealed partial class AlpmSession : IDisposable
     }
   }
 
-  /// <summary>
-  /// Writes an audit record to the log file.
-  /// </summary>
+  /// <summary>Writes an audit record to the log file.</summary>
   public void LogAction(string prefix, string message)
   {
     ThrowIfDisposed();
@@ -451,9 +401,7 @@ public sealed partial class AlpmSession : IDisposable
     }
   }
 
-  /// <summary>
-  /// Fetches packages from the specified URLs.
-  /// </summary>
+  /// <summary>Fetches packages from the specified URLs.</summary>
   public IReadOnlyList<string> FetchPackageUrls(IEnumerable<string> urls)
   {
     ThrowIfDisposed();
@@ -465,9 +413,7 @@ public sealed partial class AlpmSession : IDisposable
     return fetchedUrls;
   }
 
-  /// <summary>
-  /// Checks a list of packages for missing dependencies.
-  /// </summary>
+  /// <summary>Checks a list of packages for missing dependencies.</summary>
   public IReadOnlyList<DepMissing> CheckDependencies(
     IEnumerable<PackageView> packages,
     IEnumerable<PackageView>? remove = null,
@@ -483,9 +429,7 @@ public sealed partial class AlpmSession : IDisposable
     return missing;
   }
 
-  /// <summary>
-  /// Checks a list of packages for conflicts.
-  /// </summary>
+  /// <summary>Checks a list of packages for conflicts.</summary>
   public IReadOnlyList<Conflict> CheckConflicts(IEnumerable<PackageView> packages)
   {
     ThrowIfDisposed();
@@ -497,25 +441,20 @@ public sealed partial class AlpmSession : IDisposable
     return conflicts;
   }
 
-  /// <summary>
-  /// Resolves a dependency string to the package that provides it, searching the given databases in order.
-  /// </summary>
+  /// <summary>Resolves a dependency string to the package that provides it, searching the given databases in order.</summary>
   /// <param name="databases">The databases to search, in the order they should be consulted.</param>
   /// <param name="dependency">The dependency query string (e.g. <c>"glibc&gt;=2.30"</c>).</param>
-  /// <returns>
-  /// A <see cref="PackageView"/> for the providing package, or <c>null</c> if no database provides it.
-  /// </returns>
+  /// <returns>A <see cref="PackageView" /> for the providing package, or <c>null</c> if no database provides it.</returns>
   /// <remarks>
   /// <para>
-  /// The returned view is new. It is anchored to the lifetime domain of the database that provided the
-  /// package, resolved among the wrappers the caller handed in; reading it after that database is
-  /// retired - by <see cref="Database.Update"/>, unregistration, or a commit - throws
-  /// <see cref="AlpmLifetimeException"/> instead of reading freed memory.
+  /// The returned view is new. It is anchored to the lifetime domain of the database that provided the package,
+  /// resolved among the wrappers the caller handed in; reading it after that database is retired - by
+  /// <see cref="Database.Update" />, unregistration, or a commit - throws <see cref="AlpmLifetimeException" /> instead of
+  /// reading freed memory.
   /// </para>
   /// <para>
-  /// To match a dependency against packages you already hold, use
-  /// <see cref="PackageView.FindSatisfier"/> instead: it needs no handle, touches no database, and
-  /// hands back one of the views you passed in.
+  /// To match a dependency against packages you already hold, use <see cref="PackageView.FindSatisfier" /> instead: it
+  /// needs no handle, touches no database, and hands back one of the views you passed in.
   /// </para>
   /// </remarks>
   public PackageView? ResolveDependency(IEnumerable<Database> databases, string dependency)
@@ -530,15 +469,14 @@ public sealed partial class AlpmSession : IDisposable
   }
 
   /// <summary>
-  /// Retires the current local-database token and forgets it, so the next
-  /// <see cref="GetLocalDatabase"/> issues a fresh one.
+  /// Retires the current local-database token and forgets it, so the next <see cref="GetLocalDatabase" /> issues a
+  /// fresh one.
   /// </summary>
   /// <remarks>
-  /// Called after a successful <c>alpm_trans_commit</c>: committing rewrites the local database and
-  /// frees the in-memory package caches every borrowed view points into. The native database itself
-  /// stays registered - which is why the token is replaced rather than the database unregistered -
-  /// but every view issued before the commit is stale. Callers that must keep package data across a
-  /// commit take a <c>ToSnapshot()</c> first.
+  /// Called after a successful <c>alpm_trans_commit</c>: committing rewrites the local database and frees the
+  /// in-memory package caches every borrowed view points into. The native database itself stays registered - which is why
+  /// the token is replaced rather than the database unregistered - but every view issued before the commit is stale. Callers
+  /// that must keep package data across a commit take a <c>ToSnapshot()</c> first.
   /// </remarks>
   internal void InvalidateLocalDatabase(string reason)
   {
@@ -546,13 +484,11 @@ public sealed partial class AlpmSession : IDisposable
     _localDatabaseLifetime = null;
   }
 
-  /// <summary>
-  /// Releases all unmanaged resources used by the <see cref="AlpmSession"/> and invalidates associated handles.
-  /// </summary>
+  /// <summary>Releases all unmanaged resources used by the <see cref="AlpmSession" /> and invalidates associated handles.</summary>
   /// <remarks>
-  /// Disposes any active transaction before releasing the native handle.
-  /// Invalidates the root lifetime token to invalidate all derived child views and package objects.
-  /// Frees all undisposed file-loaded packages tracked by this session.
+  /// Disposes any active transaction before releasing the native handle. Invalidates the root lifetime token to
+  /// invalidate all derived child views and package objects. Frees all undisposed file-loaded packages tracked by this
+  /// session.
   /// </remarks>
   public void Dispose()
   {

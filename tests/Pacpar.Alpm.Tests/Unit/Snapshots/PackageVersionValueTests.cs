@@ -3,20 +3,19 @@ using System.Runtime.InteropServices;
 namespace Pacpar.Alpm.Tests.Unit.Snapshots;
 
 /// <summary>
-/// Pins the value semantics of <see cref="PackageVersion"/>: equality is ordinal on the copied
-/// version text, and it is deliberately a different relation from
-/// <see cref="PackageVersion.CompareTo"/> returning 0.
+/// Pins the value semantics of <see cref="PackageVersion" />: equality is ordinal on the copied version text, and
+/// it is deliberately a different relation from <see cref="PackageVersion.CompareTo" /> returning 0.
 /// </summary>
 /// <remarks>
-/// Every version here is built over a buffer that is freed before the assertions run, so nothing in
-/// these tests can pass by reading native memory that happens to still be readable. No libalpm
-/// handle is needed: <c>alpm_pkg_vercmp</c> takes no handle.
+/// Every version here is built over a buffer that is freed before the assertions run, so nothing in these tests
+/// can pass by reading native memory that happens to still be readable. No libalpm handle is needed:
+/// <c>alpm_pkg_vercmp</c> takes no handle.
 /// </remarks>
 public sealed unsafe class PackageVersionValueTests
 {
   /// <summary>
-  /// Copies <paramref name="text"/> into native memory, snapshots it, and releases the buffer - the
-  /// snapshot has to stand on its own from here on.
+  /// Copies <paramref name="text" /> into native memory, snapshots it, and releases the buffer - the snapshot has
+  /// to stand on its own from here on.
   /// </summary>
   private static PackageVersion Version(string text)
   {
@@ -87,8 +86,8 @@ public sealed unsafe class PackageVersionValueTests
   }
 
   /// <summary>
-  /// The payoff of the equality members: a version read from one package finds the entry a version
-  /// read from another package put in the collection.
+  /// The payoff of the equality members: a version read from one package finds the entry a version read from
+  /// another package put in the collection.
   /// </summary>
   [Fact]
   public void CollectionLookup_FindsAnIndependentInstance()
@@ -107,10 +106,9 @@ public sealed unsafe class PackageVersionValueTests
   }
 
   /// <summary>
-  /// Locks the divergence the type remarks document. Probed against libalpm 16.0.1: a missing
-  /// package release is not compared, so <c>"1.0"</c> compares equal to <c>"1.0-1"</c> and to
-  /// <c>"1.0-2"</c>, while those two do not compare equal to each other. That relation is not
-  /// transitive, which is exactly why it cannot be equality.
+  /// Locks the divergence the type remarks document. Probed against libalpm 16.0.1: a missing package release is
+  /// not compared, so <c>"1.0"</c> compares equal to <c>"1.0-1"</c> and to <c>"1.0-2"</c>, while those two do not compare
+  /// equal to each other. That relation is not transitive, which is exactly why it cannot be equality.
   /// </summary>
   [Fact]
   public void CompareToZero_DoesNotImplyEquality()
@@ -131,8 +129,8 @@ public sealed unsafe class PackageVersionValueTests
   }
 
   /// <summary>
-  /// Sorting follows <see cref="PackageVersion.CompareTo"/>, not equality, so a collection ordered
-  /// by the default comparer still groups by libalpm's ordering.
+  /// Sorting follows <see cref="PackageVersion.CompareTo" />, not equality, so a collection ordered by the default
+  /// comparer still groups by libalpm's ordering.
   /// </summary>
   [Fact]
   public void Sorting_UsesTheOrderingRatherThanEquality()

@@ -2,14 +2,12 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// A read-only forward stream over a package's changelog, backed by libalpm's changelog read routine.
-/// </summary>
+/// <summary>A read-only forward stream over a package's changelog, backed by libalpm's changelog read routine.</summary>
 /// <remarks>
 /// The stream holds the archive handle returned by <c>alpm_pkg_changelog_open</c> and releases it in
-/// <see cref="Dispose(bool)"/>. There is deliberately no finalizer: libalpm writes the package handle's
-/// error state on close, so a finalizer that runs after the session released the package would be a
-/// use-after-free; see the lifetime design document. Callers must dispose the stream.
+/// <see cref="Dispose(bool)" />. There is deliberately no finalizer: libalpm writes the package handle's error state on
+/// close, so a finalizer that runs after the session released the package would be a use-after-free; see the lifetime
+/// design document. Callers must dispose the stream.
 /// </remarks>
 internal sealed unsafe class PackageChangelogStream : Stream
 {

@@ -4,9 +4,9 @@ using Pacpar.Alpm;
 namespace Pacpar.Benchmarks;
 
 /// <summary>
-/// Measures the cost of the internal Try* seam against the throwing public wrapper (ADR 0001).
-/// The measured workload is an expected failure: reading the package cache of an unregistered/unpopulated
-/// sync database, where libalpm fails and sets pm_errno (ALPM_ERR_DB_NOT_FOUND).
+/// Measures the cost of the internal Try* seam against the throwing public wrapper (ADR 0001). The measured
+/// workload is an expected failure: reading the package cache of an unregistered/unpopulated sync database, where libalpm
+/// fails and sets pm_errno (ALPM_ERR_DB_NOT_FOUND).
 /// </summary>
 [MemoryDiagnoser]
 [ProcessCount(1)]
@@ -42,9 +42,7 @@ public class TrySeamBenchmarks
     }
   }
 
-  /// <summary>
-  /// The throwing public wrapper: allocates an exception, captures a stack trace, and unwinds.
-  /// </summary>
+  /// <summary>The throwing public wrapper: allocates an exception, captures a stack trace, and unwinds.</summary>
   [Benchmark(Baseline = true)]
   public bool Throwing_LoadPackageCache()
   {
@@ -59,9 +57,7 @@ public class TrySeamBenchmarks
     }
   }
 
-  /// <summary>
-  /// The internal Try* seam: returns false and an AlpmFailure object without throwing.
-  /// </summary>
+  /// <summary>The internal Try* seam: returns false and an AlpmFailure object without throwing.</summary>
   [Benchmark]
   public bool TrySeam_TryLoadPackageCache()
   {

@@ -2,15 +2,11 @@ using Pacpar.Alpm.Tests.Fixtures;
 
 namespace Pacpar.Alpm.Tests.Unit.Databases;
 
-/// <summary>
-/// Coverage ledger §4: server and cache-server administration on a sync
-/// database.
-/// </summary>
+/// <summary>Coverage ledger §4: server and cache-server administration on a sync database.</summary>
 /// <remarks>
-/// The return conventions here are the opposite of the <c>alpm_option_remove_*</c> family: these
-/// return <c>0</c> when they removed the entry and <c>1</c> when it was not there, measured against
-/// libalpm directly. The tests below pin that in the wrapper's own
-/// vocabulary.
+/// The return conventions here are the opposite of the <c>alpm_option_remove_*</c> family: these return <c>0</c>
+/// when they removed the entry and <c>1</c> when it was not there, measured against libalpm directly. The tests below pin
+/// that in the wrapper's own vocabulary.
 /// </remarks>
 public sealed class DatabaseServerTests
 {
@@ -69,10 +65,9 @@ public sealed class DatabaseServerTests
   }
 
   /// <summary>
-  /// libalpm dups the list it is handed ("the list will be duped and the original will still need
-  /// to be freed by the caller"), so the wrapper is free to release its own buffers immediately.
-  /// Forcing a collection and reading the servers back is what proves the wrapper did not keep
-  /// pointing at memory it owns.
+  /// libalpm dups the list it is handed ("the list will be duped and the original will still need to be freed by
+  /// the caller"), so the wrapper is free to release its own buffers immediately. Forcing a collection and reading the
+  /// servers back is what proves the wrapper did not keep pointing at memory it owns.
   /// </summary>
   [Fact]
   public void SetServers_CopiesTheStrings_LibalpmDoesNotAliasOurBuffers()
@@ -120,8 +115,8 @@ public sealed class DatabaseServerTests
   }
 
   /// <summary>
-  /// Removing a server frees the matching node, so a list read before the removal must report the
-  /// release instead of walking freed memory.
+  /// Removing a server frees the matching node, so a list read before the removal must report the release instead
+  /// of walking freed memory.
   /// </summary>
   [Fact]
   public void RemoveServer_RetiresTheServerListReadBeforeIt()
@@ -143,10 +138,7 @@ public sealed class DatabaseServerTests
     Assert.Equal([OtherUrl], db.Servers);
   }
 
-  /// <summary>
-  /// The server list is a separate part of the database, so writing the cache-server list must not
-  /// retire it.
-  /// </summary>
+  /// <summary>The server list is a separate part of the database, so writing the cache-server list must not retire it.</summary>
   [Fact]
   public void SetCacheServers_LeavesTheServerListReadBeforeItAlive()
   {

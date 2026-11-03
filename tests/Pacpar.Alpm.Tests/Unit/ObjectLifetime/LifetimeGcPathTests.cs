@@ -3,31 +3,31 @@ using Pacpar.Alpm.Tests.Fixtures;
 
 namespace Pacpar.Alpm.Tests.Unit.ObjectLifetime;
 
-/// <summary>
-/// The two things that can happen when a caller drops a session without disposing it.
-/// </summary>
+/// <summary>The two things that can happen when a caller drops a session without disposing it.</summary>
 /// <remarks>
-/// These tests read the reference graph rather than libalpm, and they need a session of their own: the
-/// class fixture keeps its session reachable for the whole test, which would defeat the point.
-/// <para>
-/// What they pin, in order of importance:
-/// </para>
+/// These tests read the reference graph rather than libalpm, and they need a session of their own: the class fixture keeps
+/// its session reachable for the whole test, which would defeat the point.
+/// <para>What they pin, in order of importance:</para>
 /// <list type="number">
-/// <item><description>
-/// <b>A live view keeps the session alive.</b> A view holds a stamp, the stamp holds its domain, and
-/// the domain holds the owner. That one-hop chain is what makes it impossible for the handle's
-/// finalizer to free the native graph underneath a view that is still reading it. It is the primary
-/// guarantee, and it is stronger than any invalidation could be.
-/// </description></item>
-/// <item><description>
-/// <b>With no views left, the session is collected and the handle is released.</b> The SafeHandle's
-/// critical finalizer runs <c>alpm_release</c>; before that it retires the root domain's stamps, so
-/// the release path never frees memory that some wrapper could still validate against.
-/// </description></item>
+/// <item>
+/// <description>
+/// <b>A live view keeps the session alive.</b> A view holds a stamp, the stamp holds its domain, and the
+/// domain holds the owner. That one-hop chain is what makes it impossible for the handle's finalizer to free the native
+/// graph underneath a view that is still reading it. It is the primary guarantee, and it is stronger than any invalidation
+/// could be.
+/// </description>
+/// </item>
+/// <item>
+/// <description>
+/// <b>With no views left, the session is collected and the handle is released.</b> The SafeHandle's critical
+/// finalizer runs <c>alpm_release</c>; before that it retires the root domain's stamps, so the release path never frees
+/// memory that some wrapper could still validate against.
+/// </description>
+/// </item>
 /// </list>
 /// <para>
 /// Both sessions are dropped without disposing them, so the workspace cannot be cleaned up through
-/// <see cref="IsolatedAlpmEnvironment.Dispose"/> - the tests delete the directory themselves.
+/// <see cref="IsolatedAlpmEnvironment.Dispose" /> - the tests delete the directory themselves.
 /// </para>
 /// </remarks>
 public sealed class LifetimeGcPathTests
@@ -75,8 +75,10 @@ public sealed class LifetimeGcPathTests
     DeleteWorkspace(workspace);
   }
 
-  /// <summary>Answers with a view the caller keeps, a weak handle on the session behind it, and the
-  /// workspace to delete afterwards.</summary>
+  /// <summary>
+  /// Answers with a view the caller keeps, a weak handle on the session behind it, and the workspace to delete
+  /// afterwards.
+  /// </summary>
   [MethodImpl(MethodImplOptions.NoInlining)]
   private static (AlpmStringList View, WeakReference Session, string Workspace) CreateWithALiveView()
   {

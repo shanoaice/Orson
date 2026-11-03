@@ -3,29 +3,17 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Alpm;
 
 /// <summary>
-/// A package this library loaded from a file with <c>alpm_pkg_load</c>. It owns the package and
-/// releases it on <see cref="Dispose"/>, or when the owning <see cref="AlpmSession"/> context is disposed.
+/// A package loaded from an archive file. It owns the unmanaged package memory and releases it on
+/// <see cref="Dispose" />, or when the owning <see cref="AlpmSession" /> is disposed.
 /// </summary>
 /// <remarks>
-/// Ownership can also be handed to a transaction, which takes over the release
-/// (<see cref="Transaction.AddPackage(LoadedPackage)"/> and <c>alpm.h</c>: a package loaded by
-/// <c>alpm_pkg_load()</c> is freed upon <c>alpm_trans_release</c>). After that hand-over this
-/// instance is inert: <see cref="Dispose"/> does nothing, and reading the package
-/// throws, so the pointer cannot be released twice.
+/// Represents a standalone package archive loaded from disk. Callers must deterministically release the package using
+/// <see cref="Dispose()" /> (e.g. via a <c>using</c> statement), or transfer ownership to a transaction via
+/// <see cref="Transaction.AddPackage(LoadedPackage)" />.
 /// <para>
-/// This public class is deliberately non-finalizable, in accordance with the .NET Framework Design
-/// Guidelines. A wrapper the garbage collector collects without <see cref="Dispose"/> therefore
-/// keeps its package until the session ends: <see cref="AlpmSession.Dispose()"/> releases every
-/// file-loaded package the session still tracks before it releases the handle, and the hand-over to a
-/// transaction leaves the release to <c>alpm_trans_release</c>. Disposing the owning
-/// <see cref="AlpmSession"/> is what guarantees that all unmanaged memory goes back.
-/// </para>
-/// <para>
-/// That leak is accepted rather than open. Section 8.1 of the <c>Lifetime and GC Safety</c> chapter
-/// states why no finalizer was added: the guidelines forbid one on a public type, the anchoring
-/// chain anchors the session rather than the package - so a borrow such as
-/// <see cref="PackageBase.Depends"/> would be freed underneath it - and a finalizer cannot promise
-/// to run before <c>alpm_release</c>.
+/// Once handed over to a transaction, the transaction assumes ownership of the unmanaged memory and this instance
+/// becomes inert; calling <see cref="Dispose()" /> afterwards is a safe no-op. If neither disposal nor transaction
+/// transfer occurs, unmanaged resources are retained until the owning <see cref="AlpmSession" /> is disposed.
 /// </para>
 /// </remarks>
 public sealed unsafe class LoadedPackage : PackageBase, IDisposable
@@ -47,8 +35,8 @@ public sealed unsafe class LoadedPackage : PackageBase, IDisposable
 
   /// <summary>Throws when the package was already released or handed to a transaction.</summary>
   /// <remarks>
-  /// Checked before invoking native calls to prevent double-free or performing operations on a package
-  /// whose ownership has already been transferred to a transaction.
+  /// Checked before invoking native calls to prevent double-free or performing operations on a package whose
+  /// ownership has already been transferred to a transaction.
   /// </remarks>
   internal void ThrowIfNotOwned()
   {
@@ -56,13 +44,12 @@ public sealed unsafe class LoadedPackage : PackageBase, IDisposable
   }
 
   /// <summary>
-  /// Gives up ownership <b>without</b> releasing the package, because somebody else owns the pointer
-  /// now and releases it. <see cref="Dispose"/> becomes a no-op.
+  /// Gives up ownership <b>without</b> releasing the package, because somebody else owns the pointer now and
+  /// releases it. <see cref="Dispose" /> becomes a no-op.
   /// </summary>
   /// <remarks>
-  /// Named "disown" rather than "release" on purpose: nothing is freed here. Handing the package to
-  /// a transaction is the only caller, and it must happen after the native call succeeded - the
-  /// caller keeps ownership when it fails.
+  /// Named "disown" rather than "release" on purpose: nothing is freed here. Handing the package to a transaction
+  /// is the only caller, and it must happen after the native call succeeded - the caller keeps ownership when it fails.
   /// </remarks>
   internal void Disown()
   {
@@ -74,13 +61,11 @@ public sealed unsafe class LoadedPackage : PackageBase, IDisposable
     _lifetime.Invalidate("the hand-over to a transaction");
   }
 
-  /// <summary>
-  /// Releases the unmanaged resources used by the <see cref="LoadedPackage"/>.
-  /// </summary>
+  /// <summary>Releases the unmanaged resources used by the <see cref="LoadedPackage" />.</summary>
   /// <remarks>
-  /// Invalidates the package lifetime token and frees the underlying unmanaged package structure.
-  /// If the package was transferred to a transaction via <see cref="Transaction.AddPackage(LoadedPackage)"/>,
-  /// disposal is a no-op because the transaction assumes ownership.
+  /// Invalidates the package lifetime token and frees the underlying unmanaged package structure. If the package
+  /// was transferred to a transaction via <see cref="Transaction.AddPackage(LoadedPackage)" />, disposal is a no-op because
+  /// the transaction assumes ownership.
   /// </remarks>
   public void Dispose()
   {

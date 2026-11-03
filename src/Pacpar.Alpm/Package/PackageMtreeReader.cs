@@ -3,20 +3,17 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// An internal forward-only reader over an installed package's mtree entries (<c>.MTREE</c>).
-/// </summary>
+/// <summary>An internal forward-only reader over an installed package's mtree entries ( <c>.MTREE</c>).</summary>
 /// <remarks>
 /// <para>
-/// The reader is single-use and is owned by <see cref="PackageBase.GetMtreeEntries"/>, which
-/// materializes the entries into a managed list and disposes the reader before returning. It is not
-/// part of the public API.
+/// The reader is single-use and is owned by <see cref="PackageBase.GetMtreeEntries" />, which materializes the
+/// entries into a managed list and disposes the reader before returning. It is not part of the public API.
 /// </para>
 /// <para>
-/// Dispose the reader before the owning <see cref="AlpmSession"/> ends. When the session has
-/// already ended, <see cref="Dispose"/> throws <see cref="AlpmLifetimeException"/> before it can
-/// close the native archive reader, and that reader then leaks. The reader has no finalizer, so a
-/// forgotten <see cref="Dispose"/> leaks the native archive reader too.
+/// Dispose the reader before the owning <see cref="AlpmSession" /> ends. When the session has already ended,
+/// <see cref="Dispose" /> throws <see cref="AlpmLifetimeException" /> before it can close the native archive reader, and
+/// that reader then leaks. The reader has no finalizer, so a forgotten <see cref="Dispose" /> leaks the native archive
+/// reader too.
 /// </para>
 /// </remarks>
 internal sealed unsafe class PackageMtreeReader : IDisposable
@@ -32,17 +29,14 @@ internal sealed unsafe class PackageMtreeReader : IDisposable
     _archive = archive;
   }
 
-  /// <summary>
-  /// Gets the current <see cref="MtreeEntry"/> in the mtree stream.
-  /// </summary>
+  /// <summary>Gets the current <see cref="MtreeEntry" /> in the mtree stream.</summary>
   internal MtreeEntry Current => _current ?? throw new InvalidOperationException("Enumeration has not started or has already completed.");
 
-  /// <summary>
-  /// Advances the reader to the next entry in the mtree stream.
-  /// </summary>
+  /// <summary>Advances the reader to the next entry in the mtree stream.</summary>
   /// <returns><c>true</c> if the reader successfully advanced to the next entry; <c>false</c> if the end was reached.</returns>
   /// <exception cref="AlpmNativeFailureException">
-  /// libalpm reported a read failure without setting an error code, e.g. a malformed entry.
+  /// libalpm reported a read failure without setting an error code, e.g. a
+  /// malformed entry.
   /// </exception>
   /// <exception cref="AlpmException">The read failed with an <c>ALPM_ERR_*</c> code.</exception>
   internal bool MoveNext()
@@ -73,11 +67,10 @@ internal sealed unsafe class PackageMtreeReader : IDisposable
     return true;
   }
 
-  /// <summary>
-  /// Closes the native archive reader and releases unmanaged resources.
-  /// </summary>
+  /// <summary>Closes the native archive reader and releases unmanaged resources.</summary>
   /// <exception cref="AlpmLifetimeException">
-  /// The session that owns the package has already ended. The native archive reader then leaks.
+  /// The session that owns the package has already ended. The native archive reader
+  /// then leaks.
   /// </exception>
   public void Dispose()
   {

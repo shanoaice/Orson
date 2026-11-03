@@ -5,17 +5,16 @@ using System.Runtime.InteropServices;
 namespace Pacpar.Alpm.Tests.Unit.Callbacks;
 
 /// <summary>
-/// Locks in the <c>va_list</c> forwarding contract behind <see cref="LogMessageFormatter"/>:
-/// libalpm calls <c>alpm_cb_log</c> with a <c>(fmt, va_list)</c> pair, the managed thunk receives
-/// that argument as an opaque pointer, and libc expands it.
+/// Locks in the <c>va_list</c> forwarding contract behind <see cref="LogMessageFormatter" />: libalpm calls
+/// <c>alpm_cb_log</c> with a <c>(fmt, va_list)</c> pair, the managed thunk receives that argument as an opaque pointer,
+/// and libc expands it.
 /// </summary>
 /// <remarks>
-/// The harness in <c>native/pacpar_log_shim_test.c</c> builds a genuine <c>va_list</c> from a real
-/// variadic call site, which is the only way to exercise this path (C# cannot materialise one).
-/// That makes the test architecture-sensitive on purpose: it is what pins down the assumption that
-/// a <c>va_list</c> parameter travels as a pointer. If the managed signature ever stops agreeing
-/// with the C one, it fails here instead of at runtime, and running this suite on AArch64 checks
-/// the second ABI rather than just the x86_64 one.
+/// The harness in <c>native/pacpar_log_shim_test.c</c> builds a genuine <c>va_list</c> from a real variadic call
+/// site, which is the only way to exercise this path (C# cannot materialise one). That makes the test
+/// architecture-sensitive on purpose: it is what pins down the assumption that a <c>va_list</c> parameter travels as a
+/// pointer. If the managed signature ever stops agreeing with the C one, it fails here instead of at runtime, and running
+/// this suite on AArch64 checks the second ABI rather than just the x86_64 one.
 /// </remarks>
 public sealed unsafe class LogMessageFormatterTests
 {
@@ -48,9 +47,9 @@ public sealed unsafe class LogMessageFormatterTests
   }
 
   /// <summary>
-  /// Formats through <see cref="LogMessageFormatter"/> from a thunk that was entered the way
-  /// libalpm enters it. <paramref name="fraction"/> is exercised so the floating-point part of the
-  /// register save area is read back too, not just the general-purpose part.
+  /// Formats through <see cref="LogMessageFormatter" /> from a thunk that was entered the way libalpm enters it.
+  /// <paramref name="fraction" /> is exercised so the floating-point part of the register save area is read back too, not
+  /// just the general-purpose part.
   /// </summary>
   private static List<string?> Capture(string? format, string text, int number, double fraction)
   {

@@ -5,9 +5,9 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Snapshots;
 
 /// <summary>
-/// The question payload borrows package views under the callback frame's lifetime.
-/// These tests verify reading package properties within the frame, invalidation when the frame completes,
-/// and that explicit ToSnapshot() captures an independent copy that outlives the package.
+/// The question payload borrows package views under the callback frame's lifetime. These tests verify reading
+/// package properties within the frame, invalidation when the frame completes, and that explicit ToSnapshot() captures an
+/// independent copy that outlives the package.
 /// </summary>
 public sealed unsafe class QuestionPayloadDetailTests : IDisposable
 {

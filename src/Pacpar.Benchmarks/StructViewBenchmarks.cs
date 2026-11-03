@@ -5,42 +5,48 @@ using Pacpar.Alpm;
 namespace Pacpar.Benchmarks;
 
 /// <summary>
-/// Variant B-2 (lifetime-token-preview.md, appendix B.3): a readonly struct view whose lazy cache
-/// and lifetime token live in a shared per-package entry instead of in the view itself. The
-/// question is allocation. Today every element of every enumeration is a new <see cref="PackageView"/>,
-/// and every lazy metadata read on that fresh object allocates again, so one pass over the local
-/// database allocates ~585 KB (WarmBulkBenchmarks.Bulk_Lazy_NameVersion). A struct view over a
-/// shared entry would allocate nothing on a warm pass, but it needs a per-element entry lookup and
-/// it still has to run the lifetime check. This benchmark measures both sides, plus the first
-/// (cold) pass a one-shot CLI actually pays for.
+/// Variant B-2 (lifetime-token-preview.md, appendix B.3): a readonly struct view whose lazy cache and lifetime
+/// token live in a shared per-package entry instead of in the view itself. The question is allocation. Today every element
+/// of every enumeration is a new <see cref="PackageView" />, and every lazy metadata read on that fresh object allocates
+/// again, so one pass over the local database allocates ~585 KB (WarmBulkBenchmarks.Bulk_Lazy_NameVersion). A struct view
+/// over a shared entry would allocate nothing on a warm pass, but it needs a per-element entry lookup and it still has to
+/// run the lifetime check. This benchmark measures both sides, plus the first (cold) pass a one-shot CLI actually pays
+/// for.
 /// </summary>
 /// <remarks>
-/// The prototypes are local to this project, exactly like the PackageSnapshot prototype the earlier
-/// suite used, because the types under test do not exist in Pacpar.Alpm yet. How to read the table:
+/// The prototypes are local to this project, exactly like the PackageSnapshot prototype the earlier suite used, because
+/// the types under test do not exist in Pacpar.Alpm yet. How to read the table:
 /// <list type="bullet">
-/// <item><c>Scan_Class_LibraryPath</c> is today's code and is the baseline. It doubles as the COLD
-/// class path: each BenchmarkDotNet invocation walks the same <see cref="AlpmList{T}"/>, but the
-/// library constructs a new <see cref="PackageView"/> per element per pass, so no cache survives a pass
-/// and every property read goes back to libalpm and allocates a fresh string. Note that
-/// <see cref="PackageBase.Version"/> is not cached even on one instance, so it allocates a Version
-/// plus a string per read.</item>
-/// <item><c>Scan_Class_SharedEntry</c> keeps the class representation but moves the cache into the
-/// entry: one object per element per pass, no strings. It isolates "sharing the cache" from "being
-/// a struct" - if the win is really the sharing, this column shows it without any type change.</item>
-/// <item><c>Scan_Struct_SharedEntry</c> is B-2 as sketched: zero managed allocation per pass, one
-/// dictionary lookup per element.</item>
-/// <item><c>Scan_Struct_EntryArray</c> is the best case for B-2: the entries were resolved once,
-/// so a pass is a plain array walk with no lookup at all.</item>
-/// <item><c>Cold_Struct_FreshCache</c> is B-2 on a first pass (allocation of the entry table is
-/// inside the measured method) against <c>Cold_Class_LibraryPath</c>, the real one-shot CLI
-/// case.</item>
+/// <item>
+/// <c>Scan_Class_LibraryPath</c> is today's code and is the baseline. It doubles as the COLD class path: each
+/// BenchmarkDotNet invocation walks the same <see cref="AlpmList{T}" />, but the library constructs a new
+/// <see cref="PackageView" /> per element per pass, so no cache survives a pass and every property read goes back to
+/// libalpm and allocates a fresh string. Note that <see cref="PackageBase.Version" /> is not cached even on one instance,
+/// so it allocates a Version plus a string per read.
+/// </item>
+/// <item>
+/// <c>Scan_Class_SharedEntry</c> keeps the class representation but moves the cache into the entry: one object per
+/// element per pass, no strings. It isolates "sharing the cache" from "being a struct" - if the win is really the sharing,
+/// this column shows it without any type change.
+/// </item>
+/// <item>
+/// <c>Scan_Struct_SharedEntry</c> is B-2 as sketched: zero managed allocation per pass, one dictionary lookup per
+/// element.
+/// </item>
+/// <item>
+/// <c>Scan_Struct_EntryArray</c> is the best case for B-2: the entries were resolved once, so a pass is a plain
+/// array walk with no lookup at all.
+/// </item>
+/// <item>
+/// <c>Cold_Struct_FreshCache</c> is B-2 on a first pass (allocation of the entry table is inside the measured
+/// method) against <c>Cold_Class_LibraryPath</c>, the real one-shot CLI case.
+/// </item>
 /// </list>
-/// The keys are pointer-shaped <see cref="nint"/> values (8-byte aligned, one contiguous range)
-/// rather than the real <c>_alpm_pkg_t*</c>: <c>PackageBase.BackingStruct</c> is internal to
-/// Pacpar.Alpm and this project is not a friend assembly, and a dictionary lookup over an nint
-/// costs the same either way. The entries' cached strings are read from the real packages during
-/// setup, so the columns compare representation and lookup cost, not string allocation - both
-/// designs pay for the strings once.
+/// The keys are pointer-shaped <see cref="nint" /> values (8-byte aligned, one contiguous range) rather than the real
+/// <c>_alpm_pkg_t*</c>: <c>PackageBase.BackingStruct</c> is internal to Pacpar.Alpm and this project is not a friend
+/// assembly, and a dictionary lookup over an nint costs the same either way. The entries' cached strings are read from the
+/// real packages during setup, so the columns compare representation and lookup cost, not string allocation - both designs
+/// pay for the strings once.
 /// </remarks>
 [MemoryDiagnoser]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
@@ -314,9 +320,9 @@ public class StructViewBenchmarks
 }
 
 /// <summary>
-/// The shared, pointer-keyed entry B-2 proposes: it owns the lifetime token and the lazy metadata
-/// cache that today live inside <see cref="PackageBase"/> - which is exactly why a per-pass view
-/// cannot reuse them and calls back into libalpm on every element.
+/// The shared, pointer-keyed entry B-2 proposes: it owns the lifetime token and the lazy metadata cache that
+/// today live inside <see cref="PackageBase" /> - which is exactly why a per-pass view cannot reuse them and calls back
+/// into libalpm on every element.
 /// </summary>
 internal sealed class PackageEntry
 {
@@ -335,8 +341,8 @@ internal sealed class PackageEntry
 }
 
 /// <summary>
-/// B-2: the value-type view. One reference to its entry, no cache of its own, and the lifetime
-/// check the user requires on every read (the strict tier measured by LifetimeCheckBenchmarks).
+/// B-2: the value-type view. One reference to its entry, no cache of its own, and the lifetime check the user
+/// requires on every read (the strict tier measured by LifetimeCheckBenchmarks).
 /// </summary>
 internal readonly struct PackageViewStruct
 {
@@ -373,9 +379,8 @@ internal readonly struct PackageViewStruct
 }
 
 /// <summary>
-/// Control for the struct: the same shared entry behind a class reference, so the one object per
-/// element per pass is still allocated. This is the column that separates "shared cache" from
-/// "value type".
+/// Control for the struct: the same shared entry behind a class reference, so the one object per element per pass
+/// is still allocated. This is the column that separates "shared cache" from "value type".
 /// </summary>
 internal sealed class PackageViewClass
 {

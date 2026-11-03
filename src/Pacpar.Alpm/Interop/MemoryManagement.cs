@@ -10,12 +10,10 @@ internal static partial class MemoryManagement
   [LibraryImport("libc", EntryPoint = "free")]
   internal unsafe static partial void CFree(void* ptr);
 
-  /// <summary>
-  /// libc <c>free</c> as an element destructor for <c>alpm_list_free_inner</c>.
-  /// </summary>
+  /// <summary>libc <c>free</c> as an element destructor for <c>alpm_list_free_inner</c>.</summary>
   /// <remarks>
-  /// A method cannot carry both <see cref="DllImportAttribute"/> and
-  /// <see cref="UnmanagedCallersOnlyAttribute"/>, so this thunk forwards to <see cref="CFree"/>.
+  /// A method cannot carry both <see cref="DllImportAttribute" /> and <see cref="UnmanagedCallersOnlyAttribute" />,
+  /// so this thunk forwards to <see cref="CFree" />.
   /// </remarks>
   [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
   internal static unsafe void CFreeExtern(void* ptr)
@@ -24,8 +22,8 @@ internal static partial class MemoryManagement
   }
 
   /// <summary>
-  /// Element destructor for buffers marshalled by <see cref="NativeString.ToNative"/> and passed
-  /// to libalpm for the lifetime of a list (paired via <c>alpm_list_free_inner</c>).
+  /// Element destructor for buffers marshalled by <see cref="NativeString.ToNative" /> and passed to libalpm for
+  /// the lifetime of a list (paired via <c>alpm_list_free_inner</c>).
   /// </summary>
   [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
   internal unsafe static void UnmanagedFreeExtern(void* ptr)
@@ -33,18 +31,14 @@ internal static partial class MemoryManagement
     NativeMemory.Free(ptr);
   }
 
-  /// <summary>
-  /// Element destructor for lists of <c>alpm_depmissing_t</c> that the caller owns.
-  /// </summary>
+  /// <summary>Element destructor for lists of <c>alpm_depmissing_t</c> that the caller owns.</summary>
   [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
   internal static unsafe void DepMissingFreeExtern(void* ptr)
   {
     NativeMethods.alpm_depmissing_free((_alpm_depmissing_t*)ptr);
   }
 
-  /// <summary>
-  /// Element destructor for lists of <c>alpm_conflict_t</c> that the caller owns.
-  /// </summary>
+  /// <summary>Element destructor for lists of <c>alpm_conflict_t</c> that the caller owns.</summary>
   [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
   internal static unsafe void ConflictFreeExtern(void* ptr)
   {

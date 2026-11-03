@@ -3,13 +3,11 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm.Tests.Unit.Session;
 
-/// <summary>
-/// Coverage ledger §4: libalpm's own version and compile-time capabilities.
-/// </summary>
+/// <summary>Coverage ledger §4: libalpm's own version and compile-time capabilities.</summary>
 /// <remarks>
-/// Neither call takes a handle — libalpm allows both before <c>alpm_initialize</c> — so these tests
-/// deliberately build no <see cref="AlpmSession"/> instance. Each assertion compares the wrapper against
-/// the raw binding call, which keeps the test independent of which libalpm build is installed.
+/// Neither call takes a handle — libalpm allows both before <c>alpm_initialize</c> — so these tests deliberately
+/// build no <see cref="AlpmSession" /> instance. Each assertion compares the wrapper against the raw binding call, which
+/// keeps the test independent of which libalpm build is installed.
 /// </remarks>
 public sealed unsafe class VersionAndCapabilitiesTests
 {
@@ -26,10 +24,9 @@ public sealed unsafe class VersionAndCapabilitiesTests
   }
 
   /// <summary>
-  /// A capability libalpm reports but this wrapper does not model must not be dropped: it is
-  /// carried through as an undeclared bit. The Arch build reports all three
-  /// (<c>NLS|DOWNLOADER|SIGNATURES</c> = 7), but a differently built libalpm may report fewer, so
-  /// this test only asserts the invariant.
+  /// A capability libalpm reports but this wrapper does not model must not be dropped: it is carried through as an
+  /// undeclared bit. The Arch build reports all three (<c>NLS|DOWNLOADER|SIGNATURES</c> = 7), but a differently built
+  /// libalpm may report fewer, so this test only asserts the invariant.
   /// </summary>
   [Fact]
   public void Capabilities_OnlyContainBitsTheEnumDeclares()

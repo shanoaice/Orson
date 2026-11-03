@@ -3,8 +3,8 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Session;
 
 /// <summary>
-/// Covers <see cref="AlpmSession.UpdateDatabases"/> argument validation: an empty sequence is caller
-/// error, not a native failure.
+/// Covers <see cref="AlpmSession.UpdateDatabases" /> argument validation: an empty sequence is caller error, not
+/// a native failure.
 /// </summary>
 public sealed class UpdateDatabasesTests
 {

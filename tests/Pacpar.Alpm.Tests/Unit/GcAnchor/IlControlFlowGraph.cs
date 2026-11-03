@@ -3,14 +3,13 @@ using System.Reflection.Emit;
 
 namespace Pacpar.Alpm.Tests.Unit.GcAnchor;
 
-/// <summary>
-/// A basic block of IL: a maximal run of instructions with a single entry point.
-/// </summary>
+/// <summary>A basic block of IL: a maximal run of instructions with a single entry point.</summary>
 internal sealed class IlBlock(int index, int startOffset)
 {
   public int Index { get; } = index;
   public int StartOffset { get; } = startOffset;
   public int EndOffset { get; set; }
+
   /// <summary>Indices of successor blocks. Duplicate edges are harmless to post-dominance.</summary>
   public List<int> Successors { get; } = [];
   /// <summary>True when the block's last instruction returns or throws.</summary>
@@ -19,14 +18,12 @@ internal sealed class IlBlock(int index, int startOffset)
   public List<int> InstructionOffsets { get; } = [];
 }
 
-/// <summary>
-/// Control-flow graph over a method body, used to decide whether an anchor post-dominates a hazard.
-/// </summary>
+/// <summary>Control-flow graph over a method body, used to decide whether an anchor post-dominates a hazard.</summary>
 /// <remarks>
 /// Post-dominance is the honest generalisation of "the anchor is on every path after the hazard".
-/// Exception-handler edges are included from every instruction inside a protected region, which
-/// makes the graph <em>harder</em> to prove things about. That is the safe direction: the audit
-/// reports <c>NeedsReview</c> instead of a false <c>Safe</c> whenever control flow is exotic.
+/// Exception-handler edges are included from every instruction inside a protected region, which makes the graph
+/// <em>harder</em> to prove things about. That is the safe direction: the audit reports <c>NeedsReview</c> instead of a
+/// false <c>Safe</c> whenever control flow is exotic.
 /// </remarks>
 internal sealed class IlControlFlowGraph
 {
@@ -57,7 +54,7 @@ internal sealed class IlControlFlowGraph
     return new IlControlFlowGraph(instructions, body!);
   }
 
-  /// <summary>The block containing <paramref name="offset"/>, or -1 when the offset is not decoded.</summary>
+  /// <summary>The block containing <paramref name="offset" />, or -1 when the offset is not decoded.</summary>
   public int BlockIndexOf(int offset)
   {
     foreach (var block in _blocks)
@@ -68,8 +65,8 @@ internal sealed class IlControlFlowGraph
   }
 
   /// <summary>
-  /// True when every path from <paramref name="from"/> to the end of the method passes through
-  /// <paramref name="through"/>. Same block is trivially true.
+  /// True when every path from <paramref name="from" /> to the end of the method passes through
+  /// <paramref name="through" />. Same block is trivially true.
   /// </summary>
   public bool PostDominates(int from, int through)
   {

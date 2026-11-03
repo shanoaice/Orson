@@ -3,17 +3,15 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// A package's file list (<c>alpm_filelist_t</c>).
-/// </summary>
+/// <summary>A package's file list (<c>alpm_filelist_t</c>).</summary>
 /// <remarks>
-/// A borrowed view: the array belongs to the package and this type never frees it. It is kept as a
-/// view rather than copied because a package's file list routinely holds tens of thousands of
-/// entries, and every entry it yields is already a <see cref="PackageFile"/> snapshot.
+/// A borrowed view: the array belongs to the package and this type never frees it. It is kept as a view rather than copied
+/// because a package's file list routinely holds tens of thousands of entries, and every entry it yields is already a
+/// <see cref="PackageFile" /> snapshot.
 /// <para>
-/// Every dereference first checks that the owning package is still alive: <see cref="Count"/>, the
-/// indexer and <see cref="GetEnumerator"/> throw <see cref="AlpmLifetimeException"/> once the
-/// package has been released, instead of reading the freed array.
+/// Every dereference first checks that the owning package is still alive: <see cref="Count" />, the indexer and
+/// <see cref="GetEnumerator" /> throw <see cref="AlpmLifetimeException" /> once the package has been released, instead of
+/// reading the freed array.
 /// </para>
 /// </remarks>
 public sealed unsafe class FileList : IReadOnlyList<PackageFile>
@@ -29,9 +27,7 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
     _lifetime = lifetime?.Capture();
   }
 
-  /// <summary>
-  /// Gets the number of files in the file list.
-  /// </summary>
+  /// <summary>Gets the number of files in the file list.</summary>
   public int Count
   {
     get
@@ -41,12 +37,11 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
     }
   }
 
-  /// <remarks>
-  /// The indexer used to read through <c>new Span&lt;nint&gt;(files, count)[index]</c>, which strides
-  /// by <c>nint</c> rather than by an entry: only index 0 landed on an entry, and every later index
-  /// read a pointer out of the middle of a neighbouring one. A malformed entry then reached
-  /// <see cref="PackageFile"/>'s constructor as a bogus name pointer.
-  /// </remarks>
+  /// <summary>Gets the package file at the specified index.</summary>
+  /// <param name="index">The zero-based index of the file to retrieve.</param>
+  /// <returns>The <see cref="PackageFile" /> at the specified index.</returns>
+  /// <exception cref="ArgumentOutOfRangeException"><paramref name="index" /> is outside the bounds of the file list.</exception>
+  /// <exception cref="AlpmLifetimeException">The owning package has already been released.</exception>
   public PackageFile this[int index]
   {
     get
@@ -60,9 +55,7 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
     }
   }
 
-  /// <summary>
-  /// Determines whether the file list contains a file at the specified path.
-  /// </summary>
+  /// <summary>Determines whether the file list contains a file at the specified path.</summary>
   /// <param name="path">The relative path of the file to locate (e.g. <c>"usr/bin/bash"</c>).</param>
   /// <returns><c>true</c> if the file is in the list; otherwise, <c>false</c>.</returns>
   public bool Contains(string path)
@@ -77,11 +70,9 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
     return filePtr != null;
   }
 
-  /// <summary>
-  /// Searches for a file at the specified path in this file list.
-  /// </summary>
+  /// <summary>Searches for a file at the specified path in this file list.</summary>
   /// <param name="path">The relative path of the file to locate.</param>
-  /// <returns>A <see cref="PackageFile"/> snapshot if found; otherwise, <c>null</c>.</returns>
+  /// <returns>A <see cref="PackageFile" /> snapshot if found; otherwise, <c>null</c> .</returns>
   public PackageFile? FindFile(string path)
   {
     ArgumentNullException.ThrowIfNull(path);
@@ -93,46 +84,37 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
     GC.KeepAlive(this);
     return filePtr != null ? new PackageFile(filePtr) : null;
   }
+
   /// <summary>Forward-only enumerator over the borrowed array of file entries.</summary>
   /// <remarks>
-  /// <c>Count - 1</c> <i>before</i> advancing, which ended every sequence one element early: a
-  /// one-entry list yielded nothing at all and a longer list silently dropped its last file. It is
-  /// index-based, so it now leaves the index one past the last element, as the contract requires.
+  /// <c>Count - 1</c> <i>before</i> advancing, which ended every sequence one element early: a one-entry list
+  /// yielded nothing at all and a longer list silently dropped its last file. It is index-based, so it now leaves the index
+  /// one past the last element, as the contract requires.
   /// </remarks>
   public struct Enumerator(FileList fileList) : IEnumerator<PackageFile>
   {
     private int _index = -1;
 
-    /// <summary>
-    /// Gets the <see cref="PackageFile"/> at the current position of the enumerator.
-    /// </summary>
+    /// <summary>Gets the <see cref="PackageFile" /> at the current position of the enumerator.</summary>
     public PackageFile Current => _index < 0 || _index >= fileList.Count
       ? throw new InvalidOperationException()
       : fileList[_index];
 
     object IEnumerator.Current => Current;
 
-    /// <summary>
-    /// Advances the enumerator to the next <see cref="PackageFile"/> in the file list.
-    /// </summary>
+    /// <summary>Advances the enumerator to the next <see cref="PackageFile" /> in the file list.</summary>
     public bool MoveNext() => ++_index < fileList.Count;
 
-    /// <summary>
-    /// Sets the enumerator to its initial position, which is before the first element in the file list.
-    /// </summary>
+    /// <summary>Sets the enumerator to its initial position, which is before the first element in the file list.</summary>
     public void Reset() => _index = -1;
 
-    /// <summary>
-    /// Releases all resources used by the <see cref="Enumerator"/>.
-    /// </summary>
+    /// <summary>Releases all resources used by the <see cref="Enumerator" />.</summary>
     public void Dispose()
     {
     }
   }
 
-  /// <summary>
-  /// Returns an enumerator that iterates through the <see cref="FileList"/>.
-  /// </summary>
+  /// <summary>Returns an enumerator that iterates through the <see cref="FileList" />.</summary>
   public Enumerator GetEnumerator()
   {
     _lifetime?.ThrowIfStale();

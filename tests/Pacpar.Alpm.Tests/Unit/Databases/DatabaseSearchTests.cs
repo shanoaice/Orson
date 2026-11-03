@@ -3,8 +3,8 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Databases;
 
 /// <summary>
-/// Covers <see cref="Database.Search"/>: libalpm matches a package when any of the needles is a
-/// substring of its name, and answers with a list the caller owns.
+/// Covers <see cref="Database.Search" />: libalpm matches a package when any of the needles is a substring of its
+/// name, and answers with a list the caller owns.
 /// </summary>
 public sealed class DatabaseSearchTests : IDisposable
 {

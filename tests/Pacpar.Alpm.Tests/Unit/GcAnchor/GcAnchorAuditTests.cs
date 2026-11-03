@@ -5,15 +5,14 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Alpm.Tests.Unit.GcAnchor;
 
 /// <summary>
-/// The static GC-anchor audit: every place that reads unmanaged memory through a managed owner must
-/// prove how the owner stays alive for the duration of the read.
+/// The static GC-anchor audit: every place that reads unmanaged memory through a managed owner must prove how the
+/// owner stays alive for the duration of the read.
 /// </summary>
 /// <remarks>
-/// The audit is deliberately three-valued. A hazard site is <c>Safe</c> only when one of the
-/// mechanism validators proves it, <c>Unsafe</c> when nothing is claimed, and <c>NeedsReview</c>
-/// when a mechanism is claimed but its contract is a property of control flow rather than of IL.
-/// <c>NeedsReview</c> is resolved against <c>gc-anchor-allowlist.txt</c>, which records the review
-/// decision and its reason exactly once so the same case never demands attention again.
+/// The audit is deliberately three-valued. A hazard site is <c>Safe</c> only when one of the mechanism validators
+/// proves it, <c>Unsafe</c> when nothing is claimed, and <c>NeedsReview</c> when a mechanism is claimed but its contract
+/// is a property of control flow rather than of IL. <c>NeedsReview</c> is resolved against <c>gc-anchor-allowlist.txt</c>,
+/// which records the review decision and its reason exactly once so the same case never demands attention again.
 /// </remarks>
 public sealed class GcAnchorAuditTests
 {
@@ -82,15 +81,12 @@ public sealed class GcAnchorAuditTests
       + string.Join('\n', result.CountMismatches.Select(m => $"  - {m}")));
   }
 
-  /// <summary>
-  /// A <c>throw</c> expression must not reach native memory at all.
-  /// </summary>
+  /// <summary>A <c>throw</c> expression must not reach native memory at all.</summary>
   /// <remarks>
-  /// <c>GC.KeepAlive(owner)</c> keeps the owner alive only up to its own instruction, so an anchor
-  /// written before an exception-construction expression does not cover a native read inside it. The
-  /// per-call-site audit cannot see this: that read sits in another method, whose obligation is
-  /// recorded as delegated to the caller without anyone checking the caller discharged it. Read the
-  /// errno at the failure site, anchor, then throw a value that reads nothing.
+  /// <c>GC.KeepAlive(owner)</c> keeps the owner alive only up to its own instruction, so an anchor written before
+  /// an exception-construction expression does not cover a native read inside it. The per-call-site audit cannot see this:
+  /// that read sits in another method, whose obligation is recorded as delegated to the caller without anyone checking the
+  /// caller discharged it. Read the errno at the failure site, anchor, then throw a value that reads nothing.
   /// </remarks>
   [Fact]
   public void NoThrowExpressionReachesNativeMemory()
@@ -104,8 +100,8 @@ public sealed class GcAnchorAuditTests
   }
 
   /// <summary>
-  /// The positive control for the rule above: it must report the shape it forbids, or it would pass
-  /// for the wrong reason once the library happens to contain no throw expressions at all.
+  /// The positive control for the rule above: it must report the shape it forbids, or it would pass for the wrong
+  /// reason once the library happens to contain no throw expressions at all.
   /// </summary>
   [Fact]
   public void TheThrowExpressionRuleReportsTheShapeItForbids()

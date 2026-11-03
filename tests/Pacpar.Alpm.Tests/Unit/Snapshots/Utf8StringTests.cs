@@ -5,13 +5,13 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Snapshots;
 
 /// <summary>
-/// libalpm's string contract is UTF-8, so both the marshalling helpers and one
-/// end-to-end option round trip must carry non-ASCII text through unchanged.
+/// libalpm's string contract is UTF-8, so both the marshalling helpers and one end-to-end option round trip must
+/// carry non-ASCII text through unchanged.
 /// </summary>
 /// <remarks>
-/// On Linux this was already true of the old ANSI calls (<see cref="Encoding.Default"/> *is* UTF-8
-/// there), so these tests pin the encoding choice rather than a behaviour change. They are the
-/// portable half of the sweep: on a Windows host the old code would fail them.
+/// On Linux this was already true of the old ANSI calls ( <see cref="Encoding.Default" /> *is* UTF-8 there), so
+/// these tests pin the encoding choice rather than a behaviour change. They are the portable half of the sweep: on a
+/// Windows host the old code would fail them.
 /// </remarks>
 public sealed unsafe class Utf8StringTests
 {

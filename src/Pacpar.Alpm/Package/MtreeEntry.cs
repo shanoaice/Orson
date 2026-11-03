@@ -2,55 +2,37 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// A file entry from a package's installed mtree manifest (<c>.MTREE</c>).
-/// </summary>
+/// <summary>A file entry from a package's installed mtree manifest (<c>.MTREE</c>).</summary>
 public sealed record MtreeEntry
 {
-  /// <summary>
-  /// The relative path of the file within the package (with any leading <c>./</c> stripped).
-  /// </summary>
+  /// <summary>The relative path of the file within the package (with any leading <c>./</c> stripped).</summary>
   public required string Path { get; init; }
 
   /// <summary>
-  /// The POSIX file mode and permissions. It includes the file type bits: <c>0o100644</c> marks
-  /// a regular file, <c>0o120644</c> a symlink. Mask with <c>0o7777</c> to get the permissions only.
+  /// The POSIX file mode and permissions. It includes the file type bits: <c>0o100644</c> marks a regular file,
+  /// <c>0o120644</c> a symlink. Mask with <c>0o7777</c> to get the permissions only.
   /// </summary>
   public uint Mode { get; init; }
 
-  /// <summary>
-  /// The size of the file in bytes. The value is <c>0</c> when the mtree records no size.
-  /// </summary>
+  /// <summary>The size of the file in bytes. The value is <c>0</c> when the mtree records no size.</summary>
   public long Size { get; init; }
 
-  /// <summary>
-  /// The last modification time in seconds since Unix epoch.
-  /// </summary>
+  /// <summary>The last modification time in seconds since Unix epoch.</summary>
   public long ModifiedTime { get; init; }
 
-  /// <summary>
-  /// The user ID of the file owner.
-  /// </summary>
+  /// <summary>The user ID of the file owner.</summary>
   public long Uid { get; init; }
 
-  /// <summary>
-  /// The group ID of the file owner.
-  /// </summary>
+  /// <summary>The group ID of the file owner.</summary>
   public long Gid { get; init; }
 
-  /// <summary>
-  /// The symlink target path, or <c>null</c> if the entry is not a symlink.
-  /// </summary>
+  /// <summary>The symlink target path, or <c>null</c> if the entry is not a symlink.</summary>
   public string? SymlinkTarget { get; init; }
 
-  /// <summary>
-  /// The SHA-256 digest of the file contents as a lowercase hexadecimal string, or <c>null</c> if not present.
-  /// </summary>
+  /// <summary>The SHA-256 digest of the file contents as a lowercase hexadecimal string, or <c>null</c> if not present.</summary>
   public string? Sha256 { get; init; }
 
-  /// <summary>
-  /// The MD5 digest of the file contents as a lowercase hexadecimal string, or <c>null</c> if not present.
-  /// </summary>
+  /// <summary>The MD5 digest of the file contents as a lowercase hexadecimal string, or <c>null</c> if not present.</summary>
   public string? Md5 { get; init; }
 
   internal static unsafe MtreeEntry FromNative(archive_entry* entry)

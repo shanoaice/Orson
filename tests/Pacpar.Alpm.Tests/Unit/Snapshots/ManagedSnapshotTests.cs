@@ -6,29 +6,26 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Snapshots;
 
 /// <summary>
-/// Locks in the snapshot contract for the value types that used to be borrowed views over
-/// libalpm-owned memory: the fields are
-/// copied at construction, so overwriting - or releasing - the structure they came from cannot
-/// change what they answer.
+/// Locks in the snapshot contract for the value types that used to be borrowed views over libalpm-owned memory:
+/// the fields are copied at construction, so overwriting - or releasing - the structure they came from cannot change what
+/// they answer.
 /// </summary>
 /// <remarks>
-/// Every test writes the source structure itself and then overwrites it, which makes the failure
-/// deterministic: a view reads the new bytes, a snapshot still answers with the old ones. Nothing
-/// here depends on freed memory happening to stay readable, and no libalpm handle is needed.
+/// Every test writes the source structure itself and then overwrites it, which makes the failure deterministic: a view
+/// reads the new bytes, a snapshot still answers with the old ones. Nothing here depends on freed memory happening to stay
+/// readable, and no libalpm handle is needed.
 /// <para>
-/// Every native structure allocated here is allocated <b>zeroed</b>. A test writes only the fields
-/// the case is about, but the payload it builds may copy more: <c>HookRunStart</c> copies
-/// <c>name</c> and <c>desc</c> too, and an uninitialized page made that read a wild pointer and
-/// fail intermittently. A zeroed page reads as a null pointer, which every factory already handles -
-/// so a field this test did not write has a defined value instead of a latent flake.
+/// Every native structure allocated here is allocated <b>zeroed</b>. A test writes only the fields the case is
+/// about, but the payload it builds may copy more: <c>HookRunStart</c> copies <c>name</c> and <c>desc</c> too, and an
+/// uninitialized page made that read a wild pointer and fail intermittently. A zeroed page reads as a null pointer, which
+/// every factory already handles - so a field this test did not write has a defined value instead of a latent flake.
 /// </para>
 /// </remarks>
 public sealed unsafe class ManagedSnapshotTests
 {
   /// <summary>
-  /// Overwrites the content of a buffer allocated for <paramref name="original"/>, leaving its NUL
-  /// terminator in place so a view would read a well-formed but different string instead of running
-  /// off the allocation.
+  /// Overwrites the content of a buffer allocated for <paramref name="original" />, leaving its NUL terminator in
+  /// place so a view would read a well-formed but different string instead of running off the allocation.
   /// </summary>
   private static void Scramble(byte* buffer, string original)
   {
@@ -60,13 +57,13 @@ public sealed unsafe class ManagedSnapshotTests
   }
 
   /// <summary>
-  /// <c>alpm_pkg_vercmp</c> only accepts native strings, so the comparison marshals its operands.
-  /// It must therefore keep working after the memory the versions came from is gone.
+  /// <c>alpm_pkg_vercmp</c> only accepts native strings, so the comparison marshals its operands. It must therefore
+  /// keep working after the memory the versions came from is gone.
   /// </summary>
   /// <remarks>
-  /// Probed against libalpm 16.0.1: a version without a package release compares <b>equal</b> to the
-  /// same version with one (<c>vercmp("1.0", "1.0-1") == 0</c>), because libalpm compares the release
-  /// only when both sides have one. The pair below therefore varies the release on both sides.
+  /// Probed against libalpm 16.0.1: a version without a package release compares <b>equal</b> to the same version
+  /// with one (<c>vercmp("1.0", "1.0-1") == 0</c>), because libalpm compares the release only when both sides have one. The
+  /// pair below therefore varies the release on both sides.
   /// </remarks>
   [Fact]
   public void Version_ComparesWithoutItsSource()
@@ -171,8 +168,8 @@ public sealed unsafe class ManagedSnapshotTests
   }
 
   /// <summary>
-  /// The enumerator used to stop one entry early, so a one-entry list yielded nothing and every
-  /// longer list dropped its last file. The entries themselves are snapshots.
+  /// The enumerator used to stop one entry early, so a one-entry list yielded nothing and every longer list dropped
+  /// its last file. The entries themselves are snapshots.
   /// </summary>
   [Fact]
   public void FileList_YieldsEveryEntry_AndEveryEntryIsASnapshot()
@@ -222,8 +219,8 @@ public sealed unsafe class ManagedSnapshotTests
   }
 
   /// <summary>
-  /// A group's member list is callback-independent library memory that can go away - the cache is
-  /// rebuilt, the database is unregistered - so the snapshot owns a copy of the list too.
+  /// A group's member list is callback-independent library memory that can go away - the cache is rebuilt, the
+  /// database is unregistered - so the snapshot owns a copy of the list too.
   /// </summary>
   [Fact]
   public void Group_CopiesItsNameAndMemberList()
@@ -261,8 +258,8 @@ public sealed unsafe class ManagedSnapshotTests
   }
 
   /// <summary>
-  /// libalpm builds the event union on the calling thread's stack; a C probe against libalpm read
-  /// zeros from it once the callback returned.
+  /// libalpm builds the event union on the calling thread's stack; a C probe against libalpm read zeros from it
+  /// once the callback returned.
   /// </summary>
   [Fact]
   public void EventPayload_CopiesItsFieldsOutOfTheCallbackUnion()
@@ -437,9 +434,8 @@ public sealed unsafe class ManagedSnapshotTests
   }
 
   /// <summary>
-  /// The member list of a question lives in the same callback-scoped memory as the union, so it is
-  /// copied as well - and so are the packages it points at, which belong to the transaction or the
-  /// database rather than to the callback.
+  /// The member list of a question lives in the same callback-scoped memory as the union, so it is copied as well -
+  /// and so are the packages it points at, which belong to the transaction or the database rather than to the callback.
   /// </summary>
   [Fact]
   public void QuestionPayload_CopiesTheMemberList()

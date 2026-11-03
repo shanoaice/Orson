@@ -2,16 +2,13 @@ using Pacpar.Alpm.Tests.Fixtures;
 
 namespace Pacpar.Alpm.Tests.Unit.Options;
 
-/// <summary>
-/// Coverage ledger §4: the sandbox options.
-/// </summary>
+/// <summary>Coverage ledger §4: the sandbox options.</summary>
 /// <remarks>
-/// Only the three component flags are wrapped. The aggregate C accessors
-/// (<c>alpm_option_get/set_disable_sandbox</c>) are declared in alpm.h but are <b>not exported</b> by
-/// the installed <c>libalpm.so.16</c>. The aggregate is also not a faithful sum of the three flags:
-/// libalpm computes it from the filesystem and syscalls flags only and ignores the network flag, so
-/// exposing it as a state enum would report a sandbox as fully disabled while networking is still
-/// enabled. Callers that need the state should read the three flags.
+/// Only the three component flags are wrapped. The aggregate C accessors (
+/// <c>alpm_option_get/set_disable_sandbox</c>) are declared in alpm.h but are <b>not exported</b> by the installed
+/// <c>libalpm.so.16</c>. The aggregate is also not a faithful sum of the three flags: libalpm computes it from the
+/// filesystem and syscalls flags only and ignores the network flag, so exposing it as a state enum would report a sandbox
+/// as fully disabled while networking is still enabled. Callers that need the state should read the three flags.
 /// </remarks>
 public sealed class SandboxOptionTests
 {
@@ -70,9 +67,8 @@ public sealed class SandboxOptionTests
   }
 
   /// <summary>
-  /// Measured: libalpm returns <c>1</c> for an unknown user <b>without setting pm_errno</b>, so this
-  /// must not go through <c>ErrorHandler.ToException(Errno)</c> — ALPM_ERR_OK would turn into a
-  /// misleading ArgumentOutOfRangeException.
+  /// Measured: libalpm returns <c>1</c> for an unknown user <b>without setting pm_errno</b>, so this must not go
+  /// through <c>ErrorHandler.ToException(Errno)</c> — ALPM_ERR_OK would turn into a misleading ArgumentOutOfRangeException.
   /// </summary>
   [Fact]
   public void SandboxUser_WithAnUnknownUser_ThrowsArgumentException()

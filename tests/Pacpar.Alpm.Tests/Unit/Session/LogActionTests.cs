@@ -2,13 +2,11 @@ using Pacpar.Alpm.Tests.Fixtures;
 
 namespace Pacpar.Alpm.Tests.Unit.Session;
 
-/// <summary>
-/// Coverage ledger §4: <c>alpm_logaction</c>.
-/// </summary>
+/// <summary>Coverage ledger §4: <c>alpm_logaction</c>.</summary>
 /// <remarks>
-/// <c>alpm_logaction</c> is a printf-like variadic function, and the only thing we can hand it is
-/// the message as the format string. Measured: an unescaped <c>%s</c> reads whatever pointer
-/// happens to be left in the argument register, so the wrapper must escape <c>%</c> to <c>%%</c>.
+/// <c>alpm_logaction</c> is a printf-like variadic function, and the only thing we can hand it is the message as
+/// the format string. Measured: an unescaped <c>%s</c> reads whatever pointer happens to be left in the argument register,
+/// so the wrapper must escape <c>%</c> to <c>%%</c>.
 /// </remarks>
 public sealed class LogActionTests : IDisposable
 {
@@ -42,8 +40,8 @@ public sealed class LogActionTests : IDisposable
   }
 
   /// <summary>
-  /// The escaped message must come out byte for byte: "100% done" in, "100% done" in the log — not
-  /// "100%% done", and not a value read from a stray argument register.
+  /// The escaped message must come out byte for byte: "100% done" in, "100% done" in the log — not "100%% done",
+  /// and not a value read from a stray argument register.
   /// </summary>
   [Fact]
   public void LogAction_DoesNotInterpretPercentSequences()
@@ -75,9 +73,9 @@ public sealed class LogActionTests : IDisposable
   }
 
   /// <summary>
-  /// Documents a documentation bug: both alpm.h and <c>libalpm_log.3</c> claim that a call to
-  /// <c>alpm_logaction</c> also invokes the registered log callback. Measured on libalpm 16.0.1 it
-  /// does not — the callback only fires from libalpm's own logging paths.
+  /// Documents a documentation bug: both alpm.h and <c>libalpm_log.3</c> claim that a call to <c>alpm_logaction</c>
+  /// also invokes the registered log callback. Measured on libalpm 16.0.1 it does not — the callback only fires from
+  /// libalpm's own logging paths.
   /// </summary>
   [Fact]
   public void LogAction_DoesNotInvokeTheLogHandler()

@@ -6,9 +6,7 @@ namespace Pacpar.Alpm;
 
 public sealed partial class AlpmSession
 {
-  /// <summary>
-  /// The failure-returning seam for creating an <see cref="AlpmSession"/> session.
-  /// </summary>
+  /// <summary>The failure-returning seam for creating an <see cref="AlpmSession" /> session.</summary>
   /// <param name="root">The root directory of the installation (e.g. <c>"/"</c>).</param>
   /// <param name="dbpath">The path to the pacman database directory (e.g. <c>"/var/lib/pacman"</c>).</param>
   /// <param name="session">The newly created session, or <c>null</c> when initialization failed.</param>
@@ -28,9 +26,7 @@ public sealed partial class AlpmSession
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="LoadPackage"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="LoadPackage" />.</summary>
   internal unsafe bool TryLoadPackage(string filename, bool full, SigLevel level,
     [NotNullWhen(true)] out LoadedPackage? package,
     [NotNullWhen(false)] out AlpmFailure? failure)
@@ -61,9 +57,7 @@ public sealed partial class AlpmSession
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="BeginTransaction"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="BeginTransaction" />.</summary>
   internal bool TryBeginTransaction(TransactionFlags flags,
     [NotNullWhen(true)] out Transaction? transaction,
     [NotNullWhen(false)] out AlpmFailure? failure)
@@ -93,9 +87,7 @@ public sealed partial class AlpmSession
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="RegisterSyncDatabase"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="RegisterSyncDatabase" />.</summary>
   internal unsafe bool TryRegisterSyncDatabase(string treename, SigLevel level,
     [NotNullWhen(true)] out Database? database,
     [NotNullWhen(false)] out AlpmFailure? failure)
@@ -123,9 +115,7 @@ public sealed partial class AlpmSession
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="UnregisterAllSyncDatabases"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="UnregisterAllSyncDatabases" />.</summary>
   internal bool TryUnregisterAllSyncDatabases([NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
@@ -141,9 +131,7 @@ public sealed partial class AlpmSession
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="UpdateDatabases"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="UpdateDatabases" />.</summary>
   internal unsafe bool TryUpdateDatabases(
     IEnumerable<Database> databases,
     bool force,
@@ -186,13 +174,11 @@ public sealed partial class AlpmSession
     }
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="Unlock"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="Unlock" />.</summary>
   /// <remarks>
-  /// Thin forwarding: libalpm owns the lock and releases it here, when this session is the one that
-  /// holds it. Nothing here touches a lock this session did not take. See the
-  /// <see cref="Unlock"/> remarks for what that means and what it does not cover.
+  /// Thin forwarding: libalpm owns the lock and releases it here, when this session is the one that holds it.
+  /// Nothing here touches a lock this session did not take. See the <see cref="Unlock" /> remarks for what that means and
+  /// what it does not cover.
   /// </remarks>
   internal bool TryUnlock([NotNullWhen(false)] out AlpmFailure? failure)
   {
@@ -208,9 +194,7 @@ public sealed partial class AlpmSession
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="LogAction"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="LogAction" />.</summary>
   internal unsafe bool TryLogAction(string prefix, string message, [NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
@@ -235,9 +219,7 @@ public sealed partial class AlpmSession
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="FetchPackageUrls"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="FetchPackageUrls" />.</summary>
   internal unsafe bool TryFetchPackageUrls(IEnumerable<string> urls,
     [NotNullWhen(true)] out IReadOnlyList<string>? fetchedUrls,
     [NotNullWhen(false)] out AlpmFailure? failure)
@@ -275,9 +257,7 @@ public sealed partial class AlpmSession
     }
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="CheckDependencies"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="CheckDependencies" />.</summary>
   internal unsafe bool TryCheckDependencies(
     IEnumerable<PackageView> packages,
     IEnumerable<PackageView>? remove,
@@ -320,9 +300,7 @@ public sealed partial class AlpmSession
     }
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="CheckConflicts"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="CheckConflicts" />.</summary>
   internal unsafe bool TryCheckConflicts(
     IEnumerable<PackageView> packages,
     [NotNullWhen(true)] out IReadOnlyList<Conflict>? conflicts,
@@ -348,15 +326,12 @@ public sealed partial class AlpmSession
     }
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="ResolveDependency"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="ResolveDependency" />.</summary>
   /// <remarks>
-  /// Every path here leaves <paramref name="failure"/> null, and that is not an oversight in this
-  /// wrapper: <c>alpm_find_dbs_satisfier</c> signals a miss and a failure with the same null pointer
-  /// and the seam reads no errno, so the two cannot be told apart today. The seam is kept because
-  /// ADR 0001 gives every handle-touching operation one. Do not add a failure branch here without
-  /// first establishing, against the native source, that the call actually reports one.
+  /// Every path here leaves <paramref name="failure" /> null, and that is not an oversight in this wrapper:
+  /// <c>alpm_find_dbs_satisfier</c> signals a miss and a failure with the same null pointer and the seam reads no errno, so
+  /// the two cannot be told apart today. The seam is kept because ADR 0001 gives every handle-touching operation one. Do not
+  /// add a failure branch here without first establishing, against the native source, that the call actually reports one.
   /// </remarks>
   internal unsafe bool TryResolveDependency(
     IEnumerable<Database> databases,

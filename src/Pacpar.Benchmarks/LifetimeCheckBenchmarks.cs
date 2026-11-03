@@ -5,18 +5,16 @@ using Pacpar.Alpm;
 namespace Pacpar.Benchmarks;
 
 /// <summary>
-/// Cost of the optional strict granularity in lifetime-token checking: a check inside
-/// <c>Enumerator.Current</c> (once per element) against the default check at the enumeration
-/// entry only. The measured workload is the local package cache - the largest list the wrapper
-/// hands out and the list every "pacman -Q"-shaped consumer walks.
+/// Cost of the optional strict granularity in lifetime-token checking: a check inside <c>Enumerator.Current</c>
+/// (once per element) against the default check at the enumeration entry only. The measured workload is the local package
+/// cache - the largest list the wrapper hands out and the list every "pacman -Q"-shaped consumer walks.
 /// </summary>
 /// <remarks>
-/// The benchmark project cannot reference <c>Pacpar.Alpm.Lifetime</c> (internal; only
-/// <c>Pacpar.Alpm.Tests</c> is a friend assembly), so <see cref="Token"/> mirrors its shape
-/// exactly: same volatile flag, same parent chain, same out-of-line loop-and-throw check. The
-/// checks are placed where the wired-up design places them - one call per <c>Current</c>, one
-/// call per property read - and the token is read from a field every time, as the enumerator
-/// would read it off the list it wraps.
+/// The benchmark project cannot reference <c>Pacpar.Alpm.Lifetime</c> (internal; only <c>Pacpar.Alpm.Tests</c> is
+/// a friend assembly), so <see cref="Token" /> mirrors its shape exactly: same volatile flag, same parent chain, same
+/// out-of-line loop-and-throw check. The checks are placed where the wired-up design places them - one call per
+/// <c>Current</c>, one call per property read - and the token is read from a field every time, as the enumerator would
+/// read it off the list it wraps.
 /// </remarks>
 [MemoryDiagnoser]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
@@ -168,10 +166,10 @@ public class LifetimeCheckBenchmarks
 }
 
 /// <summary>
-/// A byte-for-byte mirror of <c>Pacpar.Alpm.Lifetime</c> (which is internal, so this project
-/// cannot reference it): same volatile flag, same parent chain, same check. Keeping the copy
-/// here is deliberate - the measured quantity is the cost of one <c>ThrowIfStale()</c> call and
-/// of the extra field read that precedes it, and both live in this type's shape.
+/// A byte-for-byte mirror of <c>Pacpar.Alpm.Lifetime</c> (which is internal, so this project cannot reference
+/// it): same volatile flag, same parent chain, same check. Keeping the copy here is deliberate - the measured quantity is
+/// the cost of one <c>ThrowIfStale()</c> call and of the extra field read that precedes it, and both live in this type's
+/// shape.
 /// </summary>
 internal sealed class Token
 {

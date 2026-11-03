@@ -4,11 +4,10 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Errors;
 
 /// <summary>
-/// The handle's error state must be read from the handle itself. <see cref="AlpmSession.Errno"/> used to
-/// return the out-parameter of <c>alpm_initialize</c>, which libalpm writes only when
-/// initialization fails: after a successful init it stayed <c>ALPM_ERR_OK</c> forever, so failures
-/// surfaced as <see cref="NullReferenceException"/> (from <c>throw GetCurrentError()!</c>) or as the
-/// wrong error entirely.
+/// The handle's error state must be read from the handle itself. <see cref="AlpmSession.Errno" /> used to return
+/// the out-parameter of <c>alpm_initialize</c>, which libalpm writes only when initialization fails: after a successful
+/// init it stayed <c>ALPM_ERR_OK</c> forever, so failures surfaced as <see cref="NullReferenceException" /> (from
+/// <c>throw GetCurrentError()!</c>) or as the wrong error entirely.
 /// </summary>
 public sealed class AlpmErrorStateTests
 {

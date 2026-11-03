@@ -6,9 +6,7 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Alpm;
 
 /// <summary>The phase a progress callback reports (libalpm's <c>_alpm_progress_t</c>).</summary>
-/// <remarks>
-/// A projection of libalpm's own numbering, which happens to start at 0 here. ADR 0019.
-/// </remarks>
+/// <remarks>Indicates the active progress reporting stage during package operations.</remarks>
 public enum ProgressType : uint
 {
   /// <summary>Packages are being added (<c>ALPM_PROGRESS_ADD_START</c>).</summary>
@@ -26,13 +24,13 @@ public enum ProgressType : uint
   /// <summary>Packages are being removed (<c>ALPM_PROGRESS_REMOVE_START</c>).</summary>
   RemoveStart = 4,
 
-  /// <summary>File conflicts are being checked (<c>ALPM_PROGRESS_CONFLICTS_START</c>).</summary>
+  /// <summary>File conflicts are being checked (<c>ALPM_PROGRESS_CONFLICTS_START</c> ).</summary>
   ConflictsStart = 5,
 
   /// <summary>Disk space is being checked (<c>ALPM_PROGRESS_DISKSPACE_START</c>).</summary>
   DiskSpaceStart = 6,
 
-  /// <summary>Package integrity is being checked (<c>ALPM_PROGRESS_INTEGRITY_START</c>).</summary>
+  /// <summary>Package integrity is being checked ( <c>ALPM_PROGRESS_INTEGRITY_START</c>).</summary>
   IntegrityStart = 7,
 
   /// <summary>Package targets are being loaded (<c>ALPM_PROGRESS_LOAD_START</c>).</summary>
@@ -44,9 +42,9 @@ public enum ProgressType : uint
 
 /// <summary>The severity of a log message (libalpm's <c>_alpm_loglevel_t</c>).</summary>
 /// <remarks>
-/// A bitmask, not a scale: libalpm calls <c>alpm_cb_log</c> once per message with a single flag, and
-/// consumers that want a subset test the flags (pacman and paru both filter on their own side, since
-/// libalpm emits DEBUG and FUNCTION messages regardless).
+/// A bitmask, not a scale: libalpm calls <c>alpm_cb_log</c> once per message with a single flag, and consumers
+/// that want a subset test the flags (pacman and paru both filter on their own side, since libalpm emits DEBUG and
+/// FUNCTION messages regardless).
 /// </remarks>
 [Flags]
 public enum LogLevel : uint
@@ -66,13 +64,9 @@ public enum LogLevel : uint
 
 /// <summary>The outcome a fetch handler reports back to libalpm.</summary>
 /// <remarks>
-/// Replaces the bare <c>int</c> of <c>alpm_cb_fetch</c>, whose contract is "0 on success, 1 if the
-/// file exists and is identical, -1 on error" (alpm.h). Any other value is not something libalpm
-/// defines, so returning an arbitrary number should not be expressible.
-/// <para>
-/// Unlike the enums above, this one is not a projection of a native enum: it is this library's
-/// rendering of a documented contract, which is why it carries a zero member of its own. ADR 0019.
-/// </para>
+/// Replaces the bare <c>int</c> of <c>alpm_cb_fetch</c>, whose contract is "0 on success, 1 if the file exists and is
+/// identical, -1 on error" (alpm.h). Any other value is not something libalpm defines, so returning an arbitrary number
+/// should not be expressible.
 /// </remarks>
 public enum FetchResult
 {
@@ -86,54 +80,45 @@ public enum FetchResult
   Error = -1
 }
 
-
 /// <summary>
-/// Holds the native callback context (ctx) and the user-facing handlers of an <see cref="AlpmSession"/>
+/// Holds the native callback context (ctx) and the user-facing handlers of an <see cref="AlpmSession" />
 /// instance.
 /// </summary>
 /// <remarks>
-/// Registration of native callbacks with libalpm is presence-driven: setting a non-null handler
-/// registers the corresponding callback, while setting a handler to <see langword="null"/>
-/// unregisters it from the native handle. When a callback is unregistered,
-/// libalpm's own default behavior applies directly:
+/// Registration of native callbacks with libalpm is presence-driven: setting a non-null handler registers the
+/// corresponding callback, while setting a handler to <see langword="null" /> unregisters it from the native handle. When
+/// a callback is unregistered, libalpm's own default behavior applies directly:
 /// <list type="bullet">
-///   <item>
-///     <description>
-///       Leaving <see cref="FetchHandler"/> unset allows libalpm to use its internal libcurl-based
-///       downloader.
-///     </description>
-///   </item>
-///   <item>
-///     <description>
-///       Leaving <see cref="QuestionHandler"/> unset lets libalpm proceed with its built-in default answers.
-///     </description>
-///   </item>
-///   <item>
-///     <description>
-///       <see cref="DownloadHandler"/> receives progress events emitted only by libalpm's internal
-///       downloader, and is therefore inert whenever an external <see cref="FetchHandler"/> is active.
-///     </description>
-///   </item>
+/// <item>
+/// <description>Leaving <see cref="FetchHandler" /> unset allows libalpm to use its internal libcurl-based downloader.</description>
+/// </item>
+/// <item>
+/// <description>Leaving <see cref="QuestionHandler" /> unset lets libalpm proceed with its built-in default answers.</description>
+/// </item>
+/// <item>
+/// <description>
+/// <see cref="DownloadHandler" /> receives progress events emitted only by libalpm's internal downloader, and
+/// is therefore inert whenever an external <see cref="FetchHandler" /> is active.
+/// </description>
+/// </item>
 /// </list>
-/// Handlers are configuration, not control flow. Mutating a handler from within an active callback
-/// invocation throws <see cref="InvalidOperationException"/> to prevent native use-after-free and NULL
-/// dereference crashes in libalpm's download and dispatch loops. Mutating a handler after the owning
-/// <see cref="AlpmSession"/> handle has been disposed throws <see cref="ObjectDisposedException"/>.
+/// Handlers are configuration, not control flow. Mutating a handler from within an active callback invocation throws
+/// <see cref="InvalidOperationException" /> to prevent native use-after-free and NULL dereference crashes in libalpm's
+/// download and dispatch loops. Mutating a handler after the owning <see cref="AlpmSession" /> handle has been disposed
+/// throws <see cref="ObjectDisposedException" />.
 /// <para>
-/// Handlers run synchronously on the thread libalpm invokes them from - the thread already running
-/// the transaction, never a thread chosen by this library - and they block libalpm for as long as
-/// they run.
+/// Handlers run synchronously on the thread libalpm invokes them from, which is the thread already running the transaction.
+/// This library never chooses which thread handlers runs on, and they block libalpm for as long as they run.
 /// </para>
 /// <para>
-/// <see cref="QuestionHandler"/> is stricter still: libalpm reads the answer as soon as the callback
-/// returns, so a question must be answered inline, before returning. Answering from a continuation,
-/// a task, or another thread leaves libalpm reading an answer that has not been written yet.
+/// <see cref="QuestionHandler" /> is even stricter. libalpm reads the answer as soon as the callback returns, so a
+/// question must be answered inline, before returning. Answering from a continuation, a task, or another thread leaves
+/// libalpm reading the default value instead of your intended one.
 /// </para>
 /// <para>
-/// Every handler invocation is routed through <c>SafeInvoke</c>, which swallows handler exceptions
-/// at the FFI boundary and reports them through <see cref="HandlerException"/> when that observer is
-/// set. The ctx handle is owned by <see cref="AlpmSession"/>, which releases it only once <c>alpm_release</c>
-/// has returned successfully.
+/// Every handler invocation is routed through <c>SafeInvoke</c>, which swallows handler exceptions at the FFI
+/// boundary and reports them through <see cref="HandlerException" /> when that observer is set. The ctx handle is owned by
+/// <see cref="AlpmSession" />, which releases it only once <c>alpm_release</c> has returned successfully.
 /// </para>
 /// </remarks>
 public sealed class AlpmCallbacks
@@ -164,7 +149,8 @@ public sealed class AlpmCallbacks
       var callbackLifetime = callback._rootLifetime.CreateChild("AlpmCallbacks.EventAgent");
       try
       {
-        SafeInvoke(() => callback.EventHandler?.Invoke(AlpmEvent.FromUnion(eventT, callbackLifetime)), callback.HandlerException);
+        SafeInvoke(() => callback.EventHandler?.Invoke(AlpmEvent.FromUnion(eventT, callbackLifetime)),
+          callback.HandlerException);
       }
       finally
       {
@@ -174,7 +160,8 @@ public sealed class AlpmCallbacks
     }
     catch
     {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
+      // This catch is to guard against a race condition where the callback is disposed while the native code is still
+      // calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
     }
   }
 
@@ -205,7 +192,8 @@ public sealed class AlpmCallbacks
     }
     catch
     {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still calling back. In that case, the WeakGCHandle will throw an exception, which we want to identify as a failure.
+      // This catch is to guard against a race condition where the callback is disposed while the native code is still
+      // calling back. In that case, the WeakGCHandle will throw an exception, which we want to identify as a failure.
       return -1;
     }
   }
@@ -234,7 +222,8 @@ public sealed class AlpmCallbacks
     }
     catch
     {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
+      // This catch is to guard against a race condition where the callback is disposed while the native code is still
+      // calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
     }
   }
 
@@ -265,7 +254,8 @@ public sealed class AlpmCallbacks
     }
     catch
     {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
+      // This catch is to guard against a race condition where the callback is disposed while the native code is still
+      // calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
     }
   }
 
@@ -297,8 +287,9 @@ public sealed class AlpmCallbacks
 
   /// <summary>
   /// Log thunk. This is the one libalpm callback that does not receive expanded arguments: it gets a
-  /// <c>(fmt, va_list)</c> pair, so the message is expanded by <see cref="LogMessageFormatter"/>.
-  /// The <c>va_list</c> is delivered as an opaque pointer, which is the only way it can reach C#.
+  /// <c>(fmt, va_list)</c> pair, so the message is expanded by <see cref="LogMessageFormatter" />. The <c>va_list</c> is
+  /// delivered as an opaque pointer, which is currently the "correct" representation for all .NET supported platforms.
+  /// We hope that this stays true at least until Microsoft adds native __va_list marshaling to C#.
   /// </summary>
   [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
   private static unsafe void LogAgent(void* ctx, _alpm_loglevel_t level, byte* fmt, void* vaList)
@@ -307,21 +298,23 @@ public sealed class AlpmCallbacks
     try
     {
       var success = WeakGCHandle<AlpmCallbacks>.FromIntPtr((nint)ctx).TryGetTarget(out var callback);
-    if (!success || callback == null) return;
-    callback._invokeDepth++;
-    try
-    {
-      SafeInvoke(
-        () => callback.LogHandler?.Invoke((LogLevel)(uint)level, LogMessageFormatter.Format(fmt, vaList) ?? ""),
-        callback.HandlerException);
+      if (!success || callback == null) return;
+      callback._invokeDepth++;
+      try
+      {
+        SafeInvoke(
+          () => callback.LogHandler?.Invoke((LogLevel)(uint)level, LogMessageFormatter.Format(fmt, vaList) ?? ""),
+          callback.HandlerException);
+      }
+      finally
+      {
+        callback._invokeDepth--;
+      }
     }
-    finally
-    {
-      callback._invokeDepth--;
-    }}
     catch
     {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
+      // This catch is to guard against a race condition where the callback is disposed while the native code is still
+      // calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
     }
   }
 
@@ -352,8 +345,8 @@ public sealed class AlpmCallbacks
   }
 
   /// <summary>
-  /// Receives libalpm event notifications. Setting a non-null delegate registers the native event
-  /// callback; setting <see langword="null"/> unregisters it.
+  /// Receives libalpm event notifications. Setting a non-null delegate registers the native event callback; setting
+  /// <see langword="null" /> unregisters it.
   /// </summary>
   public unsafe Action<AlpmEvent>? EventHandler
   {
@@ -375,8 +368,8 @@ public sealed class AlpmCallbacks
   }
 
   /// <summary>
-  /// Custom file retriever callback. Setting a non-null delegate registers an external download
-  /// agent with libalpm; setting <see langword="null"/> restores libalpm's built-in libcurl downloader.
+  /// Custom file retriever callback. Setting a non-null delegate registers an external download agent with libalpm;
+  /// setting <see langword="null" /> restores libalpm's built-in libcurl downloader.
   /// </summary>
   public unsafe Func<string, string, bool, FetchResult>? FetchHandler
   {
@@ -398,8 +391,8 @@ public sealed class AlpmCallbacks
   }
 
   /// <summary>
-  /// Receives interactive prompts from libalpm. Setting a non-null delegate registers the native
-  /// question callback; setting <see langword="null"/> leaves libalpm to use its pre-seeded default answers.
+  /// Receives interactive prompts from libalpm. Setting a non-null delegate registers the native question callback;
+  /// setting <see langword="null" /> leaves libalpm to use its pre-seeded default answers.
   /// </summary>
   public unsafe Action<AlpmQuestion>? QuestionHandler
   {
@@ -421,10 +414,9 @@ public sealed class AlpmCallbacks
   }
 
   /// <summary>
-  /// Receives progress events during downloads handled by libalpm's internal downloader.
-  /// Setting a non-null delegate registers the native download callback; setting <see langword="null"/>
-  /// unregisters it. Note: this callback only fires when libalpm downloads files itself, and is inactive
-  /// while <see cref="FetchHandler"/> is configured.
+  /// Receives progress events during downloads handled by libalpm's internal downloader. Setting a non-null
+  /// delegate registers the native download callback; setting <see langword="null" /> unregisters it. Note: this callback
+  /// only fires when libalpm downloads files itself, and is inactive while <see cref="FetchHandler" /> is configured.
   /// </summary>
   public unsafe Action<string, AlpmDownloadEvent>? DownloadHandler
   {
@@ -446,13 +438,13 @@ public sealed class AlpmCallbacks
   }
 
   /// <summary>
-  /// Receives progress alerts during database and transaction operations. Setting a non-null delegate
-  /// registers the native progress callback; setting <see langword="null"/> unregisters it.
+  /// Receives progress alerts during database and transaction operations. Setting a non-null delegate registers the
+  /// native progress callback; setting <see langword="null" /> unregisters it.
   /// </summary>
   /// <remarks>
-  /// This is the most frequent callback: libalpm reports once per file entry while it extracts or
-  /// removes a package. The payload is an <see cref="AlpmProgressEvent"/> value, so the handler call
-  /// allocates nothing for the payload itself.
+  /// This is the most frequent callback: libalpm reports once per file entry while it extracts or removes a
+  /// package. The payload is an <see cref="AlpmProgressEvent" /> value, so the handler call allocates nothing for the
+  /// payload itself.
   /// </remarks>
   public unsafe Action<AlpmProgressEvent>? ProgressHandler
   {
@@ -475,13 +467,12 @@ public sealed class AlpmCallbacks
   }
 
   /// <summary>
-  /// Receives libalpm's log messages, already expanded from the <c>(fmt, va_list)</c> pair the
-  /// native callback is given. Setting a non-null delegate registers the native log callback;
-  /// setting <see langword="null"/> unregisters it.
+  /// Receives libalpm's log messages, already expanded from the <c>(fmt, va_list)</c> pair the native callback is
+  /// given. Setting a non-null delegate registers the native log callback; setting <see langword="null" /> unregisters it.
   /// </summary>
   /// <remarks>
-  /// A message that could not be expanded (a null format string, or an allocation failure) arrives
-  /// as an empty string rather than as <see langword="null"/>.
+  /// A message that could not be expanded (a null format string, or an allocation failure) arrives as an empty
+  /// string rather than as <see langword="null" />.
   /// </remarks>
   public unsafe Action<LogLevel, string>? LogHandler
   {
@@ -503,26 +494,25 @@ public sealed class AlpmCallbacks
   }
 
   /// <summary>
-  /// Optional observer for exceptions thrown by the user handlers (<see cref="EventHandler"/>,
-  /// <see cref="FetchHandler"/>, <see cref="QuestionHandler"/>, <see cref="DownloadHandler"/>,
-  /// <see cref="ProgressHandler"/>, <see cref="LogHandler"/>).
+  /// Optional observer for exceptions thrown by the user handlers ( <see cref="EventHandler" />,
+  /// <see cref="FetchHandler" />, <see cref="QuestionHandler" />, <see cref="DownloadHandler" />,
+  /// <see cref="ProgressHandler" />, <see cref="LogHandler" />).
   /// </summary>
   /// <remarks>
-  /// This is a managed observer hook and does not register a native callback with libalpm.
-  /// Handler exceptions never cross the FFI boundary: they are caught by the wrapper's native callbacks
-  /// and, when this is set, forwarded here so they can be logged. Exceptions thrown by this
-  /// observer are swallowed as well, so it cannot terminate the process either. Leave it null to
-  /// ignore handler failures.
+  /// This is a managed observer hook and does not register a native callback with libalpm. Handler exceptions never
+  /// cross the FFI boundary: they are caught by the wrapper's native callbacks and, when this is set, forwarded here so they
+  /// can be logged. Exceptions thrown by this observer are swallowed as well, so it cannot terminate the process either.
+  /// Leave it null to ignore handler failures.
   /// </remarks>
   public Action<Exception>? HandlerException { get; set; }
 
   /// <summary>
-  /// Invokes a user handler body so that no exception escapes to the native caller, which has no
-  /// managed frame left to catch it.
+  /// Invokes a user handler body so that no exception escapes to the native caller, which has no managed frame left
+  /// to catch it.
   /// </summary>
   /// <param name="body">The handler invocation to protect.</param>
   /// <param name="observer">
-  /// When non-null and <paramref name="body"/> throws, called with the thrown exception. Exceptions
+  /// When non-null and <paramref name="body" /> throws, called with the thrown exception. Exceptions
   /// thrown by the observer are swallowed too.
   /// </param>
   internal static void SafeInvoke(Action body, Action<Exception>? observer)
@@ -538,9 +528,8 @@ public sealed class AlpmCallbacks
   }
 
   /// <summary>
-  /// <c>SafeInvoke</c> for handlers that return a value:
-  /// <paramref name="onException"/> is returned when the body throws. The fetch thunk uses -1 so a
-  /// failing handler is reported to libalpm as an error instead of a bogus success.
+  /// <c>SafeInvoke</c> for handlers that return a value: <paramref name="onException" /> is returned when the body
+  /// throws. The fetch thunk uses -1 so a failing handler is reported to libalpm as an error instead of a bogus success.
   /// </summary>
   internal static int SafeInvoke(Func<int> body, int onException, Action<Exception>? observer)
   {
@@ -569,14 +558,12 @@ public sealed class AlpmCallbacks
 
   /// <summary>
   /// Releases the callback ctx handle. Deliberately <c>internal</c>: the handle is owned by
-  /// <see cref="AlpmSession"/>, which releases it once <c>alpm_release</c> has returned successfully. A
-  /// public entry point would let a consumer invalidate the ctx while native code may still call
-  /// back.
+  /// <see cref="AlpmSession" />, which releases it once <c>alpm_release</c> has returned successfully. A public entry point
+  /// would let a consumer invalidate the ctx while native code may still call back.
   /// </summary>
   /// <remarks>
-  /// Not called when <c>alpm_release</c> failed: the handle it belongs to is still alive then (it is
-  /// what leaked), and its native thunks would dereference this ctx handle - see
-  /// <see cref="AlpmSession.Dispose()"/>.
+  /// Not called when <c>alpm_release</c> failed: the handle it belongs to is still alive then (it is what leaked),
+  /// and its native thunks would dereference this ctx handle - see <see cref="AlpmSession.Dispose()" />.
   /// </remarks>
   internal void Dispose()
   {

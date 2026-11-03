@@ -2,9 +2,7 @@ using Pacpar.Alpm.Tests.Fixtures;
 
 namespace Pacpar.Alpm.Tests.Unit.Packages;
 
-/// <summary>
-/// Covers <see cref="PackageView.GetNewVersion"/>, which searches only the databases it is handed.
-/// </summary>
+/// <summary>Covers <see cref="PackageView.GetNewVersion" />, which searches only the databases it is handed.</summary>
 public sealed class PackageUpgradeTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

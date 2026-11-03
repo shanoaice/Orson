@@ -2,17 +2,15 @@ namespace Pacpar.Alpm.Tests.Unit.ObjectLifetime;
 
 /// <summary>
 /// Managed coverage of the lifetime domains and stamps: root anchoring, the two-level check, the
-/// first-reason-wins invalidation, the handle registry's pointer deduplication, and the exception
-/// text callers see.
+/// first-reason-wins invalidation, the handle registry's pointer deduplication, and the exception text callers see.
 /// </summary>
 /// <remarks>
-/// No libalpm handle is needed: a domain is a managed object, and the "pointers" used with the
-/// registry are only dictionary keys - nothing here dereferences them.
+/// No libalpm handle is needed: a domain is a managed object, and the "pointers" used with the registry are only
+/// dictionary keys - nothing here dereferences them.
 /// <para>
-/// The old token tree returned a live ancestor for every descendant and walked the chain on each
-/// check. The domains replace both with a counter: a stamp records the generations of its own
-/// resource and of the session, so a check is two comparisons and one increment retires every stamp
-/// taken from the domain - including from a finalizer thread.
+/// The old token tree returned a live ancestor for every descendant and walked the chain on each check. The domains
+/// replace both with a counter: a stamp records the generations of its own resource and of the session, so a check is two
+/// comparisons and one increment retires every stamp taken from the domain - including from a finalizer thread.
 /// </para>
 /// </remarks>
 public sealed unsafe class LifetimeTests

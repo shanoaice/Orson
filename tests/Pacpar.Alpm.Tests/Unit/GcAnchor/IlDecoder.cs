@@ -3,14 +3,11 @@ using System.Reflection.Emit;
 
 namespace Pacpar.Alpm.Tests.Unit.GcAnchor;
 
-/// <summary>
-/// A decoded IL instruction: its offset, opcode, and the exact bytes of its operand.
-/// </summary>
+/// <summary>A decoded IL instruction: its offset, opcode, and the exact bytes of its operand.</summary>
 /// <remarks>
-/// The GC anchor audit needs instruction-level offsets because the byte-level scan it replaces
-/// cannot tell an opcode from an operand byte: the constant <c>0x200</c> encodes as
-/// <c>20 00 02 00 00</c>, and the <c>0x02</c> in the middle is an operand byte of <c>ldc.i4</c>,
-/// not <c>ldarg.0</c>. Decoding removes that whole class of misreads.
+/// The GC anchor audit needs instruction-level offsets because the byte-level scan it replaces cannot tell an
+/// opcode from an operand byte: the constant <c>0x200</c> encodes as <c>20 00 02 00 00</c>, and the <c>0x02</c> in the
+/// middle is an operand byte of <c>ldc.i4</c>, not <c>ldarg.0</c>. Decoding removes that whole class of misreads.
 /// </remarks>
 internal readonly record struct IlInstruction(
   int Offset,
@@ -34,9 +31,7 @@ internal readonly record struct IlInstruction(
   /// <summary>True for unconditional branches (br, leave) and conditional branches (brtrue, beq, ...).</summary>
   public bool IsBranch => OpCode.OperandType is OperandType.InlineBrTarget or OperandType.ShortInlineBrTarget;
 
-  /// <summary>
-  /// Absolute offset of the branch target, or <c>-1</c> when this is not a single-target branch.
-  /// </summary>
+  /// <summary>Absolute offset of the branch target, or <c>-1</c> when this is not a single-target branch.</summary>
   public int BranchTarget => OpCode.OperandType switch
   {
     OperandType.ShortInlineBrTarget => NextOffset + unchecked((sbyte)OperandBytes[0]),
@@ -47,9 +42,7 @@ internal readonly record struct IlInstruction(
   /// <summary>True when control can fall through to the next instruction.</summary>
   public bool FallsThrough => OpCode.FlowControl is not (FlowControl.Branch or FlowControl.Return or FlowControl.Throw);
 
-  /// <summary>
-  /// Targets of an <c>InlineSwitch</c> opcode, or an empty span for anything else.
-  /// </summary>
+  /// <summary>Targets of an <c>InlineSwitch</c> opcode, or an empty span for anything else.</summary>
   public ReadOnlySpan<int> SwitchTargets()
   {
     if (OpCode.OperandType != OperandType.InlineSwitch) return ReadOnlySpan<int>.Empty;
@@ -67,16 +60,14 @@ internal readonly record struct IlInstruction(
   /// <summary>The raw 4-byte metadata token, for token-bearing opcodes.</summary>
   private int Token => OperandSize >= 4 ? BitConverter.ToInt32(OperandBytes, 0) : 0;
 
-  /// <summary>The short argument or local index, for <c>ldarg.s</c>/<c>stloc.s</c>-style opcodes.</summary>
+  /// <summary>The short argument or local index, for <c>ldarg.s</c>/<c>stloc.s</c> -style opcodes.</summary>
   public int VariableIndex => OperandSize >= 1 ? OperandBytes[0] : 0;
 }
 
-/// <summary>
-/// Decodes a method's IL byte array into instructions whose operand sizes are exact.
-/// </summary>
+/// <summary>Decodes a method's IL byte array into instructions whose operand sizes are exact.</summary>
 /// <remarks>
-/// The opcode-to-operand-size table is derived from <see cref="System.Reflection.Emit.OpCodes"/>
-/// itself at startup rather than hand-written, so it can never drift from the runtime's encoding.
+/// The opcode-to-operand-size table is derived from <see cref="System.Reflection.Emit.OpCodes" /> itself at
+/// startup rather than hand-written, so it can never drift from the runtime's encoding.
 /// </remarks>
 internal static class IlDecoder
 {
@@ -111,8 +102,8 @@ internal static class IlDecoder
     op.Size == 1 ? (op.Value & 0xFF) : ((0xFE << 8) | (op.Value & 0xFF));
 
   /// <summary>
-  /// Decodes <paramref name="il"/> into instructions. An undecodable region ends decoding there,
-  /// so a malformed method degrades to "cannot prove" rather than "proven safe".
+  /// Decodes <paramref name="il" /> into instructions. An undecodable region ends decoding there, so a malformed
+  /// method degrades to "cannot prove" rather than "proven safe".
   /// </summary>
   public static List<IlInstruction> Decode(byte[] il)
   {

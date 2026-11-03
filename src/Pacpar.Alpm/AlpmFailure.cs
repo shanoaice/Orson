@@ -4,18 +4,18 @@ using Pacpar.Alpm.Interop;
 namespace Pacpar.Alpm;
 
 /// <summary>
-/// A managed ALPM operation failure: what libalpm said went wrong, in this library's own vocabulary
-/// rather than in libalpm's errno numbering.
+/// A managed ALPM operation failure: what libalpm said went wrong, in this library's own vocabulary rather than
+/// in libalpm's errno numbering.
 /// </summary>
 /// <remarks>
 /// A failure is a value, not an exception. The public exception hierarchy is a projection of it —
-/// <see cref="ToException"/> is the only way one becomes the other — so the throwing C# facade and
-/// the failure-returning seam cannot disagree about what an errno means.
+/// <see cref="ToException" /> is the only way one becomes the other — so the throwing C# facade and the failure-returning
+/// seam cannot disagree about what an errno means.
 /// <para>
-/// Two things are deliberately <b>not</b> failures and are never returned: <c>ALPM_ERR_MEMORY</c>,
-/// which stays an <see cref="OutOfMemoryException"/>, and a failure libalpm reported without setting
-/// an errno, which stays an <see cref="AlpmNativeFailureException"/>. Both are thrown where they are
-/// observed, so no instance of this type carries them.
+/// Two things are deliberately <b>not</b> failures and are never returned: <c>ALPM_ERR_MEMORY</c>, which stays an
+/// <see cref="OutOfMemoryException" />, and a failure libalpm reported without setting an errno, which stays an
+/// <see cref="AlpmNativeFailureException" />. Both are thrown where they are observed, so no instance of this type carries
+/// them.
 /// </para>
 /// </remarks>
 internal sealed class AlpmFailure
@@ -34,17 +34,17 @@ internal sealed class AlpmFailure
   internal AlpmFailureCode Code { get; }
 
   /// <summary>
-  /// libalpm's own <c>pm_errno</c>, kept for diagnostics and for the codes
-  /// <see cref="AlpmFailureCode"/> collapses (ADR 0007). It carries no stability promise.
+  /// libalpm's own <c>pm_errno</c>, kept for diagnostics and for the codes <see cref="AlpmFailureCode" /> collapses
+  /// (ADR 0007). It carries no stability promise.
   /// </summary>
   internal int NativeCode { get; }
 
-  /// <summary>libalpm's own description of <see cref="NativeCode"/> (<c>alpm_strerror</c>).</summary>
+  /// <summary>libalpm's own description of <see cref="NativeCode" /> ( <c>alpm_strerror</c>).</summary>
   internal string? Message { get; }
 
   /// <summary>
-  /// What failed, e.g. <c>"load package"</c>. The default wording of <see cref="ToException"/>; a
-  /// caller may override it, and the F# layer ignores it.
+  /// What failed, e.g. <c>"load package"</c>. The default wording of <see cref="ToException" />; a caller may
+  /// override it, and the F# layer ignores it.
   /// </summary>
   internal string Operation { get; }
 
@@ -52,13 +52,13 @@ internal sealed class AlpmFailure
   internal AlpmFailureDetail? Detail { get; }
 
   /// <summary>
-  /// The failure for a call that signalled failure through its <b>return value</b>, read at the
-  /// failure site. Carries no payload: nothing was dumped.
+  /// The failure for a call that signalled failure through its <b>return value</b>, read at the failure site.
+  /// Carries no payload: nothing was dumped.
   /// </summary>
   /// <param name="errno">The errno read immediately after the failing call, as the first statement of the failure branch.</param>
   /// <param name="operation">What failed, e.g. <c>"load package"</c>.</param>
-  /// <exception cref="OutOfMemoryException"><paramref name="errno"/> is <c>ALPM_ERR_MEMORY</c>.</exception>
-  /// <exception cref="AlpmNativeFailureException"><paramref name="errno"/> is <c>ALPM_ERR_OK</c>.</exception>
+  /// <exception cref="OutOfMemoryException"><paramref name="errno" /> is <c>ALPM_ERR_MEMORY</c>.</exception>
+  /// <exception cref="AlpmNativeFailureException"><paramref name="errno" /> is <c>ALPM_ERR_OK</c>.</exception>
   internal static AlpmFailure Of(int errno, string operation)
   {
     RejectNotAFailureValue(errno, operation);
@@ -66,14 +66,13 @@ internal sealed class AlpmFailure
   }
 
   /// <summary>
-  /// The failure for a failed <c>alpm_trans_prepare</c>/<c>alpm_trans_commit</c>, from the errno and
-  /// the list libalpm dumped into that call's output parameter.
+  /// The failure for a failed <c>alpm_trans_prepare</c>/<c>alpm_trans_commit</c>, from the errno and the list
+  /// libalpm dumped into that call's output parameter.
   /// </summary>
   /// <remarks>
-  /// Every branch <b>consumes</b> <paramref name="data"/>: the entries are snapshotted into managed
-  /// objects first, then the whole list is freed with the element destructor the errno requires. An
-  /// errno with no documented payload frees the nodes only — guessing a destructor aborts the
-  /// process.
+  /// Every branch <b>consumes</b> <paramref name="data" />: the entries are snapshotted into managed objects first,
+  /// then the whole list is freed with the element destructor the errno requires. An errno with no documented payload frees
+  /// the nodes only — guessing a destructor aborts the process.
   /// </remarks>
   internal static unsafe AlpmFailure Take(int errno, _alpm_list_t* data, string operation)
   {
@@ -109,14 +108,13 @@ internal sealed class AlpmFailure
   }
 
   /// <summary>
-  /// The exception this failure is reported as. One errno has one public exception type (ADR 0007),
-  /// so the type follows from <see cref="Code"/>.
+  /// The exception this failure is reported as. One errno has one public exception type (ADR 0007), so the type
+  /// follows from <see cref="Code" />.
   /// </summary>
-  /// <param name="context">Overrides <see cref="Operation"/> in the message.</param>
+  /// <param name="context">Overrides <see cref="Operation" /> in the message.</param>
   /// <remarks>
-  /// Reads no native memory through a handle: the only native call it can make is
-  /// <c>alpm_strerror</c>, a table lookup that never touches one. That is what lets a caller throw
-  /// the result after its <c>GC.KeepAlive</c>.
+  /// Reads no native memory through a handle: the only native call it can make is <c>alpm_strerror</c>, a table
+  /// lookup that never touches one. That is what lets a caller throw the result after its <c>GC.KeepAlive</c>.
   /// </remarks>
   internal Exception ToException(string? context = null)
   {
@@ -161,34 +159,28 @@ internal sealed class AlpmFailure
   }
 }
 
-/// <summary>
-/// Turns libalpm errnos into semantic codes and exceptions.
-/// </summary>
+/// <summary>Turns libalpm errnos into semantic codes and exceptions.</summary>
 internal static class ErrorHandler
 {
   /// <summary>
-  /// The exception describing <paramref name="errno"/>, or <c>null</c> if and only if it is
-  /// <see cref="_alpm_errno_t.ALPM_ERR_OK"/> (there is no error to report).
+  /// The exception describing <paramref name="errno" />, or <c>null</c> if and only if it is
+  /// <see cref="_alpm_errno_t.ALPM_ERR_OK" /> (there is no error to report).
   /// </summary>
   public static Exception? GetException(_alpm_errno_t errno)
     => errno == _alpm_errno_t.ALPM_ERR_OK ? null : Create((int)errno, StrError(errno));
 
-  /// <summary>
-  /// The <see cref="int"/> overload of <see cref="GetException(_alpm_errno_t)"/>.
-  /// </summary>
+  /// <summary>The <see cref="int" /> overload of <see cref="GetException(_alpm_errno_t)" />.</summary>
   public static Exception? GetException(int errno) => GetException((_alpm_errno_t)errno);
 
-  /// <summary>
-  /// Returns libalpm's textual description of <paramref name="errno"/>, or a fallback error string if unknown.
-  /// </summary>
+  /// <summary>Returns libalpm's textual description of <paramref name="errno" />, or a fallback error string if unknown.</summary>
   internal static string? StrError(_alpm_errno_t errno) => StrErrorCore(errno);
 
-  /// <summary>The <see cref="int"/> overload of <see cref="StrError(_alpm_errno_t)"/>.</summary>
+  /// <summary>The <see cref="int" /> overload of <see cref="StrError(_alpm_errno_t)" />.</summary>
   internal static string? StrError(int errno) => StrErrorCore((_alpm_errno_t)errno);
 
   /// <summary>
-  /// The <c>ALPM_ERR_*</c> name for a raw code, for use in messages. Unknown codes fall back to the
-  /// number, which is all that can be said about them.
+  /// The <c>ALPM_ERR_*</c> name for a raw code, for use in messages. Unknown codes fall back to the number, which
+  /// is all that can be said about them.
   /// </summary>
   internal static string NameOf(int errno) => ((_alpm_errno_t)errno).ToString();
 
@@ -198,8 +190,8 @@ internal static class ErrorHandler
   }
 
   /// <summary>
-  /// The exception for a failure this library already described, reusing its message instead of
-  /// asking libalpm for it a second time.
+  /// The exception for a failure this library already described, reusing its message instead of asking libalpm for
+  /// it a second time.
   /// </summary>
   /// <param name="errno">The raw libalpm code.</param>
   /// <param name="message">libalpm's description of it, or <c>null</c> to read one.</param>
@@ -221,8 +213,8 @@ internal static class ErrorHandler
   }
 
   /// <summary>
-  /// The stable semantic code for an errno, or <see cref="AlpmFailureCode.UnknownNative"/> for a
-  /// valid code this mapping does not know.
+  /// The stable semantic code for an errno, or <see cref="AlpmFailureCode.UnknownNative" /> for a valid code this
+  /// mapping does not know.
   /// </summary>
   internal static AlpmFailureCode CodeOf(int errno) => ((_alpm_errno_t)errno) switch
   {
@@ -290,9 +282,7 @@ internal static class ErrorHandler
     _ => AlpmFailureCode.UnknownNative
   };
 
-  /// <summary>
-  /// The family a failure code belongs to, which is what picks its exception type.
-  /// </summary>
+  /// <summary>The family a failure code belongs to, which is what picks its exception type.</summary>
   internal static AlpmErrorCategory CategoryOf(AlpmFailureCode code) => code switch
   {
     AlpmFailureCode.DatabaseOpen or AlpmFailureCode.DatabaseCreate or AlpmFailureCode.DatabaseNull
@@ -332,27 +322,23 @@ internal static class ErrorHandler
     _ => AlpmErrorCategory.Unknown
   };
 
-  /// <summary>
-  /// Classifies an errno into the exception type libalpm errors of that kind are reported as.
-  /// </summary>
+  /// <summary>Classifies an errno into the exception type libalpm errors of that kind are reported as.</summary>
   internal static AlpmErrorCategory Categorize(_alpm_errno_t errno)
     => errno == _alpm_errno_t.ALPM_ERR_MEMORY
       ? AlpmErrorCategory.Memory
       : CategoryOf(CodeOf((int)errno));
 }
 
-/// <summary>
-/// What went wrong, in this library's own vocabulary.
-/// </summary>
+/// <summary>What went wrong, in this library's own vocabulary.</summary>
 /// <remarks>
-/// The generated <c>_alpm_errno_t</c> is a binding contract that moves with libalpm; this is a
-/// language-facing contract that does not. A libalpm that adds errnos lands them on
-/// <see cref="UnknownNative"/> without breaking anything, and a meaning this project already named
-/// keeps its member. Adding a member is therefore always safe, and removing or renaming one is not.
+/// The generated <c>_alpm_errno_t</c> is a binding contract that moves with libalpm; this is a language-facing
+/// contract that does not. A libalpm that adds errnos lands them on <see cref="UnknownNative" /> without breaking
+/// anything, and a meaning this project already named keeps its member. Adding a member is therefore always safe, and
+/// removing or renaming one is not.
 /// </remarks>
 internal enum AlpmFailureCode
 {
-  /// <summary>A valid errno this mapping does not know. <see cref="AlpmFailure.NativeCode"/> carries it.</summary>
+  /// <summary>A valid errno this mapping does not know. <see cref="AlpmFailure.NativeCode" /> carries it.</summary>
   UnknownNative,
 
   DatabaseOpen,
@@ -424,13 +410,11 @@ internal enum AlpmFailureCode
   Gpgme
 }
 
-/// <summary>
-/// Structured evidence libalpm attached to an ALPM operation failure.
-/// </summary>
+/// <summary>Structured evidence libalpm attached to an ALPM operation failure.</summary>
 /// <remarks>
-/// The cases mirror the payload-carrying exception cases, so the detail a failure holds and the
-/// exception it becomes read the same at the call site. Every case is a managed snapshot: the native
-/// list is consumed and freed while it is built.
+/// The cases mirror the payload-carrying exception cases, so the detail a failure holds and the exception it
+/// becomes read the same at the call site. Every case is a managed snapshot: the native list is consumed and freed while
+/// it is built.
 /// </remarks>
 internal abstract class AlpmFailureDetail
 {
@@ -453,8 +437,8 @@ internal abstract class AlpmFailureDetail
   }
 
   /// <summary>
-  /// The packages libalpm rejected, as libalpm named them.
-  /// <see cref="AlpmFailure.Code"/> says why: invalid, checksum, signature or architecture.
+  /// The packages libalpm rejected, as libalpm named them. <see cref="AlpmFailure.Code" /> says why: invalid,
+  /// checksum, signature or architecture.
   /// </summary>
   internal sealed class RejectedPackages(IReadOnlyList<string> packages) : AlpmFailureDetail
   {

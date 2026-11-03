@@ -5,9 +5,7 @@ namespace Pacpar.Alpm;
 
 public sealed unsafe partial class PackageView
 {
-  /// <summary>
-  /// The failure-returning seam for <see cref="SetReason"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="SetReason" />.</summary>
   internal bool TrySetReason(PackageReason reason, [NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();

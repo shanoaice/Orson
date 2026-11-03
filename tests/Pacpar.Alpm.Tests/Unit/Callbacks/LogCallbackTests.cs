@@ -3,18 +3,19 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Callbacks;
 
 /// <summary>
-/// The log callback is the one handler whose payload libalpm does not expand for us, so
-/// it is the only one that cannot be covered by <see cref="AlpmCallbacks.SafeInvoke(System.Action, System.Action{System.Exception})"/> tests alone. These
-/// drive the whole production path on a real handle: native <c>alpm_cb_log</c> → the log thunk →
-/// <see cref="LogMessageFormatter"/> → <see cref="AlpmCallbacks.LogHandler"/>.
+/// The log callback is the one handler whose payload libalpm does not expand for us, so it is the only one that cannot be
+/// covered by
+/// <see
+///   cref="AlpmCallbacks.SafeInvoke(System.Action, System.Action{System.Exception})" />
+/// tests alone. These drive the whole production path on a real handle: native <c>alpm_cb_log</c> → the log thunk →
+/// <see cref="LogMessageFormatter" /> → <see cref="AlpmCallbacks.LogHandler" />.
 /// </summary>
 /// <remarks>
-/// libalpm logs "unregistering database ..." at DEBUG while <c>alpm_release</c> runs, which is what
-/// these tests ride on, so disposing the environment is what produces the messages. If a libalpm
-/// update stops logging there, the trigger has to be replaced with another one; the assertions are
-/// deliberately about shape rather than wording, so they do not break when libalpm rewords a
-/// message. The deterministic check of the <c>va_list</c> expansion itself lives in
-/// <see cref="LogMessageFormatterTests"/>.
+/// libalpm logs "unregistering database ..." at DEBUG while <c>alpm_release</c> runs, which is what these tests
+/// ride on, so disposing the environment is what produces the messages. If a libalpm update stops logging there, the
+/// trigger has to be replaced with another one; the assertions are deliberately about shape rather than wording, so they
+/// do not break when libalpm rewords a message. The deterministic check of the <c>va_list</c> expansion itself lives in
+/// <see cref="LogMessageFormatterTests" />.
 /// </remarks>
 public sealed class LogCallbackTests
 {
@@ -41,9 +42,8 @@ public sealed class LogCallbackTests
   }
 
   /// <summary>
-  /// A throwing log handler must not reach native code: the thunk is entered from libalpm with no
-  /// managed frame above it, so an escaping exception would terminate the process instead of failing
-  /// this test.
+  /// A throwing log handler must not reach native code: the thunk is entered from libalpm with no managed frame
+  /// above it, so an escaping exception would terminate the process instead of failing this test.
   /// </summary>
   [Fact]
   public void LogHandlerExceptions_AreReportedThroughTheObserver()

@@ -3,14 +3,13 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.ObjectLifetime;
 
 /// <summary>
-/// End-to-end coverage of the invalidation sites the lifetime-token design specifies: releasing a
-/// loaded package, disposing the handle, and committing a transaction must retire exactly the views
-/// issued under the affected token, and every later read must answer
-/// <see cref="AlpmLifetimeException"/> instead of touching freed memory.
+/// End-to-end coverage of the invalidation sites the lifetime-token design specifies: releasing a loaded package,
+/// disposing the handle, and committing a transaction must retire exactly the views issued under the affected token, and
+/// every later read must answer <see cref="AlpmLifetimeException" /> instead of touching freed memory.
 /// </summary>
 /// <remarks>
-/// Every test runs against an isolated throwaway root/dbpath (see <see cref="IsolatedAlpmEnvironment"/>),
-/// so no project container and no system database are involved.
+/// Every test runs against an isolated throwaway root/dbpath (see <see cref="IsolatedAlpmEnvironment" />), so no
+/// project container and no system database are involved.
 /// </remarks>
 public sealed class LifetimeInvalidationTests : IDisposable
 {

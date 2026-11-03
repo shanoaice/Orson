@@ -2,13 +2,11 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// A package libalpm owns: a database package, a transaction member, or one reached through a group.
-/// </summary>
+/// <summary>A package libalpm owns: a database package, a transaction member, or one reached through a group.</summary>
 /// <remarks>
-/// A package view is a lightweight reference to memory owned by libalpm.
-/// If you need package information to persist after the database, transaction, or ALPM handle is disposed,
-/// call <see cref="PackageBase.ToSnapshot"/> to create an independent managed snapshot.
+/// A package view is a lightweight reference to memory owned by libalpm. If you need package information to
+/// persist after the database, transaction, or ALPM handle is disposed, call <see cref="PackageBase.ToSnapshot" /> to
+/// create an independent managed snapshot.
 /// </remarks>
 public sealed unsafe partial class PackageView : PackageBase
 {
@@ -28,23 +26,20 @@ public sealed unsafe partial class PackageView : PackageBase
     return new((_alpm_pkg_t*)ptr, (ChildLifetime?)lifetime);
   }
 
-  /// <summary>
-  /// Finds a package satisfying the specified dependency in a collection of packages.
-  /// </summary>
+  /// <summary>Finds a package satisfying the specified dependency in a collection of packages.</summary>
   /// <param name="packages">The packages to search.</param>
   /// <param name="dependency">The dependency query string (e.g. <c>"glibc&gt;=2.30"</c>).</param>
-  /// <returns>The matching <see cref="PackageView"/>, or <c>null</c> if no satisfier was found.</returns>
+  /// <returns>The matching <see cref="PackageView" />, or <c>null</c> if no satisfier was found.</returns>
   /// <remarks>
   /// <para>
-  /// The result is one of the views in <paramref name="packages"/>, not a new one: libalpm searches the
-  /// list it was handed, so the match is always a package the caller already holds, and it keeps that
-  /// view's domain. No handle or database is involved, which is why this member is static.
+  /// The result is one of the views in <paramref name="packages" />, not a new one: libalpm searches the list it was
+  /// handed, so the match is always a package the caller already holds, and it keeps that view's domain. No handle or
+  /// database is involved, which is why this member is static.
   /// </para>
   /// <para>
-  /// <c>null</c> covers both "nothing in the list satisfies the dependency" and "the dependency string
-  /// could not be parsed": <c>alpm_find_satisfier</c> takes no handle and therefore has no error
-  /// channel to tell the two apart. To search databases rather than a list you already hold, use
-  /// <see cref="AlpmSession.ResolveDependency"/>.
+  /// <c>null</c> covers both "nothing in the list satisfies the dependency" and "the dependency string could not be
+  /// parsed": <c>alpm_find_satisfier</c> takes no handle and therefore has no error channel to tell the two apart. To search
+  /// databases rather than a list you already hold, use <see cref="AlpmSession.ResolveDependency" />.
   /// </para>
   /// </remarks>
   public static PackageView? FindSatisfier(IEnumerable<PackageView> packages, string dependency)
@@ -77,9 +72,7 @@ public sealed unsafe partial class PackageView : PackageBase
     }
   }
 
-  /// <summary>
-  /// Sets the install reason for this package in the local database.
-  /// </summary>
+  /// <summary>Sets the install reason for this package in the local database.</summary>
   /// <param name="reason">The reason for installation.</param>
   public void SetReason(PackageReason reason)
   {
@@ -89,20 +82,16 @@ public sealed unsafe partial class PackageView : PackageBase
     }
   }
 
-  /// <summary>
-  /// Gets or sets why this package was installed on the system.
-  /// </summary>
+  /// <summary>Gets or sets why this package was installed on the system.</summary>
   public PackageReason InstallReason
   {
     get => Reason;
     set => SetReason(value);
   }
 
-  /// <summary>
-  /// Checks whether a newer version of this package is available in the given synchronization databases.
-  /// </summary>
+  /// <summary>Checks whether a newer version of this package is available in the given synchronization databases.</summary>
   /// <param name="syncDatabases">The databases to check for upgrades.</param>
-  /// <returns>A <see cref="PackageView"/> for the newer package, or <c>null</c> if no upgrade is available.</returns>
+  /// <returns>A <see cref="PackageView" /> for the newer package, or <c>null</c> if no upgrade is available.</returns>
   public PackageView? GetNewVersion(IEnumerable<Database> syncDatabases)
   {
     ArgumentNullException.ThrowIfNull(syncDatabases);

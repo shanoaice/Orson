@@ -4,11 +4,10 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Ownership;
 
 /// <summary>
-/// The handle's one-transaction-at-a-time contract as the wrapper presents it: an active transaction
-/// is joined rather than refused, but only when it was initialized with the flags the caller asks
-/// for. The flags decide whether the transaction locks the database, writes to the filesystem and
-/// runs hooks and scriptlets, so answering a request for one mode with a transaction configured for
-/// another would make the caller commit something it never asked for.
+/// The handle's one-transaction-at-a-time contract as the wrapper presents it: an active transaction is joined
+/// rather than refused, but only when it was initialized with the flags the caller asks for. The flags decide whether the
+/// transaction locks the database, writes to the filesystem and runs hooks and scriptlets, so answering a request for one
+/// mode with a transaction configured for another would make the caller commit something it never asked for.
 /// </summary>
 public sealed class TransactionLifecycleTests
 {
@@ -92,9 +91,9 @@ public sealed class TransactionLifecycleTests
   }
 
   /// <summary>
-  /// ADR 0008: <see cref="Transaction.Dispose"/> does not throw, so a failed
-  /// <c>alpm_trans_release</c> has to be observable on the transaction - otherwise the caller is
-  /// told the transaction ended while the lock and the handle are still held.
+  /// ADR 0008: <see cref="Transaction.Dispose" /> does not throw, so a failed <c>alpm_trans_release</c> has to be
+  /// observable on the transaction - otherwise the caller is told the transaction ended while the lock and the handle are
+  /// still held.
   /// </summary>
   [Fact]
   public void Dispose_RecordsTheFailure_WhenTheNativeReleaseFails()

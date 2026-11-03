@@ -5,15 +5,15 @@ using System.Text;
 namespace Pacpar.Alpm.Tests.Fixtures;
 
 /// <summary>
-/// Builds the smallest package <c>alpm_pkg_load</c> accepts, so tests that need a real package file
-/// do not need the integration container. <see cref="IsolatedAlpmEnvironment.Install(PackageSpec, TransactionFlags)"/> is the way to
+/// Builds the smallest package <c>alpm_pkg_load</c> accepts, so tests that need a real package file do not need
+/// the integration container. <see cref="IsolatedAlpmEnvironment.Install(PackageSpec, TransactionFlags)" /> is the way to
 /// get one of these into a database.
 /// </summary>
 /// <remarks>
-/// A <c>.PKGINFO</c> plus, optionally, one file the package owns is enough. The archive stays
-/// uncompressed - libalpm reads a plain tar, so no <c>zstd</c> is involved - and no <c>.MTREE</c> is
-/// required, not even for a <c>full</c> load or for reaching the commit-time file-conflict check. A
-/// package built exactly this way was measured against libalpm to pass both cases.
+/// A <c>.PKGINFO</c> plus, optionally, one file the package owns is enough. The archive stays uncompressed -
+/// libalpm reads a plain tar, so no <c>zstd</c> is involved - and no <c>.MTREE</c> is required, not even for a <c>full</c>
+/// load or for reaching the commit-time file-conflict check. A package built exactly this way was measured against libalpm
+/// to pass both cases.
 /// </remarks>
 internal static class PackageArchive
 {
@@ -26,7 +26,7 @@ internal static class PackageArchive
   internal static string Create(string directory, string name)
     => Create(directory, new PackageSpec(name));
 
-  /// <summary>Writes a package matching <paramref name="spec"/> and returns the path it was written to.</summary>
+  /// <summary>Writes a package matching <paramref name="spec" /> and returns the path it was written to.</summary>
   /// <param name="directory">Where to write; it must already exist.</param>
   /// <param name="spec">The package specification.</param>
   internal static string Create(string directory, PackageSpec spec)

@@ -1,36 +1,35 @@
 namespace Pacpar.Alpm;
 
 /// <summary>
-/// A detached copy of the metadata a <see cref="PackageBase"/> reads, made by
-/// <see cref="PackageBase.ToSnapshot"/>.
+/// A detached copy of the metadata a <see cref="PackageBase" /> reads, made by
+/// <see cref="PackageBase.ToSnapshot" />.
 /// </summary>
 /// <remarks>
-/// A <see cref="PackageView"/> is a view over memory libalpm owns, so it stops being safe to read as
-/// soon as the database, transaction or handle behind it goes away - from that point on it throws
-/// <see cref="AlpmLifetimeException"/> instead of returning data. A snapshot copies every value out when
-/// it is constructed and keeps no native pointer at all: it stays readable after the owning database is
-/// unregistered, after the handle is released, and while a transaction commits.
+/// A <see cref="PackageView" /> is a view over memory libalpm owns, so it stops being safe to read as soon as the
+/// database, transaction or handle behind it goes away - from that point on it throws <see cref="AlpmLifetimeException" />
+/// instead of returning data. A snapshot copies every value out when it is constructed and keeps no native pointer at all:
+/// it stays readable after the owning database is unregistered, after the handle is released, and while a transaction
+/// commits.
 /// <para>
-/// Creating a snapshot eagerly reads all package metadata from disk or database caches,
-/// which is substantially more expensive than iterating a lazy <see cref="PackageView"/>.
-/// Callers should iterate views by default and snapshot only packages that must outlive
-/// the originating database or transaction.
+/// Creating a snapshot eagerly reads all package metadata from disk or database caches, which is substantially more
+/// expensive than iterating a lazy <see cref="PackageView" />. Callers should iterate views by default and snapshot only
+/// packages that must outlive the originating database or transaction.
 /// </para>
 /// <para>
-/// Values are captured once. The fields libalpm mutates - <see cref="Reason"/>, <see cref="InstallDate"/>
-/// and <see cref="Validation"/> - are frozen at the moment of the copy, which is the point of a
-/// snapshot, but two snapshots taken at different times can therefore disagree.
+/// Values are captured once. The fields libalpm mutates - <see cref="Reason" />, <see cref="InstallDate" /> and
+/// <see cref="Validation" /> - are frozen at the moment of the copy, which is the point of a snapshot, but two snapshots
+/// taken at different times can therefore disagree.
 /// </para>
 /// <para>
-/// The file list is the one optional part: it is by far the most expensive thing to copy, so it is read
-/// only when <c>includeFiles</c> asks for it and is <c>null</c> otherwise.
+/// The file list is the one optional part: it is by far the most expensive thing to copy, so it is read only when
+/// <c>includeFiles</c> asks for it and is <c>null</c> otherwise.
 /// </para>
 /// </remarks>
 public sealed class PackageSnapshot
 {
   /// <summary>
-  /// Copies <paramref name="package"/>; when <paramref name="includeFiles"/> is set, the file list is
-  /// copied too. Prefer <see cref="PackageBase.ToSnapshot"/>.
+  /// Copies <paramref name="package" />; when <paramref name="includeFiles" /> is set, the file list is copied too.
+  /// Prefer <see cref="PackageBase.ToSnapshot" />.
   /// </summary>
   public PackageSnapshot(PackageBase package, bool includeFiles = false)
   {
@@ -140,8 +139,6 @@ public sealed class PackageSnapshot
   /// <summary>The copied backup-file entries, frozen at the moment of the copy.</summary>
   public IReadOnlyList<Backup> BackupFiles { get; }
 
-  /// <summary>
-  /// The copied file list, or <c>null</c> when the snapshot was taken without it.
-  /// </summary>
+  /// <summary>The copied file list, or <c>null</c> when the snapshot was taken without it.</summary>
   public IReadOnlyList<PackageFile>? Files { get; }
 }

@@ -5,14 +5,13 @@ using Pacpar.Alpm.Interop;
 namespace Pacpar.Alpm.Tests.Unit.Ownership;
 
 /// <summary>
-/// Locks in the list ownership contract: borrowed views can never free (and therefore are not
-/// disposable), and the only owning type frees both the list and its elements.
+/// Locks in the list ownership contract: borrowed views can never free (and therefore are not disposable), and
+/// the only owning type frees both the list and its elements.
 /// </summary>
 /// <remarks>
-/// <see cref="TakeOwned_FreesListAndStrings_RepeatedCallsDoNotGrowTheNativeHeap"/> measures the whole
-/// process' native heap. It joins the <c>ProcessWideNativeHeap</c> collection, whose definition
-/// disables parallelization; xUnit runs that collection after the parallel collections finish, so no
-/// other test allocates into the measured window.
+/// <see cref="TakeOwned_FreesListAndStrings_RepeatedCallsDoNotGrowTheNativeHeap" /> measures the whole process'
+/// native heap. It joins the <c>ProcessWideNativeHeap</c> collection, whose definition disables parallelization; xUnit
+/// runs that collection after the parallel collections finish, so no other test allocates into the measured window.
 /// </remarks>
 [Collection("ProcessWideNativeHeap")]
 public sealed unsafe class ListOwnershipTests
@@ -64,8 +63,8 @@ public sealed unsafe class ListOwnershipTests
 
   /// <summary>
   /// The P0 acceptance check: a caller-owned list must be freed, elements included. If
-  /// <see cref="AlpmStringList.TakeOwned"/> leaked the list or the strings, 50k iterations would
-  /// grow the native heap by several megabytes; the assertion tolerates 1 MB of allocator noise.
+  /// <see cref="AlpmStringList.TakeOwned" /> leaked the list or the strings, 50k iterations would grow the native heap by
+  /// several megabytes; the assertion tolerates 1 MB of allocator noise.
   /// </summary>
   [Fact]
   public void TakeOwned_FreesListAndStrings_RepeatedCallsDoNotGrowTheNativeHeap()

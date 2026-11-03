@@ -5,10 +5,10 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Alpm;
 
 /// <summary>
-/// Options for the ALPM library.
-/// Options of array type are queried and modified through properties exposed as <see cref="ICollection{T}"/>s.
-/// Options of scalar type are queried and modified through properties whose accessors call the
-/// underlying ALPM functions.
+/// Options for the ALPM library. Options of array type are queried and modified through properties exposed as
+/// <see cref="ICollection{T}" />s. They are a proxy to the underlying session state, so no separate setter or sync call is
+/// needed. Options of scalar type are queried and modified through properties whose accessors call the underlying ALPM
+/// functions.
 /// </summary>
 public sealed unsafe class AlpmOptions
 {
@@ -35,9 +35,7 @@ public sealed unsafe class AlpmOptions
     NoUpgrade = new NoUpgrade(handle, lifetime);
   }
 
-  /// <summary>
-  /// Throws for a non-zero libalpm return value, reading the handle's errno right here.
-  /// </summary>
+  /// <summary>Throws for a non-zero libalpm return value, reading the handle's errno right here.</summary>
   /// <param name="err">The value the option setter returned; zero means success.</param>
   /// <param name="operation">
   /// The member that issued the call, so the failure names the option it was setting. Callers pass
@@ -66,35 +64,37 @@ public sealed unsafe class AlpmOptions
     return val;
   }
 
-  private void Write(delegate* managed<SafeAlpmHandle, int, int> writer, int value, [CallerMemberName] string? operation = null)
+  private void Write(delegate* managed<SafeAlpmHandle, int, int> writer, int value,
+    [CallerMemberName] string? operation = null)
   {
     _handle.ThrowIfDisposed();
     ThrowIfError(writer(_handle, value), operation);
     GC.KeepAlive(this);
   }
 
-  private void WriteUInt(delegate* managed<SafeAlpmHandle, uint, int> writer, uint value, [CallerMemberName] string? operation = null)
+  private void WriteUInt(delegate* managed<SafeAlpmHandle, uint, int> writer, uint value,
+    [CallerMemberName] string? operation = null)
   {
     _handle.ThrowIfDisposed();
     ThrowIfError(writer(_handle, value), operation);
     GC.KeepAlive(this);
   }
 
-  private void WriteUShort(delegate* managed<SafeAlpmHandle, ushort, int> writer, ushort value, [CallerMemberName] string? operation = null)
+  private void WriteUShort(delegate* managed<SafeAlpmHandle, ushort, int> writer, ushort value,
+    [CallerMemberName] string? operation = null)
   {
     _handle.ThrowIfDisposed();
     ThrowIfError(writer(_handle, value), operation);
     GC.KeepAlive(this);
   }
-  /// <summary>
-  /// Marshals <paramref name="value"/> for a string option setter and throws on failure.
-  /// </summary>
+
+  /// <summary>Marshals <paramref name="value" /> for a string option setter and throws on failure.</summary>
   /// <remarks>
-  /// Option values can be paths or URLs (logfile, gpgdir, dbext), hence the 256-byte scratch; the
-  /// buffer is released by the same frame that allocated it.
+  /// Option values can be paths or URLs (logfile, gpgdir, dbext), hence the 256-byte scratch; the buffer is released by the
+  /// same frame that allocated it.
   /// <para>
-  /// The setter arrives as a <c>delegate* managed</c> because <c>delegate* unmanaged[Cdecl]</c>
-  /// cannot point at a <c>[DllImport]</c> method (CS8786).
+  /// The setter arrives as a <c>delegate* managed</c> because <c>delegate* unmanaged[Cdecl]</c> cannot point at a
+  /// <c>[DllImport]</c> method (CS8786).
   /// </para>
   /// </remarks>
   private void SetStringOption(string value, delegate* managed<SafeAlpmHandle, byte*, int> setter,
@@ -107,32 +107,39 @@ public sealed unsafe class AlpmOptions
     ThrowIfError(setter(_handle, buffer.Ptr), operation);
   }
 
-  /// <summary>Gets the collection of CPU architectures accepted by the session.</summary>
+  /// <summary>Gets the collection used to query and modify the CPU architectures accepted by the session.</summary>
   public ICollection<string> Architectures { get; }
 
-  /// <summary>Gets the collection of virtual dependencies assumed to already be installed.</summary>
+  /// <summary>Gets the collection used to query and modify the virtual dependencies assumed to already be installed.</summary>
   public ICollection<Depend> AssumeInstalled { get; }
 
-  /// <summary>Gets the collection of package cache directories.</summary>
+  /// <summary>Gets the collection used to query and modify the package cache directories.</summary>
   public ICollection<string> CacheDirectories { get; }
 
-  /// <summary>Gets the collection of glob patterns specifying files that may be overwritten without conflict.</summary>
+  /// <summary>
+  /// Gets the collection used to query and modify the glob patterns specifying files that may be overwritten
+  /// without conflict.
+  /// </summary>
   public ICollection<string> OverwritableFiles { get; }
 
-  /// <summary>Gets the collection of directories searched for ALPM hooks.</summary>
+  /// <summary>Gets the collection used to query and modify the directories searched for ALPM hooks.</summary>
   public ICollection<string> HookDirectories { get; }
 
-  /// <summary>Gets the collection of package group names to ignore during system upgrades.</summary>
+  /// <summary>Gets the collection used to query and modify the package group names to ignore during system upgrades.</summary>
   public ICollection<string> IgnoreGroups { get; }
 
-  /// <summary>Gets the collection of package names to ignore during system upgrades.</summary>
+  /// <summary>Gets the collection used to query and modify the package names to ignore during system upgrades.</summary>
   public ICollection<string> IgnorePackages { get; }
 
-  /// <summary>Gets the collection of path patterns for files that should not be extracted from packages.</summary>
+  /// <summary>
+  /// Gets the collection used to query and modify the path patterns for files that should not be extracted from
+  /// packages.
+  /// </summary>
   public ICollection<string> NoExtract { get; }
 
-  /// <summary>Gets the collection of path patterns for files that should not be upgraded.</summary>
+  /// <summary>Gets the collection used to query and modify the path patterns for files that should not be upgraded.</summary>
   public ICollection<string> NoUpgrade { get; }
+
   /// <summary>Gets or sets a value indicating whether disk space should be checked before transactions.</summary>
   public bool CheckSpace
   {
@@ -147,35 +154,24 @@ public sealed unsafe class AlpmOptions
     set => SetStringOption(value, &NativeMethods.alpm_option_set_dbext);
   }
 
-  /// <summary>
-  /// Gets the directory path of the local and sync package databases.
-  /// </summary>
+  /// <summary>Gets the directory path of the local and sync package databases.</summary>
   /// <remarks>
-  /// This path is configured when creating the <see cref="AlpmSession"/>.
-  /// libalpm guarantees this string ends with a directory separator.
+  /// This path is configured when creating the <see cref="AlpmSession" />. libalpm guarantees this string ends with
+  /// a directory separator.
   /// </remarks>
-  public string DatabasePath
-  {
-    get => ReadString(&NativeMethods.alpm_option_get_dbpath)!;
-  }
+  public string DatabasePath => ReadString(&NativeMethods.alpm_option_get_dbpath)!;
 
-  /// <summary>
-  /// Gets the root filesystem directory for package operations.
-  /// </summary>
+  /// <summary>Gets the root filesystem directory for package operations.</summary>
   /// <remarks>
-  /// This path is configured when creating the <see cref="AlpmSession"/>.
-  /// File extractions, scriptlets, and hook executions occur relative to this root path.
+  /// This path is configured when creating the <see cref="AlpmSession" />. File extractions, scriptlets, and hook
+  /// executions occur relative to this root path.
   /// </remarks>
-  public string Root
-  {
-    get => ReadString(&NativeMethods.alpm_option_get_root)!;
-  }
+  public string Root => ReadString(&NativeMethods.alpm_option_get_root)!;
 
-  /// <summary>
-  /// Gets or sets the default PGP signature verification policy for databases and packages.
-  /// </summary>
+  /// <summary>Gets or sets the default PGP signature verification policy for databases and packages.</summary>
   /// <remarks>
-  /// Serves as the fallback verification policy when a database or package does not specify its own signature level.
+  /// Serves as the fallback verification policy when a database or package does not specify its own signature
+  /// level.
   /// </remarks>
   public SigLevel DefaultSigLevel
   {
@@ -183,12 +179,10 @@ public sealed unsafe class AlpmOptions
     set => Write(&NativeMethods.alpm_option_set_default_siglevel, (int)value);
   }
 
-  /// <summary>
-  /// Gets or sets the PGP signature verification policy for local package files.
-  /// </summary>
+  /// <summary>Gets or sets the PGP signature verification policy for local package files.</summary>
   /// <remarks>
-  /// Governs signature checks when loading package archives directly from disk.
-  /// Defaults to or inherits from <see cref="DefaultSigLevel"/> unless overridden.
+  /// Governs signature checks when loading package archives directly from disk. Defaults to or inherits from
+  /// <see cref="DefaultSigLevel" /> unless overridden.
   /// </remarks>
   public SigLevel LocalFileSigLevel
   {
@@ -196,12 +190,10 @@ public sealed unsafe class AlpmOptions
     set => Write(&NativeMethods.alpm_option_set_local_file_siglevel, (int)value);
   }
 
-  /// <summary>
-  /// Gets or sets the PGP signature verification policy for remote databases and downloaded packages.
-  /// </summary>
+  /// <summary>Gets or sets the PGP signature verification policy for remote databases and downloaded packages.</summary>
   /// <remarks>
-  /// Governs signature verification during sync operations and remote package downloads.
-  /// Defaults to or inherits from <see cref="DefaultSigLevel"/> unless overridden.
+  /// Governs signature verification during sync operations and remote package downloads. Defaults to or inherits
+  /// from <see cref="DefaultSigLevel" /> unless overridden.
   /// </remarks>
   public SigLevel RemoteFileSigLevel
   {
@@ -210,18 +202,17 @@ public sealed unsafe class AlpmOptions
   }
 
   /// <summary>Gets or sets the maximum number of concurrent package downloads allowed.</summary>
+  /// <remarks>This only applies for bundled libcurl downloader.</remarks>
   public int ParallelDownloads
   {
     get => Read(&NativeMethods.alpm_option_get_parallel_downloads);
     set => WriteUInt(&NativeMethods.alpm_option_set_parallel_downloads, (uint)value);
   }
 
-  /// <summary>
-  /// The logfile path, or <c>null</c> when libalpm has none configured (its default).
-  /// </summary>
+  /// <summary>The logfile path, or <c>null</c> when libalpm has none configured (its default).</summary>
   /// <remarks>
-  /// Once configured, libalpm does not support unsetting the logfile back to <c>null</c>.
-  /// Attempting to assign <c>null</c> throws an <see cref="ArgumentNullException"/>.
+  /// Once configured, libalpm does not support unsetting the logfile back to <c>null</c>. Attempting to assign
+  /// <c>null</c> throws an <see cref="ArgumentNullException" /> .
   /// </remarks>
   [DisallowNull]
   public string? LogFile
@@ -237,24 +228,17 @@ public sealed unsafe class AlpmOptions
     set => Write(&NativeMethods.alpm_option_set_usesyslog, value ? 1 : 0);
   }
 
-  /// <summary>
-  /// Gets the filesystem path of the database lockfile.
-  /// </summary>
+  /// <summary>Gets the filesystem path of the database lockfile.</summary>
   /// <remarks>
-  /// Points to <c>&lt;dbpath&gt;/db.lck</c>.
-  /// A transaction creates this file to prevent concurrent access to the ALPM database.
+  /// Points to <c>&lt;dbpath&gt;/db.lck</c>. A transaction creates this file to prevent concurrent access to the
+  /// ALPM database.
   /// </remarks>
-  public string Lockfile
-  {
-    get => ReadString(&NativeMethods.alpm_option_get_lockfile)!;
-  }
+  public string Lockfile => ReadString(&NativeMethods.alpm_option_get_lockfile)!;
 
-  /// <summary>
-  /// libalpm's GnuPG home directory, or <c>null</c> when it has none configured (its default).
-  /// </summary>
+  /// <summary>libalpm's GnuPG home directory, or <c>null</c> when it has none configured (its default).</summary>
   /// <remarks>
-  /// Once configured, libalpm does not support unsetting the GnuPG home directory back to <c>null</c>.
-  /// Attempting to assign <c>null</c> throws an <see cref="ArgumentNullException"/>.
+  /// Once configured, libalpm does not support unsetting the GnuPG home directory back to <c>null</c>. Attempting
+  /// to assign <c>null</c> throws an <see cref="ArgumentNullException" /> .
   /// </remarks>
   [DisallowNull]
   public string? GpgDirectory
@@ -263,45 +247,35 @@ public sealed unsafe class AlpmOptions
     set => SetStringOption(value, &NativeMethods.alpm_option_set_gpgdir);
   }
 
-  /// <summary>
-  /// Enables or disables the download timeout.
-  /// </summary>
+  /// <summary>Enables or disables the download timeout.</summary>
   public bool DisableDownloadTimeout
   {
     get => Read(&NativeMethods.alpm_option_get_disable_dl_timeout) != 0;
     set => WriteUShort(&NativeMethods.alpm_option_set_disable_dl_timeout, (ushort)(value ? 1 : 0));
   }
 
-  /// <summary>
-  /// Enables or disables the filesystem portion of the sandbox.
-  /// </summary>
+  /// <summary>Enables or disables the filesystem portion of the sandbox.</summary>
   public bool DisableSandboxFilesystem
   {
     get => Read(&NativeMethods.alpm_option_get_disable_sandbox_filesystem) != 0;
     set => WriteUShort(&NativeMethods.alpm_option_set_disable_sandbox_filesystem, (ushort)(value ? 1 : 0));
   }
 
-  /// <summary>
-  /// Enables or disables the network portion of the sandbox.
-  /// </summary>
+  /// <summary>Enables or disables the network portion of the sandbox.</summary>
   public bool DisableSandboxNetwork
   {
     get => Read(&NativeMethods.alpm_option_get_disable_sandbox_network) != 0;
     set => WriteUShort(&NativeMethods.alpm_option_set_disable_sandbox_network, (ushort)(value ? 1 : 0));
   }
 
-  /// <summary>
-  /// Enables or disables the syscalls portion of the sandbox.
-  /// </summary>
+  /// <summary>Enables or disables the syscalls portion of the sandbox.</summary>
   public bool DisableSandboxSyscalls
   {
     get => Read(&NativeMethods.alpm_option_get_disable_sandbox_syscalls) != 0;
     set => WriteUShort(&NativeMethods.alpm_option_set_disable_sandbox_syscalls, (ushort)(value ? 1 : 0));
   }
 
-  /// <summary>
-  /// Gets or sets the user to switch to for sandboxed operations, or <c>null</c> when none is set.
-  /// </summary>
+  /// <summary>Gets or sets the user to switch to for sandboxed operations, or <c>null</c> when none is set.</summary>
   public string? SandboxUser
   {
     get => ReadString(&NativeMethods.alpm_option_get_sandboxuser);
@@ -322,6 +296,7 @@ public sealed unsafe class AlpmOptions
       {
         throw new ArgumentException($"The user '{value}' is not known on this system.", nameof(value));
       }
+
       ThrowIfError(err);
       GC.KeepAlive(this);
     }

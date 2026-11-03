@@ -4,8 +4,8 @@ namespace Pacpar.Alpm.Tests.Unit.Packages;
 
 /// <summary>
 /// Covers the two satisfier entry points and the lifetime each one answers with:
-/// <see cref="PackageView.FindSatisfier"/> hands the caller's own view back, while
-/// <see cref="AlpmSession.ResolveDependency"/> mints a new one under the database that owns the match.
+/// <see cref="PackageView.FindSatisfier" /> hands the caller's own view back, while
+/// <see cref="AlpmSession.ResolveDependency" /> mints a new one under the database that owns the match.
 /// </summary>
 public sealed class PackageSatisfierTests : IDisposable
 {
@@ -41,14 +41,14 @@ public sealed class PackageSatisfierTests : IDisposable
   }
 
   /// <summary>
-  /// The bug this guards: resolving the owning domain through the handle registry mints a second
-  /// domain for the local database, because <c>AlpmSession.GetLocalDatabase</c> creates its domain directly
-  /// and never registers the pointer (<c>Lifetime</c> keeps one domain per native database for exactly
-  /// this reason). Views issued from the duplicate are not retired when the database's real domain is.
+  /// The bug this guards: resolving the owning domain through the handle registry mints a second domain for the
+  /// local database, because <c>AlpmSession.GetLocalDatabase</c> creates its domain directly and never registers the pointer
+  /// (<c>Lifetime</c> keeps one domain per native database for exactly this reason). Views issued from the duplicate are not
+  /// retired when the database's real domain is.
   /// </summary>
   /// <remarks>
-  /// Invalidation is driven per database here - what <c>Database.Update</c> does - rather than through
-  /// a commit, because a commit retires the whole session root first and would hide the difference.
+  /// Invalidation is driven per database here - what <c>Database.Update</c> does - rather than through a commit,
+  /// because a commit retires the whole session root first and would hide the difference.
   /// </remarks>
   [Fact]
   public void AlpmSession_ResolveDependency_IssuesViewsUnderTheLocalDatabaseDomain()

@@ -4,8 +4,8 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Alpm;
 
 /// <summary>
-/// SafeHandle wrapper around an unmanaged libalpm library handle (<c>alpm_handle_t*</c>).
-/// Encapsulates the lifecycle of <c>alpm_initialize</c> and <c>alpm_release</c>.
+/// SafeHandle wrapper around an unmanaged libalpm library handle ( <c>alpm_handle_t*</c>). Encapsulates the
+/// lifecycle of <c>alpm_initialize</c> and <c>alpm_release</c>.
 /// </summary>
 internal sealed unsafe class SafeAlpmHandle : SafeHandleZeroOrMinusOneIsInvalid
 {
@@ -28,16 +28,13 @@ internal sealed unsafe class SafeAlpmHandle : SafeHandleZeroOrMinusOneIsInvalid
     SetHandle((nint)handle);
   }
 
-  /// <summary>Attaches the session's root domain so <see cref="ReleaseHandle"/> can retire its stamps.</summary>
+  /// <summary>Attaches the session's root domain so <see cref="ReleaseHandle" /> can retire its stamps.</summary>
   internal void OwnDomain(RootLifetime domain) => _domain = new WeakReference<RootLifetime>(domain);
 
-  /// <summary>
-  /// Whether the native <c>alpm_release</c> invocation succeeded (returned 0).
-  /// </summary>
+  /// <summary>Whether the native <c>alpm_release</c> invocation succeeded (returned 0).</summary>
   internal bool ReleaseSucceeded => _releaseResult == 0;
-  /// <summary>
-  /// Throws <see cref="AlpmLifetimeException"/> if the handle has been released or is invalid.
-  /// </summary>
+
+  /// <summary>Throws <see cref="AlpmLifetimeException" /> if the handle has been released or is invalid.</summary>
   internal void ThrowIfDisposed()
   {
     if (IsClosed || IsInvalid)

@@ -5,10 +5,9 @@ using Pacpar.Alpm;
 namespace Pacpar.Benchmarks;
 
 /// <summary>
-/// Warm-cache bulk workloads (pacman -Q / -Qs / -Ss equivalents). The GlobalSetup forces every
-/// native lazy load (INFRQ_DESC, INFRQ_FILES) up front, so the measured runs isolate the managed
-/// cost of "lazy view vs eager snapshot" without any disk I/O. The native lazy-load parse cost is
-/// measured separately in <see cref="ColdLoadBenchmarks"/>.
+/// Warm-cache bulk workloads (pacman -Q / -Qs / -Ss equivalents). The GlobalSetup forces every native lazy load
+/// (INFRQ_DESC, INFRQ_FILES) up front, so the measured runs isolate the managed cost of "lazy view vs eager snapshot"
+/// without any disk I/O. The native lazy-load parse cost is measured separately in <see cref="ColdLoadBenchmarks" />.
 /// </summary>
 [MemoryDiagnoser]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]

@@ -3,9 +3,9 @@ using Pacpar.Alpm;
 namespace Pacpar.Benchmarks;
 
 /// <summary>
-/// Where the benchmarks find the pacman database they measure against. The defaults target a
-/// normal Arch-based system; other hosts can point the suite at any valid database through the
-/// environment variables below (read-only - the benchmarks never modify the database).
+/// Where the benchmarks find the pacman database they measure against. The defaults target a normal Arch-based
+/// system; other hosts can point the suite at any valid database through the environment variables below (read-only - the
+/// benchmarks never modify the database).
 /// </summary>
 internal static class BenchEnvironment
 {

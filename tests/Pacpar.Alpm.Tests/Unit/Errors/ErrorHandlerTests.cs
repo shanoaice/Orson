@@ -60,8 +60,8 @@ public sealed class ErrorHandlerTests
 
 
   /// <summary>
-  /// Every errno the bindings know about must be classified. A libalpm update that adds an errno
-  /// fails this test instead of silently degrading to the generic <see cref="AlpmException"/>.
+  /// Every errno the bindings know about must be classified. A libalpm update that adds an errno fails this test
+  /// instead of silently degrading to the generic <see cref="AlpmException" />.
   /// </summary>
   [Fact]
   public void Categorize_ClassifiesEveryKnownErrno()
@@ -123,16 +123,15 @@ public sealed class ErrorHandlerTests
 
 
   /// <summary>
-  /// ADR 0007: the four <c>ALPM_ERR_PKG_INVALID*</c> errnos carry a payload - a list of package
-  /// names - when a transaction call fails, and <see cref="AlpmFailure.Take"/>
-  /// reports them as its <c>InvalidPackage*</c> cases. One errno has one public exception type, so
-  /// the errno factory has to agree with that: it cannot answer
-  /// <see cref="AlpmPackageException"/> for the same errno.
+  /// ADR 0007: the four <c>ALPM_ERR_PKG_INVALID*</c> errnos carry a payload - a list of package names - when a
+  /// transaction call fails, and <see cref="AlpmFailure.Take" /> reports them as its <c>InvalidPackage*</c> cases. One errno
+  /// has one public exception type, so the errno factory has to agree with that: it cannot answer
+  /// <see cref="AlpmPackageException" /> for the same errno.
   /// </summary>
   /// <remarks>
-  /// Both entry points are pinned because only the transaction side was covered before, and the
-  /// classification test asserts nothing stronger than "not unknown". The generic path has no list
-  /// to carry, so it answers with the base state of the same type rather than with a different type.
+  /// Both entry points are pinned because only the transaction side was covered before, and the classification test
+  /// asserts nothing stronger than "not unknown". The generic path has no list to carry, so it answers with the base state
+  /// of the same type rather than with a different type.
   /// </remarks>
   [Theory]
   [InlineData((int)_alpm_errno_t.ALPM_ERR_PKG_INVALID)]

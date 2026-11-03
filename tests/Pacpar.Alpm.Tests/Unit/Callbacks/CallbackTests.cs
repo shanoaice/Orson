@@ -2,11 +2,10 @@
 namespace Pacpar.Alpm.Tests.Unit.Callbacks;
 
 /// <summary>
-/// Locks in the callback safety contract: a user handler that throws must not let the
-/// exception escape an <c>[UnmanagedCallersOnly]</c> thunk (that would terminate the process); it
-/// is reported through <see cref="AlpmCallbacks.HandlerException"/> instead. The callback ctx handle is
-/// owned by <see cref="AlpmSession"/> and has no public release path - its lifetime is pinned by
-/// <see cref="CallbackContextLifetimeTests"/>.
+/// Locks in the callback safety contract: a user handler that throws must not let the exception escape an
+/// <c>[UnmanagedCallersOnly]</c> thunk (that would terminate the process); it is reported through
+/// <see cref="AlpmCallbacks.HandlerException" /> instead. The callback ctx handle is owned by <see cref="AlpmSession" />
+/// and has no public release path - its lifetime is pinned by <see cref="CallbackContextLifetimeTests" />.
 /// </summary>
 public sealed class CallbackTests
 {

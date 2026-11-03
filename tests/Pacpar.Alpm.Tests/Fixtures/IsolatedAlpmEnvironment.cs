@@ -1,10 +1,9 @@
 namespace Pacpar.Alpm.Tests.Fixtures;
 
 /// <summary>
-/// An isolated libalpm handle for tests that must run without the project container: a unique
-/// root/dbpath tree under <see cref="Path.GetTempPath()"/>, with no assertion that the container is
-/// running. It also provides <see cref="Install(PackageSpec, TransactionFlags)"/>, the synthetic package every feature test starts
-/// from.
+/// An isolated libalpm handle for tests that must run without the project container: a unique root/dbpath tree
+/// under <see cref="Path.GetTempPath()" />, with no assertion that the container is running. It also provides
+/// <see cref="Install(PackageSpec, TransactionFlags)" /> , the synthetic package every feature test starts from.
 /// </summary>
 internal sealed class IsolatedAlpmEnvironment : IDisposable
 {
@@ -35,12 +34,12 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
   internal string DatabasePath => Path.Combine(WorkspaceRoot, "var", "lib", "pacman");
 
 
-  /// <summary>Where <see cref="Install(PackageSpec, TransactionFlags)"/> writes the packages it builds.</summary>
+  /// <summary>Where <see cref="Install(PackageSpec, TransactionFlags)" /> writes the packages it builds.</summary>
   internal string PackageDirectory { get; }
 
   /// <summary>
-  /// Builds a synthetic package in <see cref="PackageDirectory"/>, commits it, and answers with the
-  /// view the local database holds for it afterwards.
+  /// Builds a synthetic package in <see cref="PackageDirectory" />, commits it, and answers with the view the local
+  /// database holds for it afterwards.
   /// </summary>
   /// <param name="name">The package name.</param>
   /// <param name="file">Optional file the package owns, for example <c>usr/bin/probe-file</c>.</param>
@@ -59,8 +58,8 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
     }, flags);
 
   /// <summary>
-  /// Builds a synthetic package from <paramref name="spec"/> in <see cref="PackageDirectory"/>, commits it,
-  /// and answers with the view the local database holds for it afterwards.
+  /// Builds a synthetic package from <paramref name="spec" /> in <see cref="PackageDirectory" />, commits it, and
+  /// answers with the view the local database holds for it afterwards.
   /// </summary>
   internal PackageView Install(PackageSpec spec, TransactionFlags flags = 0)
   {

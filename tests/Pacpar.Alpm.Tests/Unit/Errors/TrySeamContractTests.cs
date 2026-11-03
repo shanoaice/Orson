@@ -3,9 +3,8 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Errors;
 
 /// <summary>
-/// Verifies the ADR 0001 Try* seam contract across all twin methods:
-/// on success (true), failure is null and any result is non-null;
-/// on failure (false), failure is non-null and any result is null.
+/// Verifies the ADR 0001 Try* seam contract across all twin methods: on success (true), failure is null and any
+/// result is non-null; on failure (false), failure is non-null and any result is null.
 /// </summary>
 public sealed class TrySeamContractTests : IDisposable
 {

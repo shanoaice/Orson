@@ -3,8 +3,8 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Databases;
 
 /// <summary>
-/// The two ways a session hands out a database: the local database it always has, and the sync
-/// databases a caller registers. These are the baseline every other database test starts from.
+/// The two ways a session hands out a database: the local database it always has, and the sync databases a caller
+/// registers. These are the baseline every other database test starts from.
 /// </summary>
 public sealed class DatabaseAccessTests
 {

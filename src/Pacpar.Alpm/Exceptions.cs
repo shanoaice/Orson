@@ -2,31 +2,19 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// The base type for every error libalpm reports.
-/// </summary>
+/// <summary>Base exception type for errors reported by libalpm operations.</summary>
 /// <remarks>
-/// C# has no <c>Result&lt;T, E&gt;</c> and a type cannot be both a BCL exception and this library's
-/// exception (single inheritance), so libalpm errors get one catchable base carrying the raw errno
-/// and libalpm's own message. <see cref="Errno"/> is always set: branch on it, not on the type,
-/// when the distinction matters.
+/// Encapsulates the native error code (<see cref="Errno" />) and libalpm's error description (<see cref="StrError" />).
+/// Specific failure categories derive from this class (e.g. <see cref="AlpmDatabaseException" />,
+/// <see cref="AlpmTransactionException" />).
 /// <para>
-/// The one deliberate exception to "everything derives from this": <c>ALPM_ERR_MEMORY</c> surfaces
-/// as <see cref="OutOfMemoryException"/>, because allocation failure is a runtime condition that
-/// should not be swallowed by a catch-all.
-/// </para>
-/// <para>
-/// ADR 0007 fixes one public type per errno, so the hierarchy below this type is a closed mapping:
-/// the library decides which type an errno becomes, and the leaves are sealed because a type a
-/// caller adds would never be produced by any call. This type stays open - deriving a
-/// library-specific exception from it is the supported way to add one.
+/// Native memory allocation failures (<c>ALPM_ERR_MEMORY</c>) are mapped to standard
+/// <see cref="OutOfMemoryException" /> rather than deriving from this type.
 /// </para>
 /// </remarks>
 public class AlpmException : Exception
 {
-  /// <summary>
-  /// Creates the exception for <paramref name="errno"/>.
-  /// </summary>
+  /// <summary>Creates the exception for <paramref name="errno" />.</summary>
   /// <param name="errno">The raw libalpm error code; consult <c>alpm.h</c> for its meaning.</param>
   /// <param name="strError">libalpm's message; defaults to <c>alpm_strerror(errno)</c> when omitted.</param>
   /// <param name="context">Optional operation description, e.g. "Failed to add package: foo".</param>
@@ -38,14 +26,14 @@ public class AlpmException : Exception
     StrError = strError ?? ErrorHandler.StrError(errno);
   }
 
-  /// <summary>
-  /// The raw libalpm errno. It is libalpm's own numbering and carries no stability promise of its
-  /// own; match on the exception type, and use this only for diagnostics or to distinguish a case the
-  /// hierarchy deliberately collapses.
-  /// </summary>
+  /// <summary>Gets the raw native libalpm error code (<c>pm_errno</c>).</summary>
+  /// <remarks>
+  /// Callers should generally catch or pattern-match on specific exception types. This property provides the
+  /// underlying error code for logging, diagnostics, or granular inspection.
+  /// </remarks>
   public int Errno { get; }
 
-  /// <summary>libalpm's own description of <see cref="Errno"/> (<c>alpm_strerror</c>), if any.</summary>
+  /// <summary>libalpm's own description of <see cref="Errno" /> ( <c>alpm_strerror</c>), if any.</summary>
   public string? StrError { get; }
 
   private static string BuildMessage(int errno, string? strError, string? context)
@@ -61,18 +49,15 @@ public class AlpmException : Exception
 public sealed class AlpmDatabaseException(int errno, string? strError = null, string? context = null)
   : AlpmException(errno, strError, context);
 
-/// <summary>
-/// An error concerning a package (<c>ALPM_ERR_PKG_*</c>).
-/// </summary>
+/// <summary>An error concerning a package (<c>ALPM_ERR_PKG_*</c>).</summary>
 /// <remarks>
-/// <see cref="AlpmPackageException.Package"/> is set when the failing call already knew the package it was operating on;
-/// the errno-driven factory cannot fill it in. It is typed as the shared read-only surface, because a
-/// failing call may have been operating on either kind of package.
+/// <see cref="AlpmPackageException.Package" /> is set when the failing call already knew the package it was operating on;
+/// the errno-driven factory cannot fill it in. It is typed as the shared read-only surface, because a failing call may
+/// have been operating on either kind of package.
 /// <para>
 /// Not every <c>ALPM_ERR_PKG_*</c> errno is reported as this type: <c>ALPM_ERR_PKG_INVALID</c>,
-/// <c>_INVALID_CHECKSUM</c>, <c>_INVALID_SIG</c> and <c>_INVALID_ARCH</c> are transaction failures
-/// with a payload, and are reported as <see cref="AlpmTransactionException"/> from every entry point
-/// - see that type's remarks.
+/// <c>_INVALID_CHECKSUM</c>, <c>_INVALID_SIG</c> and <c>_INVALID_ARCH</c> are transaction failures with a payload, and are
+/// reported as <see cref="AlpmTransactionException" /> from every entry point - see that type's remarks.
 /// </para>
 /// </remarks>
 public sealed class AlpmPackageException(
@@ -94,15 +79,10 @@ public sealed class AlpmSignatureException(int errno, string? strError = null, s
 public sealed class AlpmRetrieveException(int errno, string? strError = null, string? context = null)
   : AlpmException(errno, strError, context);
 
-/// <summary>
-/// An error from libalpm's transaction handling: the <c>ALPM_ERR_TRANS_*</c> values, and the
-/// payload-carrying errnos <c>alpm_trans_prepare</c>/<c>alpm_trans_commit</c> report.
-/// </summary>
+/// <summary>An error encountered during transaction operations or transaction-related package validations.</summary>
 /// <remarks>
-/// The type describes the failure: an instance that is none of the nested cases is the <b>base
-/// state</b>, which is all libalpm offers for an errno whose output parameter it left empty. A
-/// consumer can therefore match exhaustively - and, unlike branching on <see cref="AlpmException.Errno"/>,
-/// each case fixes its own errno:
+/// Specialized nested classes provide structured details for failures that report payloads (such as unsatisfied
+/// dependencies or conflicting files). When no specific payload is available, the base instance represents the failure:
 /// <code>
 /// catch (AlpmTransactionException ex)
 /// {
@@ -110,24 +90,16 @@ public sealed class AlpmRetrieveException(int errno, string? strError = null, st
 ///   {
 ///     case AlpmTransactionException.MissingDependencies missing: ...
 ///     case AlpmTransactionException.ConflictingDependencies conflicts: ...
-///     default: ...   // base state: only Errno, StrError and the message are known
+///     case AlpmTransactionException.ConflictingFiles files: ...
+///     default: ...   // base transaction error without structured payload
 ///   }
 /// }
 /// </code>
-/// <para>
-/// One errno has one public exception type, so the four payload-carrying <c>ALPM_ERR_PKG_INVALID*</c>
-/// errnos are reported as this type from every entry point, not only from a transaction call: as an
-/// <c>InvalidPackage*</c> case when the failing call dumped a list of package names, and as the base
-/// state when it did not (a caller that only asks <see cref="AlpmSession.GetCurrentError"/> has no list to
-/// carry). A <c>catch</c> on <see cref="AlpmPackageException"/> does not match them.
-/// </para>
 /// </remarks>
 public class AlpmTransactionException(int errno, string? strError = null, string? context = null)
   : AlpmException(errno, strError, context)
 {
-  /// <summary>
-  /// Dependencies the transaction could not satisfy (<c>ALPM_ERR_UNSATISFIED_DEPS</c>).
-  /// </summary>
+  /// <summary>Dependencies the transaction could not satisfy ( <c>ALPM_ERR_UNSATISFIED_DEPS</c>).</summary>
   public sealed class MissingDependencies(IReadOnlyList<DepMissing> dependencies, string? context = null)
     : AlpmTransactionException((int)_alpm_errno_t.ALPM_ERR_UNSATISFIED_DEPS, context: context)
   {
@@ -135,9 +107,7 @@ public class AlpmTransactionException(int errno, string? strError = null, string
     public IReadOnlyList<DepMissing> Dependencies { get; } = dependencies;
   }
 
-  /// <summary>
-  /// Dependencies that conflict with each other (<c>ALPM_ERR_CONFLICTING_DEPS</c>).
-  /// </summary>
+  /// <summary>Dependencies that conflict with each other (<c>ALPM_ERR_CONFLICTING_DEPS</c>).</summary>
   public sealed class ConflictingDependencies(IReadOnlyList<Conflict> conflicts, string? context = null)
     : AlpmTransactionException((int)_alpm_errno_t.ALPM_ERR_CONFLICTING_DEPS, context: context)
   {
@@ -145,10 +115,7 @@ public class AlpmTransactionException(int errno, string? strError = null, string
     public IReadOnlyList<Conflict> Conflicts { get; } = conflicts;
   }
 
-  /// <summary>
-  /// Files already on disk that a package in the transaction would overwrite
-  /// (<c>ALPM_ERR_FILE_CONFLICTS</c>).
-  /// </summary>
+  /// <summary>Files already on disk that a package in the transaction would overwrite (<c>ALPM_ERR_FILE_CONFLICTS</c>).</summary>
   public sealed class ConflictingFiles(IReadOnlyList<FileConflict> conflicts, string? context = null)
     : AlpmTransactionException((int)_alpm_errno_t.ALPM_ERR_FILE_CONFLICTS, context: context)
   {
@@ -156,14 +123,11 @@ public class AlpmTransactionException(int errno, string? strError = null, string
     public IReadOnlyList<FileConflict> Conflicts { get; } = conflicts;
   }
 
-  /// <summary>
-  /// Packages whose architecture the handle's architecture list does not accept
-  /// (<c>ALPM_ERR_PKG_INVALID_ARCH</c>).
-  /// </summary>
+  /// <summary>Packages whose architecture the handle's architecture list does not accept (<c>ALPM_ERR_PKG_INVALID_ARCH</c>).</summary>
   /// <remarks>
-  /// The strings are libalpm's own rendering of the offending packages (<c>pkgname-pkgver-pkgarch</c>)
-  /// rather than the archive filenames or paths passed to <see cref="AlpmSession.LoadPackage"/>,
-  /// so callers cannot map them back to input file paths.
+  /// The strings are libalpm's own rendering of the offending packages ( <c>pkgname-pkgver-pkgarch</c>) rather than
+  /// the archive filenames or paths passed to <see cref="AlpmSession.LoadPackage" />, so callers cannot map them back to
+  /// input file paths.
   /// </remarks>
   public sealed class InvalidPackageArchitecture(IReadOnlyList<string> packages, string? context = null)
     : AlpmTransactionException((int)_alpm_errno_t.ALPM_ERR_PKG_INVALID_ARCH, context: context)
@@ -180,9 +144,7 @@ public class AlpmTransactionException(int errno, string? strError = null, string
     public IReadOnlyList<string> Packages { get; } = packages;
   }
 
-  /// <summary>
-  /// Packages whose checksum did not match (<c>ALPM_ERR_PKG_INVALID_CHECKSUM</c>).
-  /// </summary>
+  /// <summary>Packages whose checksum did not match (<c>ALPM_ERR_PKG_INVALID_CHECKSUM</c>).</summary>
   public sealed class InvalidPackageChecksum(IReadOnlyList<string> packages, string? context = null)
     : AlpmTransactionException((int)_alpm_errno_t.ALPM_ERR_PKG_INVALID_CHECKSUM, context: context)
   {
@@ -190,9 +152,7 @@ public class AlpmTransactionException(int errno, string? strError = null, string
     public IReadOnlyList<string> Packages { get; } = packages;
   }
 
-  /// <summary>
-  /// Packages whose signature did not verify (<c>ALPM_ERR_PKG_INVALID_SIG</c>).
-  /// </summary>
+  /// <summary>Packages whose signature did not verify (<c>ALPM_ERR_PKG_INVALID_SIG</c>).</summary>
   public sealed class InvalidPackageSignature(IReadOnlyList<string> packages, string? context = null)
     : AlpmTransactionException((int)_alpm_errno_t.ALPM_ERR_PKG_INVALID_SIG, context: context)
   {
@@ -202,15 +162,10 @@ public class AlpmTransactionException(int errno, string? strError = null, string
 
 }
 
-/// <summary>
-/// libalpm reported a failure without setting an error code on the handle.
-/// </summary>
+/// <summary>Exception thrown when a libalpm operation fails without setting a native error code on the library handle.</summary>
 /// <remarks>
-/// libalpm has failure paths that never touch <c>pm_errno</c>, so "the call failed and there is no
-/// errno" is a real outcome rather than a wrapper defect. It used to surface as an
-/// <see cref="ArgumentOutOfRangeException"/> thrown while building an exception from
-/// <c>ALPM_ERR_OK</c>; it has its own type now. <see cref="AlpmException.Errno"/> is <c>0</c> here,
-/// meaning "libalpm set no code" - the raw truth rather than a guess.
+/// Occurs when an unmanaged call indicates failure (e.g. returning a non-zero status or null pointer), but
+/// libalpm leaves <c>pm_errno</c> unset (<c>0</c>).
 /// </remarks>
 public sealed class AlpmNativeFailureException : AlpmException
 {
@@ -230,19 +185,20 @@ public sealed class AlpmNativeFailureException : AlpmException
 }
 
 /// <summary>
-/// Thrown when an operation attempts to access a borrowed view, database, or resource
-/// whose underlying unmanaged memory has been invalidated or deallocated.
+/// Thrown when an operation attempts to access a borrowed view, database, or resource whose underlying unmanaged
+/// memory has been invalidated or deallocated.
 /// </summary>
 /// <remarks>
-/// Derives from <see cref="InvalidOperationException"/>: the object itself is intact, but the
-/// operation is not valid in its current (released) state.
+/// Derives from <see cref="InvalidOperationException" />: the object itself is intact, but the operation is not
+/// valid in its current (released) state.
 /// </remarks>
 public sealed class AlpmLifetimeException : InvalidOperationException
 {
-  /// <summary>Creates the exception for the invalidated resource <paramref name="target"/>.</summary>
+  /// <summary>Creates the exception for the invalidated resource <paramref name="target" />.</summary>
   /// <param name="target">The resource that was invalidated, e.g. <c>"the local database"</c>.</param>
   /// <param name="invalidatedBy">
-  /// The operation that released it, e.g. <c>"Database.Unregister()"</c>; <c>null</c> when unknown.
+  /// The operation that released it, e.g. <c>"Database.Unregister()"</c>; <c>null</c> when
+  /// unknown.
   /// </param>
   public AlpmLifetimeException(string target, string? invalidatedBy)
     : base(BuildMessage(target, invalidatedBy))

@@ -3,17 +3,17 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Alpm.Tests.Unit.Snapshots;
 
 /// <summary>
-/// Every managed enum mirrors its native counterpart value-for-value, so a libalpm update that adds
-/// a member turns these tests red instead of silently dropping the new value.
+/// Every managed enum mirrors its native counterpart value-for-value, so a libalpm update that adds a member
+/// turns these tests red instead of silently dropping the new value.
 /// </summary>
 /// <remarks>
-/// The mirror only covers enums the generated bindings project as a C# enum. The rest - the
-/// <c>alpm_db_usage_t</c> flags behind <see cref="DatabaseUsage"/> and the capability bits behind
-/// <see cref="Capability"/> - arrive as a plain integer, so there is no counterpart type to compare
-/// against; their values are pinned where the wrapper declares them instead.
+/// The mirror only covers enums the generated bindings project as a C# enum. The rest - the <c>alpm_db_usage_t</c> flags
+/// behind <see cref="DatabaseUsage" /> and the capability bits behind <see cref="Capability" /> - arrive as a plain
+/// integer, so there is no counterpart type to compare against; their values are pinned where the wrapper declares them
+/// instead.
 /// <para>
-/// Which members the public surface uses is not checked here: a public member cannot carry an
-/// internal binding type without the compiler refusing it, so that shape needs no test.
+/// Which members the public surface uses is not checked here: a public member cannot carry an internal binding type
+/// without the compiler refusing it, so that shape needs no test.
 /// </para>
 /// </remarks>
 public sealed class ManagedEnumsTests

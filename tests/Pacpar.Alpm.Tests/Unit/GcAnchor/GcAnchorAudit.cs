@@ -14,19 +14,24 @@ internal enum AnchorMechanism
   KeepAlive,
   /// <summary>M2: the P/Invoke takes a SafeHandle and the CLR stub refcounts it.</summary>
   SafeHandleParameter,
+
   /// <summary>M3: a <c>DangerousAddRef</c>/<c>DangerousRelease</c> region brackets the call.</summary>
   AddRefRelease,
+
   /// <summary>M4: <c>this</c> is live after the call and transitively owns the native memory.</summary>
   ReceiverOnStack,
+
   /// <summary>M5: the anchor is the managed caller of the synchronous libalpm callback.</summary>
   SyncCallbackFrame,
+
   /// <summary>M6: the native pointer is a parameter, so the caller, not this method, must anchor it.</summary>
   DelegatedToCaller,
+
   /// <summary>Doc form R2: the constructed object receives the owner's token, so it anchors itself.</summary>
   CarriesOwnAnchor,
 }
 
-/// <summary>Three-valued audit verdict. <see cref="NeedsReview"/> is the false-positive escape valve.</summary>
+/// <summary>Three-valued audit verdict. <see cref="NeedsReview" /> is the false-positive escape valve.</summary>
 internal enum AnchorVerdict
 {
   /// <summary>At least one validator proved the site safe.</summary>
@@ -42,8 +47,10 @@ internal enum OwnershipClass
 {
   /// <summary>Type holds a SafeHandle field: anchoring <c>this</c> provably keeps the memory alive.</summary>
   Strong,
+
   /// <summary>Type holds only a <c>Lifetime</c> token: anchoring <c>this</c> suffices only when the token is non-null.</summary>
   Token,
+
   /// <summary>Type owns nothing (snapshot types): anchoring <c>this</c> protects nothing.</summary>
   None,
 }
@@ -90,15 +97,12 @@ internal sealed class AnchorAuditResult(
   public IEnumerable<HazardSite> RequiringReview => Sites.Where(s => s.Verdict == AnchorVerdict.NeedsReview);
 }
 
-/// <summary>
-/// Discovers GC-anchor hazard sites in <c>Pacpar.Alpm</c> and classifies how each one is protected.
-/// </summary>
+/// <summary>Discovers GC-anchor hazard sites in <c>Pacpar.Alpm</c> and classifies how each one is protected.</summary>
 /// <remarks>
-/// Mechanism identification is kept strictly separate from the safety decision: each mechanism has
-/// its own validator with its own sufficient condition, and a site is only <c>Safe</c> when a
-/// validator <em>proves</em> it. Anything that cannot be proven falls to <c>NeedsReview</c> and is
-/// resolved against the checked-in allowlist, which is the only thing standing between static
-/// analysis and an endless stream of false positives.
+/// Mechanism identification is kept strictly separate from the safety decision: each mechanism has its own
+/// validator with its own sufficient condition, and a site is only <c>Safe</c> when a validator <em>proves</em> it.
+/// Anything that cannot be proven falls to <c>NeedsReview</c> and is resolved against the checked-in allowlist, which is
+/// the only thing standing between static analysis and an endless stream of false positives.
 /// </remarks>
 internal static class GcAnchorAudit
 {
@@ -352,8 +356,8 @@ internal static class GcAnchorAudit
   }
 
   /// <summary>
-  /// Turns a reachability claim into a verdict. Reachability of <c>this</c> only implies memory
-  /// safety when <c>this</c> transitively owns the memory, so a snapshot type is never safe here.
+  /// Turns a reachability claim into a verdict. Reachability of <c>this</c> only implies memory safety when
+  /// <c>this</c> transitively owns the memory, so a snapshot type is never safe here.
   /// </summary>
   private static HazardSite Decide(
     Type type, MethodBase method, IlInstruction hazard, HazardKind kind, string detail,
@@ -424,17 +428,16 @@ internal static class GcAnchorAudit
   }
 
   /// <summary>
-  /// Doc form R4: <c>this</c> was pushed before the hazard and is still on the evaluation stack
-  /// when it fires, so the GC sees it even though this method never reads it again.
+  /// Doc form R4: <c>this</c> was pushed before the hazard and is still on the evaluation stack when it fires, so
+  /// the GC sees it even though this method never reads it again.
   /// </summary>
   /// <remarks>
   /// <c>AlpmOptions.SetStringOption</c> is the shape that needs this: it compiles to
-  /// <c>ThrowIfError(setter(_handle, buffer.Ptr))</c>, which pushes <c>this</c> as the pending
-  /// receiver, evaluates the arguments, fires the calli, and only afterwards spends the receiver.
-  /// A forward scan for a later use of <c>this</c> finds nothing and reports the site unanchored.
-  /// The walk runs each candidate load of <c>this</c> forward to the hazard and requires the depth
-  /// never to fall back to it. Any branch, switch, throw, or instruction whose stack effect cannot
-  /// be resolved abandons the candidate instead of guessing.
+  /// <c>ThrowIfError(setter(_handle, buffer.Ptr))</c>, which pushes <c>this</c> as the pending receiver, evaluates the
+  /// arguments, fires the calli, and only afterwards spends the receiver. A forward scan for a later use of <c>this</c>
+  /// finds nothing and reports the site unanchored. The walk runs each candidate load of <c>this</c> forward to the hazard
+  /// and requires the depth never to fall back to it. Any branch, switch, throw, or instruction whose stack effect cannot be
+  /// resolved abandons the candidate instead of guessing.
   /// </remarks>
   private static bool ThisIsOnEvaluationStack(
     Module module, IReadOnlyList<IlInstruction> instructions, int hazardIndex)
@@ -483,21 +486,17 @@ internal static class GcAnchorAudit
       _ => null,
     };
 
-  /// <summary>
-  /// The throw-expression rule: no call inside a <c>throw</c> expression may reach native memory.
-  /// </summary>
+  /// <summary>The throw-expression rule: no call inside a <c>throw</c> expression may reach native memory.</summary>
   /// <remarks>
-  /// A <c>GC.KeepAlive(owner)</c> keeps the owner alive only up to its own instruction. When the
-  /// native read happens inside the exception-construction expression, an anchor written before that
-  /// expression does not cover it, and the whole expression is one sequencing problem that the
-  /// per-call-site audit cannot see: the read lives in another method, whose obligation is recorded
-  /// as "delegated to the caller" without anyone checking that the caller discharged it.
+  /// A <c>GC.KeepAlive(owner)</c> keeps the owner alive only up to its own instruction. When the native read happens inside
+  /// the exception-construction expression, an anchor written before that expression does not cover it, and the whole
+  /// expression is one sequencing problem that the per-call-site audit cannot see: the read lives in another method, whose
+  /// obligation is recorded as "delegated to the caller" without anyone checking that the caller discharged it.
   /// <para>
-  /// A call is treated as reaching native memory when it targets a binding entry point, or when any
-  /// of its parameters is a pointer. The second half matters because the trap appeared through a
-  /// helper (<c>NativeCall.Failure(_alpm_handle_t*, string)</c>), not through a direct binding call -
-  /// "no <c>NativeMethods.</c> call in a throw" would have missed it. That overload is gone now; this
-  /// rule keeps the shape from coming back.
+  /// A call is treated as reaching native memory when it targets a binding entry point, or when any of its parameters
+  /// is a pointer. The second half matters because the trap appeared through a helper (
+  /// <c>NativeCall.Failure(_alpm_handle_t*, string)</c>), not through a direct binding call - "no <c>NativeMethods.</c> call
+  /// in a throw" would have missed it. That overload is gone now; this rule keeps the shape from coming back.
   /// </para>
   /// </remarks>
   public static IReadOnlyList<string> FindPointerCallsInsideThrowExpressions(IEnumerable<Type> types)
@@ -573,9 +572,9 @@ internal static class GcAnchorAudit
     };
 
   /// <summary>
-  /// Argument count for <c>call</c>/<c>callvirt</c>/<c>newobj</c>, counting the receiver, or null
-  /// when the target cannot be resolved. <c>ret</c> and <c>throw</c> also report VarPop but carry
-  /// no method token, so they fall out as null and the candidate is abandoned.
+  /// Argument count for <c>call</c>/<c>callvirt</c>/<c>newobj</c>, counting the receiver, or null when the target
+  /// cannot be resolved. <c>ret</c> and <c>throw</c> also report VarPop but carry no method token, so they fall out as null
+  /// and the candidate is abandoned.
   /// </summary>
   private static int? ResolvedCallArity(Module module, IlInstruction ins)
   {
@@ -589,9 +588,7 @@ internal static class GcAnchorAudit
     };
   }
 
-  /// <summary>
-  /// True when the hazard's native pointer was produced by loading an instance field of <c>this</c>.
-  /// </summary>
+  /// <summary>True when the hazard's native pointer was produced by loading an instance field of <c>this</c>.</summary>
   private static bool PointerCameFromInstanceField(
     Module module, IReadOnlyList<IlInstruction> instructions, int hazardIndex, Type type)
   {
@@ -632,8 +629,8 @@ internal static class GcAnchorAudit
   }
 
   /// <summary>
-  /// True when the hazard's native pointer arrived as a method parameter rather than being read
-  /// from an instance field of <c>this</c>. The anchoring obligation is then the caller's.
+  /// True when the hazard's native pointer arrived as a method parameter rather than being read from an instance
+  /// field of <c>this</c>. The anchoring obligation is then the caller's.
   /// </summary>
   private static bool PointerCameFromParameter(MethodBase method, IReadOnlyList<IlInstruction> instructions, int hazardIndex)
   {
@@ -668,9 +665,9 @@ internal static class GcAnchorAudit
   }
 
   /// <summary>
-  /// True when one of the type's constructors takes the owner's lifetime token or SafeHandle, so
-  /// that argument is a live stack reference for the whole constructor body even if the result
-  /// later drops it (doc form R2: a subsequent token/receiver argument).
+  /// True when one of the type's constructors takes the owner's lifetime token or SafeHandle, so that argument is a
+  /// live stack reference for the whole constructor body even if the result later drops it (doc form R2: a subsequent
+  /// token/receiver argument).
   /// </summary>
   private static bool ReceivesAnchorArgument(Type constructedType) =>
     constructedType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
@@ -698,8 +695,8 @@ internal static class GcAnchorAudit
   }
 
   /// <summary>
-  /// True when a <c>DangerousAddRef</c>/<c>DangerousRelease</c> region surrounds the hazard.
-  /// Pairing is a path property, so this only ever <em>claims</em> the mechanism.
+  /// True when a <c>DangerousAddRef</c>/<c>DangerousRelease</c> region surrounds the hazard. Pairing is a path
+  /// property, so this only ever <em>claims</em> the mechanism.
   /// </summary>
   private static bool HasAddRefReleaseRegion(
     Module module, IReadOnlyList<IlInstruction> instructions, int hazardIndex)
@@ -751,15 +748,15 @@ internal static class GcAnchorAudit
 
   /// <summary>
   /// True when a reference-typed field is annotated <c>Lifetime?</c>. Reflection reports the same
-  /// <see cref="Type"/> either way, because nullability of a reference type is metadata only;
-  /// <see cref="NullabilityInfoContext"/> is the only surface that still carries the annotation.
+  /// <see cref="Type" /> either way, because nullability of a reference type is metadata only;
+  /// <see cref="NullabilityInfoContext" /> is the only surface that still carries the annotation.
   /// </summary>
   private static bool IsNrtNullable(FieldInfo field) =>
     !field.FieldType.IsValueType && Nullability.Create(field).WriteState != NullabilityState.NotNull;
 
   /// <summary>
-  /// Parses <c>gc-anchor-allowlist.txt</c>. Each line is <c>site | mechanism | reason</c>, where
-  /// <c>site</c> is <c>Type</c> or <c>Type.Member</c>. Blank lines and <c>#</c> comments are ignored.
+  /// Parses <c>gc-anchor-allowlist.txt</c>. Each line is <c>site | mechanism | reason</c>, where <c>site</c> is
+  /// <c>Type</c> or <c>Type.Member</c>. Blank lines and <c>#</c> comments are ignored.
   /// </summary>
   public static Dictionary<string, AllowlistEntry> ParseAllowlist(string text)
   {
@@ -785,10 +782,9 @@ internal static class GcAnchorAudit
   }
 
   /// <summary>
-  /// True when the allowlist covers this site. A member-level entry names the site exactly and
-  /// excuses any verdict. A type-level entry records a type-wide invariant, so it excuses only
-  /// NeedsReview: a site that claims no mechanism at all must be named member by member, which
-  /// stops a newly added unanchored member from hiding behind its type.
+  /// True when the allowlist covers this site. A member-level entry names the site exactly and excuses any verdict.
+  /// A type-level entry records a type-wide invariant, so it excuses only NeedsReview: a site that claims no mechanism at
+  /// all must be named member by member, which stops a newly added unanchored member from hiding behind its type.
   /// </summary>
   public static bool IsAllowlisted(IReadOnlyDictionary<string, AllowlistEntry> allowlist, HazardSite site)
   {

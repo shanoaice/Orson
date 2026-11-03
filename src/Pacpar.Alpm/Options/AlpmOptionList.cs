@@ -5,27 +5,25 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Alpm;
 
 /// <summary>
-/// Template for the <see cref="AlpmOptions"/> properties that libalpm exposes as an
-/// <c>alpm_list_t</c> and that this library surfaces as an <see cref="ICollection{T}"/>.
+/// Template for the <see cref="AlpmOptions" /> properties that libalpm exposes as an <c>alpm_list_t</c> and that
+/// this library surfaces as an <see cref="ICollection{T}" />.
 /// </summary>
 /// <remarks>
-/// A subclass supplies only the native calls that differ: the list getter, the adder, the remover
-/// and (for non-string elements) how an element is marshalled and compared. The collection
-/// contract, the <c>errno</c> check and the allocate/free lifecycle live here once.
+/// A subclass supplies only the native calls that differ: the list getter, the adder, the remover and (for non-string
+/// elements) how an element is marshalled and compared. The collection contract, the <c>errno</c> check and the
+/// allocate/free lifecycle live here once.
 /// <para>
-/// The variation points are abstract methods rather than function pointers on purpose. Address-of
-/// on a <c>[DllImport]</c> method yields a <i>managed</i> pointer to the P/Invoke stub, so it cannot
-/// be stored as <c>delegate* unmanaged[Cdecl]</c> (CS8786); obtaining a real native pointer would
-/// need one <c>[UnmanagedCallersOnly]</c> thunk per libalpm entry point.
+/// The variation points are abstract methods rather than function pointers on purpose. Address-of on a
+/// <c>[DllImport]</c> method yields a <i>managed</i> pointer to the P/Invoke stub, so it cannot be stored as
+/// <c>delegate* unmanaged[Cdecl]</c> (CS8786); obtaining a real native pointer would need one
+/// <c>[UnmanagedCallersOnly]</c> thunk per libalpm entry point.
 /// </para>
 /// </remarks>
 internal abstract unsafe class AlpmOptionList<T> : ICollection<T>
 {
   private readonly SafeAlpmHandle _handle;
 
-  /// <summary>
-  /// The ALPM handle's root lifetime domain. Views handed out by <see cref="View"/> carry this domain.
-  /// </summary>
+  /// <summary>The ALPM handle's root lifetime domain. Views handed out by <see cref="View" /> carry this domain.</summary>
   private protected readonly Lifetime Lifetime;
 
   private protected AlpmOptionList(SafeAlpmHandle handle, Lifetime lifetime)
@@ -38,8 +36,8 @@ internal abstract unsafe class AlpmOptionList<T> : ICollection<T>
   private protected abstract _alpm_list_t* GetList(SafeAlpmHandle handle);
 
   /// <summary>
-  /// The list libalpm currently exposes, for a subclass whose <see cref="Acquire"/> has to search it
-  /// (see <see cref="AssumeInstalled"/>, whose elements libalpm keeps its own copy of).
+  /// The list libalpm currently exposes, for a subclass whose <see cref="Acquire" /> has to search it (see
+  /// <see cref="AssumeInstalled" />, whose elements libalpm keeps its own copy of).
   /// </summary>
   private protected _alpm_list_t* NativeList
   {
@@ -54,31 +52,28 @@ internal abstract unsafe class AlpmOptionList<T> : ICollection<T>
   private protected abstract int AddNative(SafeAlpmHandle handle, byte* item);
 
   /// <summary>
-  /// The native remover, returning libalpm's raw result: <c>1</c> when it removed the entry,
-  /// <c>0</c> when it found nothing and <c>-1</c> on error.
+  /// The native remover, returning libalpm's raw result: <c>1</c> when it removed the entry, <c>0</c> when it found
+  /// nothing and <c>-1</c> on error.
   /// </summary>
   private protected abstract int RemoveNative(SafeAlpmHandle handle, byte* item);
 
-  /// <summary>
-  /// Produces the native item pointer required by libalpm for lookups or removal.
-  /// </summary>
+  /// <summary>Produces the native item pointer required by libalpm for lookups or removal.</summary>
   /// <param name="item">The item to acquire a native representation for.</param>
-  /// <param name="owned">Whether <see cref="Release"/> must free the returned pointer.</param>
+  /// <param name="owned">Whether <see cref="Release" /> must free the returned pointer.</param>
   private protected abstract byte* Acquire(T item, out bool owned);
 
-  /// <summary>Releases a pointer produced by <see cref="Acquire"/>.</summary>
+  /// <summary>Releases a pointer produced by <see cref="Acquire" />.</summary>
   private protected abstract void Release(byte* item, bool owned);
 
-  /// <summary>Wraps a native list in the borrowed view for <typeparamref name="T"/>.</summary>
+  /// <summary>Wraps a native list in the borrowed view for <typeparamref name="T" /> .</summary>
   private protected abstract AlpmList<T> View(_alpm_list_t* list);
 
-  /// <summary>
-  /// Marshals an item for <see cref="Add"/>. Defaults to <see cref="Acquire"/>.
-  /// </summary>
+  /// <summary>Marshals an item for <see cref="Add" />. Defaults to <see cref="Acquire" />.</summary>
   private protected virtual byte* AcquireForAdd(T item, out bool owned) => Acquire(item, out owned);
 
   /// <summary>
-  /// Finds an item in the native list. Returns <c>null</c> if not found, otherwise returns a pointer to the stored element.
+  /// Finds an item in the native list. Returns <c>null</c> if not found, otherwise returns a pointer to the stored
+  /// element.
   /// </summary>
   private protected virtual byte* FindIn(_alpm_list_t* list, byte* item)
     => NativeMethods.alpm_list_find_str(list, item);
@@ -205,9 +200,7 @@ internal abstract unsafe class AlpmOptionList<T> : ICollection<T>
   }
 }
 
-/// <summary>
-/// <see cref="AlpmOptionList{T}"/> for the option lists whose elements are C strings.
-/// </summary>
+/// <summary><see cref="AlpmOptionList{T}" /> for the option lists whose elements are C strings.</summary>
 internal abstract unsafe class AlpmStringOptionList(SafeAlpmHandle handle, Lifetime lifetime)
   : AlpmOptionList<string>(handle, lifetime)
 {

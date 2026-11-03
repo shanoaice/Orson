@@ -4,10 +4,10 @@ using Pacpar.Alpm;
 namespace Pacpar.Benchmarks;
 
 /// <summary>
-/// Dependency-list access costs on the local package with the most dependencies. AlpmList&lt;T&gt;
-/// is a forward-only <see cref="IEnumerable{T}"/> view (its O(N^2) indexer was removed in commit
-/// 06b14e6), so one pass over a list can be streamed through the enumerator, materialized with
-/// <c>ToArray</c>, or preceded by a fresh property read that allocates a new view wrapper.
+/// Dependency-list access costs on the local package with the most dependencies. AlpmList&lt;T&gt; is a
+/// forward-only <see cref="IEnumerable{T}" /> view (its O(N^2) indexer was removed in commit 06b14e6), so one pass over a
+/// list can be streamed through the enumerator, materialized with <c>ToArray</c>, or preceded by a fresh property read
+/// that allocates a new view wrapper.
 /// </summary>
 [MemoryDiagnoser]
 [ProcessCount(1)]

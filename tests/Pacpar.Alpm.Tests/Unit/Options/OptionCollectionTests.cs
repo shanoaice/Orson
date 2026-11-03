@@ -3,14 +3,14 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Options;
 
 /// <summary>
-/// Regression tests for the option collection template: <c>Clear()</c> must not
-/// keep walking the native list after removing from it, and <c>CopyTo</c> must follow
-/// <see cref="ICollection{T}"/> semantics instead of shifting the destination.
+/// Regression tests for the option collection template: <c>Clear()</c> must not keep walking the native list
+/// after removing from it, and <c>CopyTo</c> must follow <see cref="ICollection{T}" /> semantics instead of shifting the
+/// destination.
 /// </summary>
 /// <remarks>
-/// These tests run against <see cref="IsolatedAlpmEnvironment"/>, which builds the handle under
-/// <see cref="Path.GetTempPath()"/> deliberately instead of using the container fixture, so they
-/// stay in the non-integration test set.
+/// These tests run against <see cref="IsolatedAlpmEnvironment" />, which builds the handle under
+/// <see cref="Path.GetTempPath()" /> deliberately instead of using the container fixture, so they stay in the
+/// non-integration test set.
 /// </remarks>
 public sealed class OptionCollectionTests : IDisposable
 {
@@ -74,9 +74,8 @@ public sealed class OptionCollectionTests : IDisposable
   }
 
   /// <summary>
-  /// The old implementation never checked <c>array.Length</c>: it wrote <c>Count</c> items starting
-  /// at <c>array[0]</c> and ran off the end (or overwrote the wrong slots) whenever the destination
-  /// was too small.
+  /// The old implementation never checked <c>array.Length</c>: it wrote <c>Count</c> items starting at
+  /// <c>array[0]</c> and ran off the end (or overwrote the wrong slots) whenever the destination was too small.
   /// </summary>
   [Theory]
   [InlineData(3, 1)] // needs 3 free slots, only 2 remain
@@ -95,8 +94,8 @@ public sealed class OptionCollectionTests : IDisposable
   }
 
   /// <summary>
-  /// The old implementation pre-advanced the enumerator and then read <c>Current</c> in a
-  /// <c>do/while</c>, so copying an empty collection threw <see cref="InvalidOperationException"/>.
+  /// The old implementation pre-advanced the enumerator and then read <c>Current</c> in a <c>do/while</c>, so
+  /// copying an empty collection threw <see cref="InvalidOperationException" />.
   /// </summary>
   [Fact]
   public void CopyTo_EmptyCollection_IsANoOp()
@@ -133,10 +132,9 @@ public sealed class OptionCollectionTests : IDisposable
   }
 
   /// <summary>
-  /// Every <c>alpm_option_remove_*</c> returns 1 when it removed the entry and 0
-  /// when it found nothing, while its header documents "0 on success, -1 on error". The wrapper
-  /// used to test that result against 0, which inverted the result of
-  /// <see cref="ICollection{T}.Remove"/> for all nine option collections.
+  /// Every <c>alpm_option_remove_*</c> returns 1 when it removed the entry and 0 when it found nothing, while its
+  /// header documents "0 on success, -1 on error". The wrapper used to test that result against 0, which inverted the result
+  /// of <see cref="ICollection{T}.Remove" /> for all nine option collections.
   /// </summary>
   [Fact]
   public void Remove_ReportsWhetherTheItemWasThere()
@@ -157,11 +155,10 @@ public sealed class OptionCollectionTests : IDisposable
 
   /// <summary>
   /// <c>Contains</c> used to compare libalpm's finder result with the needle it had just allocated.
-  /// <c>alpm_list_find_str</c> answers with the element stored in the list - probed: a list holding
-  /// its own <c>strdup("abc")</c> returned that pointer, not the equal buffer the caller passed - so
-  /// the comparison held for no string list at all and <c>Contains</c> answered <c>false</c> for
-  /// every item that *was* present. Nothing covered it: <c>Remove</c> never used the comparison, and
-  /// <c>Clear</c> ignores what <c>Remove</c> returns.
+  /// <c>alpm_list_find_str</c> answers with the element stored in the list - probed: a list holding its own
+  /// <c>strdup("abc")</c> returned that pointer, not the equal buffer the caller passed - so the comparison held for no
+  /// string list at all and <c>Contains</c> answered <c>false</c> for every item that *was* present. Nothing covered it:
+  /// <c>Remove</c> never used the comparison, and <c>Clear</c> ignores what <c>Remove</c> returns.
   /// </summary>
   [Fact]
   public void Contains_ReportsItemsThatArePresent()

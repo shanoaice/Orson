@@ -3,9 +3,8 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Databases;
 
 /// <summary>
-/// Covers <see cref="Database.Update"/>: it reports the failure libalpm gives it, and it retires the
-/// views it issued before that - both halves matter, because a failed update leaves the database's
-/// contents changed all the same.
+/// Covers <see cref="Database.Update" />: it reports the failure libalpm gives it, and it retires the views it
+/// issued before that - both halves matter, because a failed update leaves the database's contents changed all the same.
 /// </summary>
 public sealed class DatabaseUpdateTests : IDisposable
 {

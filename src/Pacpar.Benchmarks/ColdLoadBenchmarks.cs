@@ -4,11 +4,10 @@ using Pacpar.Alpm;
 namespace Pacpar.Benchmarks;
 
 /// <summary>
-/// Cold native lazy-load ladder. Each iteration gets a freshly created libalpm handle whose
-/// package cache has NOT been populated yet (IterationSetup only registers the database), so the
-/// measured action is the first, uncached read path: INFRQ_BASE population (readdir) and the
-/// LAZY_LOAD parses of /desc and /files. This is what a naive warmup hides. OS page cache stays
-/// warm across iterations, so the numbers isolate parse + allocation cost, not raw disk latency.
+/// Cold native lazy-load ladder. Each iteration gets a freshly created libalpm handle whose package cache has NOT
+/// been populated yet (IterationSetup only registers the database), so the measured action is the first, uncached read
+/// path: INFRQ_BASE population (readdir) and the LAZY_LOAD parses of /desc and /files. This is what a naive warmup hides.
+/// OS page cache stays warm across iterations, so the numbers isolate parse + allocation cost, not raw disk latency.
 /// </summary>
 [MemoryDiagnoser]
 [ProcessCount(1)]

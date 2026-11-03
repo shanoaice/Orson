@@ -2,24 +2,16 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// Represents a file conflict between packages or with the filesystem.
-/// </summary>
+/// <summary>Represents a file conflict between packages or with the filesystem.</summary>
 public sealed class FileConflict
 {
-  /// <summary>
-  /// The target or package that causes the conflict.
-  /// </summary>
+  /// <summary>The target or package that causes the conflict.</summary>
   public string? Ctarget { get; }
 
-  /// <summary>
-  /// The path of the conflicting file.
-  /// </summary>
+  /// <summary>The path of the conflicting file.</summary>
   public string? File { get; }
 
-  /// <summary>
-  /// The existing package or filesystem target involved in the conflict.
-  /// </summary>
+  /// <summary>The existing package or filesystem target involved in the conflict.</summary>
   public string? Target { get; }
 
   internal unsafe FileConflict(_alpm_fileconflict_t* backingStruct)
@@ -32,19 +24,13 @@ public sealed class FileConflict
   internal static unsafe FileConflict Factory(void* ptr, Lifetime? lifetime) => new((_alpm_fileconflict_t*)ptr);
 }
 
-/// <summary>
-/// Represents a package dependency conflict between two packages.
-/// </summary>
+/// <summary>Represents a package dependency conflict between two packages.</summary>
 public sealed class Conflict
 {
-  /// <summary>
-  /// The name of the first conflicting package.
-  /// </summary>
+  /// <summary>The name of the first conflicting package.</summary>
   public string Package1Name { get; }
 
-  /// <summary>
-  /// The name of the second conflicting package.
-  /// </summary>
+  /// <summary>The name of the second conflicting package.</summary>
   public string Package2Name { get; }
 
   internal unsafe Conflict(_alpm_conflict_t* backingStruct)
@@ -56,8 +42,6 @@ public sealed class Conflict
 
   internal static unsafe Conflict Factory(void* ptr, Lifetime? lifetime) => new((_alpm_conflict_t*)ptr);
 
-  /// <summary>
-  /// The dependency relationship that caused this conflict.
-  /// </summary>
+  /// <summary>The dependency relationship that caused this conflict.</summary>
   public Depend Reason { get; }
 }

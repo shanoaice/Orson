@@ -2,15 +2,12 @@ using Pacpar.Alpm.Tests.Fixtures;
 
 namespace Pacpar.Alpm.Tests.Unit.Callbacks;
 
-/// <summary>
-/// Coverage ledger §4: <c>alpm_fetch_pkgurl</c>.
-/// </summary>
+/// <summary>Coverage ledger §4: <c>alpm_fetch_pkgurl</c>.</summary>
 /// <remarks>
 /// libalpm downloads through whatever <c>alpm_cb_fetch</c> is registered, which is
-/// <see cref="AlpmCallbacks.FetchHandler"/> here — so the failure path can be driven entirely offline,
-/// and the test also proves the wrapper really calls the native function rather than short-circuiting.
-/// A success path needs a reachable URL, so it waits for a container test: see
-/// <c>docs/research/speculative-integration-tests.md</c>.
+/// <see cref="AlpmCallbacks.FetchHandler" /> here — so the failure path can be driven entirely offline, and the test also
+/// proves the wrapper really calls the native function rather than short-circuiting. A success path needs a reachable URL,
+/// so it waits for a container test: see <c>docs/research/speculative-integration-tests.md</c>.
 /// </remarks>
 public sealed class FetchPackageUrlTests
 {

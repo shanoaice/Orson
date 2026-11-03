@@ -9,29 +9,20 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Benchmarks;
 
 /// <summary>
-/// Fortified experiment behind the NativeString short-string change (now implemented in
-/// Pacpar.Alpm): native strings of a dozen bytes used to cost a native malloc/free round trip
-/// each, and PackageVersion.CompareTo paid that twice per comparison. The implementation encodes
-/// short strings into a caller-provided stack scratch (zero heap) and falls back to
-/// NativeMemory.Alloc only when the string does not fit.
-///
-/// The Vercmp rows compare a single realistic pair of Arch version strings and differ only in
-/// how the two operands are marshalled:
-///   Heap_AllocHGlobal   — the pre-change path (historical baseline, kept for comparison);
-///   Heap_NativeMemory   — the pure API-hygiene swap, ties the baseline on Linux because
-///                         Marshal.AllocHGlobal already forwards to NativeMemory.Alloc;
-///   Scratch_Utf8Buffer  — the implemented change (stack scratch, no heap for short strings);
-///   RealApi_Anchor      — the real PackageVersion.CompareTo; post-change it must land on top
-///                         of the Scratch row, proving the library really took the new path;
-///   Floor_PreMarshalled — the same pair marshalled once in GlobalSetup: the alpm_pkg_vercmp
-///                         call alone, the floor the marshalling rows cannot beat.
-/// The Bulk256 rows run 256 comparisons per invocation (an upgrade-check shape) to see the same
-/// delta at realistic amortization.
-///
-/// Reading the table: the interesting column is time (ns/op), not Allocated. Native malloc is
-/// invisible to the GC allocator, so Allocated reads 0 B on every row — the win under test is
-/// removing native malloc/free round trips, tens of ns per pair. These benchmarks are read-only
-/// and need a pacman database (see BenchEnvironment).
+/// Fortified experiment behind the NativeString short-string change (now implemented in Pacpar.Alpm): native
+/// strings of a dozen bytes used to cost a native malloc/free round trip each, and PackageVersion.CompareTo paid that
+/// twice per comparison. The implementation encodes short strings into a caller-provided stack scratch (zero heap) and
+/// falls back to NativeMemory.Alloc only when the string does not fit. The Vercmp rows compare a single realistic pair of
+/// Arch version strings and differ only in how the two operands are marshalled: Heap_AllocHGlobal   — the pre-change path
+/// (historical baseline, kept for comparison); Heap_NativeMemory   — the pure API-hygiene swap, ties the baseline on Linux
+/// because Marshal.AllocHGlobal already forwards to NativeMemory.Alloc; Scratch_Utf8Buffer  — the implemented change
+/// (stack scratch, no heap for short strings); RealApi_Anchor      — the real PackageVersion.CompareTo; post-change it
+/// must land on top of the Scratch row, proving the library really took the new path; Floor_PreMarshalled — the same pair
+/// marshalled once in GlobalSetup: the alpm_pkg_vercmp call alone, the floor the marshalling rows cannot beat. The Bulk256
+/// rows run 256 comparisons per invocation (an upgrade-check shape) to see the same delta at realistic amortization.
+/// Reading the table: the interesting column is time (ns/op), not Allocated. Native malloc is invisible to the GC
+/// allocator, so Allocated reads 0 B on every row — the win under test is removing native malloc/free round trips, tens of
+/// ns per pair. These benchmarks are read-only and need a pacman database (see BenchEnvironment).
 /// </summary>
 [MemoryDiagnoser]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
@@ -189,10 +180,9 @@ public unsafe class NativeStringScratchBenchmarks
   }
 
   /// <summary>
-  /// The proposed NativeString shape, copied here because the Benchmarks project is not a friend
-  /// of Pacpar.Alpm: encode into the caller's stack scratch when the string (plus NUL) fits,
-  /// otherwise fall back to NativeMemory.Alloc and free it on Dispose. A ref struct, so the
-  /// buffer can never escape the frame that owns the scratch.
+  /// The proposed NativeString shape, copied here because the Benchmarks project is not a friend of Pacpar.Alpm:
+  /// encode into the caller's stack scratch when the string (plus NUL) fits, otherwise fall back to NativeMemory.Alloc and
+  /// free it on Dispose. A ref struct, so the buffer can never escape the frame that owns the scratch.
   /// </summary>
   private ref struct Utf8Buffer
   {

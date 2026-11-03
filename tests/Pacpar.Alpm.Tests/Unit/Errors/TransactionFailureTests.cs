@@ -4,18 +4,17 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Errors;
 
 /// <summary>
-/// Covers the transaction failure contract: <see cref="Transaction.Prepare"/> and
-/// <see cref="Transaction.Commit"/> turn the caller-owned list libalpm dumps into their output
-/// parameter into a typed <see cref="AlpmTransactionException"/>, with the payload shape and the
-/// element destructor that the errno actually has.
+/// Covers the transaction failure contract: <see cref="Transaction.Prepare" /> and
+/// <see cref="Transaction.Commit" /> turn the caller-owned list libalpm dumps into their output parameter into a typed
+/// <see cref="AlpmTransactionException" />, with the payload shape and the element destructor that the errno actually has.
 /// </summary>
 /// <remarks>
-/// The failures are produced for real, from packages that <see cref="PackageArchive"/> synthesizes:
-/// a <c>.pkg.tar</c> holding a <c>.PKGINFO</c> (plus the odd file entry) is accepted by
-/// <c>alpm_pkg_load</c> even without <c>.MTREE</c>, so none of this needs the integration container. The conflicting-dependency case
-/// is the regression for the worst of the old behaviour: the wrapper released that payload with
-/// <c>alpm_depmissing_free</c>, which aborts the process with <c>free(): invalid pointer</c>
-/// instead of reporting anything. A C probe against libalpm measured that abort.
+/// The failures are produced for real, from packages that <see cref="PackageArchive" /> synthesizes: a
+/// <c>.pkg.tar</c> holding a <c>.PKGINFO</c> (plus the odd file entry) is accepted by <c>alpm_pkg_load</c> even without
+/// <c>.MTREE</c>, so none of this needs the integration container. The conflicting-dependency case is the regression for
+/// the worst of the old behaviour: the wrapper released that payload with <c>alpm_depmissing_free</c>, which aborts the
+/// process with <c>free(): invalid pointer</c> instead of reporting anything. A C probe against libalpm measured that
+/// abort.
 /// </remarks>
 public sealed unsafe class TransactionFailureTests : IDisposable
 {
@@ -29,12 +28,10 @@ public sealed unsafe class TransactionFailureTests : IDisposable
 
   private string Root => _environment.Root;
 
-  /// <summary>
-  /// Loads a package and hands it to <paramref name="transaction"/>, which takes over the release.
-  /// </summary>
+  /// <summary>Loads a package and hands it to <paramref name="transaction" />, which takes over the release.</summary>
   /// <remarks>
-  /// The wrapper is retired by the hand-over, so nothing here has to remember to free it - which is
-  /// exactly what makes the calling pattern of these tests safe.
+  /// The wrapper is retired by the hand-over, so nothing here has to remember to free it - which is exactly what
+  /// makes the calling pattern of these tests safe.
   /// </remarks>
   private void AddTo(Transaction transaction, string path)
   {
@@ -76,9 +73,9 @@ public sealed unsafe class TransactionFailureTests : IDisposable
   }
 
   /// <summary>
-  /// The conflict payload is a list of <c>alpm_conflict_t</c>, not of <c>alpm_depmissing_t</c>.
-  /// Reaching the assertions at all is half of the test: the previous wrapper released that list with
-  /// <c>alpm_depmissing_free</c>, which is a SIGABRT on the spot.
+  /// The conflict payload is a list of <c>alpm_conflict_t</c>, not of <c>alpm_depmissing_t</c>. Reaching the
+  /// assertions at all is half of the test: the previous wrapper released that list with <c>alpm_depmissing_free</c>, which
+  /// is a SIGABRT on the spot.
   /// </summary>
   [Fact]
   public void Prepare_WithConflictingPackages_ReportsTheConflictWithoutAborting()
@@ -205,9 +202,9 @@ public sealed unsafe class TransactionFailureTests : IDisposable
   }
 
   /// <summary>
-  /// The other half of the contract: a sound transaction reports nothing at all - which is why both
-  /// methods answer <c>void</c>. The success paths of <c>alpm_trans_prepare</c>/<c>alpm_trans_commit</c>
-  /// leave the output parameter <c>null</c>, so there is no payload to return.
+  /// The other half of the contract: a sound transaction reports nothing at all - which is why both methods answer
+  /// <c>void</c>. The success paths of <c>alpm_trans_prepare</c>/ <c>alpm_trans_commit</c> leave the output parameter
+  /// <c>null</c>, so there is no payload to return.
   /// </summary>
   [Fact]
   public void Prepare_And_Commit_ReportNothingForASoundTransaction()
@@ -222,9 +219,9 @@ public sealed unsafe class TransactionFailureTests : IDisposable
   }
 
   /// <summary>
-  /// An errno whose output parameter libalpm left empty still has to produce a usable exception,
-  /// carrying the errno and libalpm's own message. <c>Commit</c> before <c>Prepare</c> is the
-  /// reachable case: <c>ALPM_ERR_TRANS_NOT_PREPARED</c> with <c>data == null</c>.
+  /// An errno whose output parameter libalpm left empty still has to produce a usable exception, carrying the errno
+  /// and libalpm's own message. <c>Commit</c> before <c>Prepare</c> is the reachable case:
+  /// <c>ALPM_ERR_TRANS_NOT_PREPARED</c> with <c>data == null</c>.
   /// </summary>
   [Fact]
   public void Commit_BeforePrepare_ReportsTheBaseState()
@@ -240,9 +237,9 @@ public sealed unsafe class TransactionFailureTests : IDisposable
   }
 
   /// <summary>
-  /// The factory's contract for an errno it does not know: the list is consumed, but its elements are
-  /// left alone - the pointer below must never be dereferenced, because libalpm could have put
-  /// anything there, and guessing the destructor is what aborts the process.
+  /// The factory's contract for an errno it does not know: the list is consumed, but its elements are left alone -
+  /// the pointer below must never be dereferenced, because libalpm could have put anything there, and guessing the
+  /// destructor is what aborts the process.
   /// </summary>
   [Fact]
   public void TakeFailure_WithAnUnknownErrno_ConsumesTheListWithoutTouchingTheElements()

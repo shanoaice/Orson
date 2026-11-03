@@ -4,10 +4,7 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Alpm;
 
 /// <summary>When a hook runs (libalpm's <c>_alpm_hook_when_t</c>).</summary>
-/// <remarks>
-/// A projection of libalpm's own numbering, which starts at 1, so there is no zero member.
-/// ADR 0019.
-/// </remarks>
+/// <remarks>Specifies whether the hook executes before or after a transaction.</remarks>
 public enum HookWhen : uint
 {
   /// <summary>Before the transaction runs (<c>ALPM_HOOK_PRE_TRANSACTION</c>).</summary>
@@ -18,10 +15,7 @@ public enum HookWhen : uint
 }
 
 /// <summary>The operation a package event describes (libalpm's <c>_alpm_package_operation_t</c>).</summary>
-/// <remarks>
-/// A projection of libalpm's own numbering, which starts at 1, so there is no zero member.
-/// ADR 0019.
-/// </remarks>
+/// <remarks>Specifies the action applied to the target package.</remarks>
 public enum PackageOperation : uint
 {
   /// <summary>The package is being installed (<c>ALPM_PACKAGE_INSTALL</c>).</summary>
@@ -40,17 +34,14 @@ public enum PackageOperation : uint
   Remove = 5
 }
 
-/// <summary>
-/// An event reported by libalpm to an event callback handler (<c>alpm_event_t</c>).
-/// </summary>
+/// <summary>An event reported by libalpm to an event callback handler (<c>alpm_event_t</c> ).</summary>
 /// <remarks>
-/// Event payloads carrying package views are borrowed references valid only for the duration of the
-/// callback execution frame. Callers wishing to retain package data after the callback returns must
-/// call <see cref="PackageBase.ToSnapshot"/> to create an independent managed snapshot.
+/// Event payloads carrying package views are borrowed references valid only for the duration of the callback execution
+/// frame. Callers wishing to retain package data after the callback returns must call
+/// <see cref="PackageBase.ToSnapshot" /> to create an independent managed snapshot.
 /// <para>
-/// The set of subclasses is closed: it mirrors <c>_alpm_event_type_t</c>, and
-/// <c>FromUnion</c> is the only thing that creates one - every subclass is sealed, so the union
-/// cannot grow a member libalpm does not have.
+/// The set of subclasses is closed: it mirrors <c>_alpm_event_type_t</c>, and <c>FromUnion</c> is the only thing
+/// that creates one - every subclass is sealed, so the union cannot grow a member libalpm does not have.
 /// </para>
 /// </remarks>
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
@@ -175,6 +166,7 @@ public abstract class AlpmEvent
 
     /// <summary>Gets the package being installed or upgraded to, or <c>null</c> if this operation is a package removal.</summary>
     public PackageView? NewPackage { get; }
+
     /// <summary>Gets the package being upgraded from or removed, or <c>null</c> if this operation is a package installation.</summary>
     public PackageView? OldPackage { get; }
     /// <summary>Gets the type of package operation being performed.</summary>
@@ -195,6 +187,7 @@ public abstract class AlpmEvent
 
     /// <summary>Gets the package being installed or upgraded to, or <c>null</c> if this operation is a package removal.</summary>
     public PackageView? NewPackage { get; }
+
     /// <summary>Gets the package being upgraded from or removed, or <c>null</c> if this operation is a package installation.</summary>
     public PackageView? OldPackage { get; }
     /// <summary>Gets the type of package operation that completed.</summary>
@@ -434,6 +427,7 @@ public abstract class AlpmEvent
 
     /// <summary>Gets the number of packages to be retrieved.</summary>
     public int PackageCount { get; }
+
     /// <summary>Gets the total download size in bytes across all packages to be retrieved.</summary>
     public long TotalSize { get; }
   }
@@ -464,6 +458,7 @@ public abstract class AlpmEvent
 
     /// <summary>Gets the number of packages that were to be retrieved.</summary>
     public int PackageCount { get; }
+
     /// <summary>Gets the total download size in bytes across all packages that were to be retrieved.</summary>
     public long TotalSize { get; }
   }

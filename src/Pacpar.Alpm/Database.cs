@@ -2,12 +2,11 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// Flags indicating allowed operations on a package database.
-/// </summary>
+/// <summary>Specifies the operations permitted on a package database.</summary>
 /// <remarks>
-/// A projection of libalpm's own <c>alpm_db_usage_t</c> bit values, so the numbering is libalpm's
-/// and there is no zero member: libalpm defines none. ADR 0019.
+/// A bitmask that controls whether this database is queried during synchronization (<see cref="Sync" />), package
+/// searching (<see cref="Search" />), package installation (<see cref="Install" />), or system upgrades (
+/// <see cref="Upgrade" />).
 /// </remarks>
 [Flags]
 public enum DatabaseUsage : uint
@@ -28,21 +27,19 @@ public enum DatabaseUsage : uint
   All = Sync | Search | Install | Upgrade,
 }
 
-/// <summary>
-/// A package database: the local database or a registered sync tree.
-/// </summary>
+/// <summary>A package database: the local database or a registered sync tree.</summary>
 /// <remarks>
-/// A borrowed handle: libalpm owns the database, this wrapper only reads through it. Every accessor
-/// checks first that the database is still live, so using one after <see cref="Unregister"/>, after
-/// <see cref="AlpmSession.UnregisterAllSyncDatabases"/> or after the owning <see cref="AlpmSession"/> was released
-/// throws <see cref="AlpmLifetimeException"/> instead of reading freed memory. Views handed out here
-/// (packages, groups, server lists) die with it the same way.
+/// A borrowed handle: libalpm owns the database, this wrapper only reads through it. Every accessor checks first
+/// that the database is still live, so using one after <see cref="Unregister" />, after
+/// <see cref="AlpmSession.UnregisterAllSyncDatabases" /> or after the owning <see cref="AlpmSession" /> was released
+/// throws <see cref="AlpmLifetimeException" /> instead of reading freed memory. Views handed out here (packages, groups,
+/// server lists) die with it the same way.
 /// </remarks>
 public sealed unsafe partial class Database
 {
   /// <summary>
-  /// The only way to obtain the native pointer from outside this class. The guard runs here, so a
-  /// sibling cannot read the pointer of a released database.
+  /// The only way to obtain the native pointer from outside this class. The guard runs here, so a sibling cannot
+  /// read the pointer of a released database.
   /// </summary>
   internal _alpm_db_t* ValidatedPtr
   {
@@ -59,16 +56,16 @@ public sealed unsafe partial class Database
   private _alpm_handle_t* RawHandle => NativeMethods.alpm_db_get_handle(ValidatedPtr);
 
   /// <summary>
-  /// The domain guarding this database and every view issued from it. Registered in the handle's
-  /// pointer registry (sync databases) or held by a dedicated <see cref="AlpmSession"/> field (the local
-  /// database, which <c>alpm_unregister_all_syncdbs</c> never releases).
+  /// The domain guarding this database and every view issued from it. Registered in the handle's pointer registry
+  /// (sync databases) or held by a dedicated <see cref="AlpmSession" /> field (the local database, which
+  /// <c>alpm_unregister_all_syncdbs</c> never releases).
   /// </summary>
   internal readonly ChildLifetime Lifetime;
 
   private readonly bool _isLocal;
   private readonly Action? _onUnregistered;
 
-  /// <summary>When this wrapper was created, so <see cref="ThrowIfInvalidated"/> can detect a bump.</summary>
+  /// <summary>When this wrapper was created, so <see cref="ThrowIfInvalidated" /> can detect a bump.</summary>
   private LifetimeStamp _stamp;
 
   /// <param name="backingStruct">The libalpm-owned database.</param>
@@ -86,16 +83,15 @@ public sealed unsafe partial class Database
   }
 
   /// <summary>
-  /// Element factory for <see cref="AlpmSession.GetSyncDatabases"/>: resolves the per-database token from
-  /// the handle registry keyed by the native pointer, so two wrappers for the same database - and
-  /// two enumerations of the same list - share one token and one invalidation.
+  /// Element factory for <see cref="AlpmSession.GetSyncDatabases" />: resolves the per-database token from the
+  /// handle registry keyed by the native pointer, so two wrappers for the same database - and two enumerations of the same
+  /// list - share one token and one invalidation.
   /// </summary>
   /// <remarks>
-  /// The name is read only when the pointer is not registered yet: on a fresh list the database is
-  /// alive and the read is safe. A list obtained <i>before</i> a registry mutation
-  /// (<see cref="AlpmSession.RegisterSyncDatabase"/>, <see cref="Unregister"/>,
-  /// <see cref="AlpmSession.UnregisterAllSyncDatabases"/>) can hold nodes those calls freed; re-fetch the
-  /// list after mutating the registry instead of re-enumerating a stale one.
+  /// The name is read only when the pointer is not registered yet: on a fresh list the database is alive and the
+  /// read is safe. A list obtained <i>before</i> a registry mutation (<see cref="AlpmSession.RegisterSyncDatabase" />,
+  /// <see cref="Unregister" />, <see cref="AlpmSession.UnregisterAllSyncDatabases" />) can hold nodes those calls freed;
+  /// re-fetch the list after mutating the registry instead of re-enumerating a stale one.
   /// </remarks>
   internal static Database Factory(void* ptr, Lifetime? lifetime)
   {
@@ -114,31 +110,29 @@ public sealed unsafe partial class Database
   }
 
   /// <summary>
-  /// The domain of the wrapper that already owns <paramref name="dbPtr"/>, picked out of the
-  /// wrappers the caller is holding.
+  /// The domain of the wrapper that already owns <paramref name="dbPtr" />, picked out of the wrappers the caller
+  /// is holding.
   /// </summary>
   /// <remarks>
   /// <para>
-  /// Use this instead of <see cref="RootLifetime.GetLifetimeTokenForHandle"/> whenever libalpm hands back
-  /// a package the caller's own databases own. The registry deduplicates by native pointer, but it
-  /// only covers databases that were registered through it: <see cref="AlpmSession.GetLocalDatabase"/>
-  /// mints its domain directly and never files an entry, so a registry lookup with the local
-  /// database's pointer cannot find one and mints a <i>second</i> domain for the same native
-  /// database. Every view issued from that duplicate then survives the invalidation of the real
-  /// domain - the use-after-free this hierarchy exists to prevent.
+  /// Use this instead of <see cref="RootLifetime.GetLifetimeTokenForHandle" /> whenever libalpm hands back a package
+  /// the caller's own databases own. The registry deduplicates by native pointer, but it only covers databases that were
+  /// registered through it: <see cref="AlpmSession.GetLocalDatabase" /> mints its domain directly and never files an entry,
+  /// so a registry lookup with the local database's pointer cannot find one and mints a <i>second</i> domain for the same
+  /// native database. Every view issued from that duplicate then survives the invalidation of the real domain - the
+  /// use-after-free this hierarchy exists to prevent.
   /// </para>
   /// <para>
-  /// The lookup answers from the caller's wrappers, which is both correct for every database kind
-  /// and free of the side effect above.
+  /// The lookup answers from the caller's wrappers, which is both correct for every database kind and free of the side
+  /// effect above.
   /// </para>
   /// </remarks>
   /// <param name="databases">The wrappers the caller passed into the call that produced the pointer.</param>
   /// <param name="dbPtr">The native database to resolve. A null pointer matches nothing.</param>
   /// <exception cref="InvalidOperationException">
-  /// No wrapper owns <paramref name="dbPtr"/>. libalpm can only return packages found inside the list
-  /// it was given, so this is an invariant violation rather than a result to hand out: issuing the
-  /// view under a freshly minted domain would hide it, and issuing it with none would leave it
-  /// unanchored.
+  /// No wrapper owns <paramref name="dbPtr" />. libalpm can only return packages
+  /// found inside the list it was given, so this is an invariant violation rather than a result to hand out: issuing the
+  /// view under a freshly minted domain would hide it, and issuing it with none would leave it unanchored.
   /// </exception>
   internal static ChildLifetime ResolveLifetime(IReadOnlyList<Database> databases, _alpm_db_t* dbPtr)
   {
@@ -152,9 +146,7 @@ public sealed unsafe partial class Database
       "there is no domain to anchor the resulting view to.");
   }
 
-  /// <summary>
-  /// The name of this database.
-  /// </summary>
+  /// <summary>The name of this database.</summary>
   public string Name
   {
     get
@@ -166,11 +158,9 @@ public sealed unsafe partial class Database
     }
   }
 
-  /// <summary>
-  /// Finds a package by name within this database.
-  /// </summary>
+  /// <summary>Finds a package by name within this database.</summary>
   /// <param name="name">The name of the package to find.</param>
-  /// <returns>A <see cref="PackageView"/> for the package, or <c>null</c> if not found.</returns>
+  /// <returns>A <see cref="PackageView" /> for the package, or <c>null</c> if not found.</returns>
   public PackageView? GetPackage(string name)
   {
     Span<byte> scratch = stackalloc byte[64];
@@ -181,9 +171,7 @@ public sealed unsafe partial class Database
   }
 
 
-  /// <summary>
-  /// Searches this database for packages matching the given patterns.
-  /// </summary>
+  /// <summary>Searches this database for packages matching the given patterns.</summary>
   public IReadOnlyList<PackageView> Search(IEnumerable<string> needles)
   {
     if (!TrySearch(needles, out var results, out var failure))
@@ -194,24 +182,19 @@ public sealed unsafe partial class Database
     return results;
   }
 
-  /// <summary>
-  /// Loads this database's package cache, or returns the one libalpm has already populated.
-  /// </summary>
+  /// <summary>Loads this database's package cache, or returns the populated in-memory cache.</summary>
   /// <remarks>
-  /// A method, not a property, on purpose: libalpm parses the database file the first time this is
-  /// asked for, which is orders of magnitude slower than reading a field. <see cref="Servers"/> is a
-  /// property for the opposite reason - <c>alpm_db_get_servers</c> hands back a list libalpm already
-  /// holds and does no work. Later calls answer from the populated cache and are cheap, but the
-  /// shape has to price the first one, and a property that occasionally costs a full parse is a
-  /// silent lie about what <c>db.PackageCache.Count</c> does. ADR 0018.
   /// <para>
-  /// A <c>null</c> native cache with an ok errno is a legitimately empty cache and yields an empty
-  /// view; a non-ok errno means loading the cache failed and is thrown. That rule is sound here and
-  /// only here, because <c>alpm_db_get_pkgcache</c> clears <c>pm_errno</c> in its first statement -
-  /// see <see cref="LastCallFailed"/>. The view is borrowed and never frees the cache (see
-  /// <see cref="AlpmList{T}"/>).
+  /// <b>Performance:</b> The first call to this method reads and parses the database archive from disk, incurring
+  /// significant I/O and parsing overhead. Subsequent calls return the in-memory cached list directly.
+  /// </para>
+  /// <para>
+  /// The returned collection is a borrowed view over native memory and remains valid until the database is updated,
+  /// unregistered, or its parent session is disposed.
   /// </para>
   /// </remarks>
+  /// <returns>A read-only <see cref="AlpmList{PackageView}" /> of all packages in this database.</returns>
+  /// <exception cref="AlpmException">Failed to read or parse the package database from disk.</exception>
   public AlpmList<PackageView> LoadPackageCache()
   {
     if (!TryLoadPackageCache(out var cache, out var failure)) throw failure.ToException();
@@ -219,13 +202,11 @@ public sealed unsafe partial class Database
   }
 
 
-  /// <summary>
-  /// The servers configured for this database; empty when none are set.
-  /// </summary>
+  /// <summary>The servers configured for this database; empty when none are set.</summary>
   /// <remarks>
-  /// The list is borrowed from the database and is never freed by the view. Adding, removing, or
-  /// replacing a server retires the view, because libalpm frees or re-links that list in place; the
-  /// database's package views are unaffected. The next read binds a fresh view to the rebuilt list.
+  /// The list is borrowed from the database and is never freed by the view. Adding, removing, or replacing a server
+  /// retires the view, because libalpm frees or re-links that list in place; the database's package views are unaffected.
+  /// The next read binds a fresh view to the rebuilt list.
   /// </remarks>
   public AlpmStringList Servers
   {
@@ -236,13 +217,11 @@ public sealed unsafe partial class Database
     }
   }
 
-  /// <summary>
-  /// The cache servers configured for this database; empty when none are set.
-  /// </summary>
+  /// <summary>The cache servers configured for this database; empty when none are set.</summary>
   /// <remarks>
-  /// The list is borrowed from the database and is never freed by the view. The cache-server
-  /// operations retire the view for the same reason the server operations retire
-  /// <see cref="Servers"/>, and the server list is unaffected by them.
+  /// The list is borrowed from the database and is never freed by the view. The cache-server operations retire the
+  /// view for the same reason the server operations retire <see cref="Servers" />, and the server list is unaffected by
+  /// them.
   /// </remarks>
   public AlpmStringList CacheServers
   {
@@ -254,11 +233,9 @@ public sealed unsafe partial class Database
     }
   }
 
-  /// <summary>
-  /// Finds a package group by name within this database.
-  /// </summary>
+  /// <summary>Finds a package group by name within this database.</summary>
   /// <param name="name">The name of the group to find.</param>
-  /// <returns>A <see cref="Group"/> matching the specified name, or <c>null</c> if not found.</returns>
+  /// <returns>A <see cref="Group" /> matching the specified name, or <c>null</c> if not found.</returns>
   public Group? GetGroup(string name)
   {
     Span<byte> scratch = stackalloc byte[64];
@@ -268,10 +245,14 @@ public sealed unsafe partial class Database
     return new Group(group, Lifetime);
   }
 
-  /// <summary>
-  /// Loads this database's group cache, or returns the one libalpm has already populated. See
-  /// <see cref="LoadPackageCache"/> for the null/errno rule and for why this is a method.
-  /// </summary>
+  /// <summary>Loads this database's package group cache, or returns the populated in-memory cache.</summary>
+  /// <remarks>
+  /// Like <see cref="LoadPackageCache" />, the first call parses group metadata from disk and incurs I/O overhead.
+  /// Subsequent calls return the in-memory cached group list directly. The returned collection is a borrowed view tied to
+  /// the lifetime of this database.
+  /// </remarks>
+  /// <returns>A read-only <see cref="AlpmList{Group}" /> of package groups in this database.</returns>
+  /// <exception cref="AlpmException">Failed to read or parse group metadata from disk.</exception>
   public AlpmList<Group> LoadGroupCache()
   {
     if (!TryLoadGroupCache(out var cache, out var failure)) throw failure.ToException();
@@ -279,9 +260,7 @@ public sealed unsafe partial class Database
   }
 
 
-  /// <summary>
-  /// The signature verification level configured for this database.
-  /// </summary>
+  /// <summary>The signature verification level configured for this database.</summary>
   public SigLevel SigLevel
   {
     get
@@ -292,9 +271,7 @@ public sealed unsafe partial class Database
     }
   }
 
-  /// <summary>
-  /// Gets or sets the allowed usage flags for this database.
-  /// </summary>
+  /// <summary>Gets or sets the allowed usage flags for this database.</summary>
   public DatabaseUsage Usage
   {
     get => TryGetUsage(out var usage, out var failure) ? usage : throw failure.ToException();
@@ -308,9 +285,7 @@ public sealed unsafe partial class Database
   }
 
 
-  /// <summary>
-  /// Adds a download server to this database.
-  /// </summary>
+  /// <summary>Adds a download server to this database.</summary>
   public void AddServer(string url)
   {
     if (!TryAddServer(url, out var failure))
@@ -320,9 +295,7 @@ public sealed unsafe partial class Database
   }
 
 
-  /// <summary>
-  /// Removes a download server from this database.
-  /// </summary>
+  /// <summary>Removes a download server from this database.</summary>
   /// <returns><c>true</c> if the server was removed; <c>false</c> if it was not found.</returns>
   public bool RemoveServer(string url)
   {
@@ -335,9 +308,7 @@ public sealed unsafe partial class Database
   }
 
 
-  /// <summary>
-  /// Sets the complete list of download servers for this database.
-  /// </summary>
+  /// <summary>Sets the complete list of download servers for this database.</summary>
   public void SetServers(IEnumerable<string> servers)
   {
     if (!TrySetServers(servers, out var failure))
@@ -347,9 +318,7 @@ public sealed unsafe partial class Database
   }
 
 
-  /// <summary>
-  /// Adds a download cache server to this database.
-  /// </summary>
+  /// <summary>Adds a download cache server to this database.</summary>
   public void AddCacheServer(string url)
   {
     if (!TryAddCacheServer(url, out var failure))
@@ -359,9 +328,7 @@ public sealed unsafe partial class Database
   }
 
 
-  /// <summary>
-  /// Removes a download cache server from this database.
-  /// </summary>
+  /// <summary>Removes a download cache server from this database.</summary>
   /// <returns><c>true</c> if the cache server was removed; <c>false</c> if it was not found.</returns>
   public bool RemoveCacheServer(string url)
   {
@@ -374,9 +341,7 @@ public sealed unsafe partial class Database
   }
 
 
-  /// <summary>
-  /// Sets the complete list of download cache servers for this database.
-  /// </summary>
+  /// <summary>Sets the complete list of download cache servers for this database.</summary>
   public void SetCacheServers(IEnumerable<string> servers)
   {
     if (!TrySetCacheServers(servers, out var failure))
@@ -385,9 +350,7 @@ public sealed unsafe partial class Database
     }
   }
 
-  /// <summary>
-  /// Retires all existing views issued from this database while keeping the database wrapper alive.
-  /// </summary>
+  /// <summary>Retires all existing views issued from this database while keeping the database wrapper alive.</summary>
   internal void InvalidateViews(string reason)
   {
     Lifetime.Invalidate(reason);
@@ -395,18 +358,17 @@ public sealed unsafe partial class Database
   }
 
 
-  /// <summary>
-  /// Updates this database from its configured download servers.
-  /// </summary>
-  /// <param name="force">If <c>true</c>, forces the download even if the local copy is current.</param>
+  /// <summary>Updates this database from its configured download servers.</summary>
+  /// <param name="force">
+  /// If <c>true</c>, forces the download even if the local copy is current, as in <c>pacman -Syy</c>
+  /// </param>
   /// <returns>
-  /// <c>true</c> if at least one file was downloaded, including a forced download of content that did
-  /// not change; <c>false</c> if every file was already current.
+  /// <c>true</c> if at least one file was downloaded, including a forced download of content that did not change;
+  /// <c>false</c> if every file was already current.
   /// </returns>
   /// <remarks>
-  /// Existing views of this database are invalidated before the download starts, so they are invalid
-  /// even when the call fails. A forced update only downloads the files again; it does not promise that
-  /// their contents changed.
+  /// Existing views of this database are invalidated before the download starts, so they are invalid even when the
+  /// call fails. A forced update only downloads the files again; it does not promise that their contents changed.
   /// </remarks>
   public bool Update(bool force = false)
   {
@@ -418,14 +380,10 @@ public sealed unsafe partial class Database
     return updated;
   }
 
-  /// <summary>
-  /// Unregisters this database from its handle, releasing it.
-  /// </summary>
+  /// <summary>Unregisters this database from its handle, releasing it.</summary>
   /// <remarks>
-  /// On success every wrapper and view for this database starts throwing
-  /// <see cref="AlpmLifetimeException"/>, and the handle's sync-database list is retired as well,
-  /// because unregistering frees this database's node in it. A later registration that reuses the
-  /// same address is treated as a brand-new database. A failed unregister leaves the database usable.
+  /// On success every wrapper and view for this database starts throwing <see cref="AlpmLifetimeException" />. A
+  /// failed unregister leaves the database usable.
   /// </remarks>
   public void Unregister()
   {
@@ -435,14 +393,7 @@ public sealed unsafe partial class Database
     }
   }
 
-  /// <summary>
-  /// Whether this database is valid. Never throws: an invalid database is a normal answer.
-  /// </summary>
-  /// <remarks>
-  /// libalpm reports validity as <c>0</c> == valid, <c>-1</c> == invalid. "Never throws" covers the
-  /// validity answer only: a database that was already released still throws
-  /// <see cref="AlpmLifetimeException"/>, because the native struct itself is gone.
-  /// </remarks>
+  /// <summary>Whether this database is valid.</summary>
   public bool IsValid
   {
     get
@@ -453,13 +404,10 @@ public sealed unsafe partial class Database
     }
   }
 
-  /// <summary>
-  /// Validates this database, throwing when it is invalid.
-  /// </summary>
+  /// <summary>Validates this database, throwing when it is invalid.</summary>
   /// <remarks>
-  /// libalpm sets the handle errno when it reports an invalid database, and that errno becomes the
-  /// thrown exception's. Use <see cref="IsValid"/> when an invalid database is an expected answer
-  /// rather than an error.
+  /// libalpm sets the handle errno when it reports an invalid database, and that errno becomes the thrown
+  /// exception's. Use <see cref="IsValid" /> when an invalid database is an expected answer rather than an error.
   /// </remarks>
   public void Validate()
   {
@@ -470,8 +418,8 @@ public sealed unsafe partial class Database
   }
 
   /// <summary>
-  /// Throws <see cref="AlpmLifetimeException"/> when this database was released; the guard every
-  /// public accessor runs before dereferencing <c>backingStruct</c>.
+  /// Throws <see cref="AlpmLifetimeException" /> when this database was released; the guard every public accessor
+  /// runs before dereferencing <c>backingStruct</c>.
   /// </summary>
   private void ThrowIfInvalidated() => _stamp.ThrowIfStale();
 }

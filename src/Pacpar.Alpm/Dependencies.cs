@@ -4,10 +4,7 @@ using Pacpar.Alpm.Bindings;
 namespace Pacpar.Alpm;
 
 /// <summary>The version comparison a dependency uses (libalpm's <c>_alpm_depmod_t</c>).</summary>
-/// <remarks>
-/// A projection of libalpm's own numbering, which starts at 1, so there is no zero member.
-/// ADR 0019.
-/// </remarks>
+/// <remarks>The values map directly to libalpm comparison operators, where unconstrained dependencies use <see cref="Any" /> (1). Zero is not a valid operator.</remarks>
 public enum DepMod : uint
 {
   /// <summary>Any version satisfies the dependency (<c>ALPM_DEP_MOD_ANY</c>).</summary>
@@ -29,20 +26,17 @@ public enum DepMod : uint
   Less = 6
 }
 
-/// <summary>
-/// A dependency (<c>alpm_depend_t</c>).
-/// </summary>
+/// <summary>A dependency (<c>alpm_depend_t</c>).</summary>
 /// <remarks>
-/// A managed snapshot: construction copies every field out of the native struct, and no pointer to
-/// it is retained. The instance stays valid after the package, database or option list it came from
-/// is gone, but - like libalpm's own <c>alpm_depend_t</c> - it is a value, not a handle, so
-/// <i>changing</i> the dependency means replacing the entry in the list that owns it.
+/// A managed snapshot: construction copies every field out of the native struct, and no pointer to it is retained. The
+/// instance stays valid after the package, database or option list it came from is gone, but - like libalpm's own
+/// <c>alpm_depend_t</c> - it is a value, not a handle, so <i>changing</i> the dependency means replacing the entry in the
+/// list that owns it.
 /// <para>
-/// Handing a snapshot back to libalpm is explicit: <see cref="ToNative"/> materialises a struct for
-/// the calls that take one, and the assume-installed option list uses it for <c>Add</c>. Lookups
-/// (<c>Contains</c>, <c>Remove</c>) compare by value through <see cref="Matches"/> instead, because
-/// libalpm's removal predicate also compares the internal <c>name_hash</c>, which only a struct
-/// libalpm built itself carries.
+/// Handing a snapshot back to libalpm is explicit: <see cref="ToNative" /> materialises a struct for the calls that
+/// take one, and the assume-installed option list uses it for <c>Add</c>. Lookups (<c>Contains</c>, <c>Remove</c>) compare
+/// by value through <see cref="Matches" /> instead, because libalpm's removal predicate also compares the internal
+/// <c>name_hash</c>, which only a struct libalpm built itself carries.
 /// </para>
 /// </remarks>
 public sealed unsafe class Depend
@@ -56,9 +50,7 @@ public sealed unsafe class Depend
     Depmod = (DepMod)(uint)backingStruct->mod_;
   }
 
-  /// <summary>
-  /// Creates a new copy of <see cref="Depend"/> from managed components
-  /// </summary>
+  /// <summary>Creates a new copy of <see cref="Depend" /> from managed components</summary>
   private Depend(string? name, string? version, string? description, DepMod depmod)
   {
     Name = name;
@@ -70,49 +62,37 @@ public sealed unsafe class Depend
   internal static Depend Factory(void* ptr, Lifetime? lifetime) => new((_alpm_depend_t*)ptr);
 
   /// <summary>
-  /// Borrowed view over a dependency list owned by libalpm (for example
-  /// <c>alpm_pkg_get_depends</c>, <c>alpm_option_get_assumeinstalled</c>).
+  /// Borrowed view over a dependency list owned by libalpm (for example <c>alpm_pkg_get_depends</c>,
+  /// <c>alpm_option_get_assumeinstalled</c>).
   /// </summary>
   /// <param name="alpmList">The borrowed list. May be <c>null</c>.</param>
   /// <param name="lifetime">Token of the context that owns the list; guards traversal.</param>
   internal static AlpmList<Depend> ListFactory(_alpm_list_t* alpmList, Lifetime? lifetime)
     => AlpmList<Depend>.Borrow(alpmList, &Factory, lifetime);
 
-  /// <summary>
-  /// An optional description of why this dependency is required or recommended.
-  /// </summary>
+  /// <summary>An optional description of why this dependency is required or recommended.</summary>
   public string? Description { get; }
 
-  /// <summary>
-  /// The package name required by this dependency.
-  /// </summary>
+  /// <summary>The package name required by this dependency.</summary>
   public string? Name { get; }
 
-  /// <summary>
-  /// The version constraint for this dependency, or <c>null</c> if any version satisfies it.
-  /// </summary>
+  /// <summary>The version constraint for this dependency, or <c>null</c> if any version satisfies it.</summary>
   public string? Version { get; }
 
-  /// <summary>
-  /// The comparison operator applied to <see cref="Version"/>.
-  /// </summary>
+  /// <summary>The comparison operator applied to <see cref="Version" />.</summary>
   public DepMod Depmod { get; }
 
-  /// <summary>
-  /// Determines whether this dependency matches <paramref name="other"/> by name, version, and version modifier.
-  /// </summary>
+  /// <summary>Determines whether this dependency matches <paramref name="other" /> by name, version, and version modifier.</summary>
   internal bool Matches(Depend other)
     => string.Equals(Name, other.Name, StringComparison.Ordinal)
        && string.Equals(Version ?? string.Empty, other.Version ?? string.Empty, StringComparison.Ordinal)
        && Depmod == other.Depmod;
 
   /// <summary>
-  /// Materialises a native <c>alpm_depend_t</c> carrying this snapshot for native calls that
-  /// accept a dependency pointer.
+  /// Materialises a native <c>alpm_depend_t</c> carrying this snapshot for native calls that accept a dependency
+  /// pointer.
   /// </summary>
-  /// <remarks>
-  /// The caller owns the returned pointer and must release it using <see cref="FreeNative"/>.
-  /// </remarks>
+  /// <remarks>The caller owns the returned pointer and must release it using <see cref="FreeNative" />.</remarks>
   internal _alpm_depend_t* ToNative()
   {
     var native = (_alpm_depend_t*)NativeMemory.Alloc((nuint)sizeof(_alpm_depend_t));
@@ -124,7 +104,7 @@ public sealed unsafe class Depend
     return native;
   }
 
-  /// <summary>Releases a struct produced by <see cref="ToNative"/>.</summary>
+  /// <summary>Releases a struct produced by <see cref="ToNative" />.</summary>
   internal static void FreeNative(_alpm_depend_t* native)
   {
     if (native == null) return;
@@ -136,13 +116,11 @@ public sealed unsafe class Depend
   }
 }
 
-/// <summary>
-/// A dependency that is missing from the transaction outcome.
-/// </summary>
+/// <summary>A dependency that is missing from the transaction outcome.</summary>
 /// <remarks>
-/// Managed snapshot: the list libalpm dumps into <c>alpm_trans_prepare</c>'s output parameter is
-/// caller-owned, so <see cref="Transaction.Prepare"/> copies the values out and frees the native
-/// memory (list and elements). No native pointer is retained.
+/// Managed snapshot: the list libalpm dumps into <c>alpm_trans_prepare</c>'s output parameter is caller-owned, so
+/// <see cref="Transaction.Prepare" /> copies the values out and frees the native memory (list and elements). No native
+/// pointer is retained.
 /// </remarks>
 public sealed class DepMissing
 {
@@ -159,18 +137,12 @@ public sealed class DepMissing
       NativeString.FromNative((nint)((_alpm_depmissing_t*)native)->causingpkg),
       ((_alpm_depmissing_t*)native)->depend != null ? new Depend(((_alpm_depmissing_t*)native)->depend) : null);
 
-  /// <summary>
-  /// The dependency requirement that could not be satisfied.
-  /// </summary>
+  /// <summary>The dependency requirement that could not be satisfied.</summary>
   public Depend? Depend { get; }
 
-  /// <summary>
-  /// The name of the package that caused this dependency to be required, if known.
-  /// </summary>
+  /// <summary>The name of the package that caused this dependency to be required, if known.</summary>
   public string? CausingPkg { get; }
 
-  /// <summary>
-  /// The target package or resource name that triggered the dependency check.
-  /// </summary>
+  /// <summary>The target package or resource name that triggered the dependency check.</summary>
   public string? Target { get; }
 }

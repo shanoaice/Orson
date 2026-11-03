@@ -4,18 +4,16 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// A question libalpm asks a callback handler (<c>alpm_question_t</c>).
-/// </summary>
+/// <summary>A question libalpm asks a callback handler (<c>alpm_question_t</c>).</summary>
 /// <remarks>
-/// Question payloads are borrowed references valid only during the synchronous callback frame execution.
-/// Answers must be set before the handler returns, as libalpm reads the answer immediately.
-/// Packages in payload properties are exposed as borrowed <see cref="PackageView"/> instances anchored to the
-/// callback frame's lifetime; callers wishing to retain package data after the callback returns must
-/// call <see cref="PackageBase.ToSnapshot"/> to create an independent managed snapshot.
+/// Question payloads are borrowed references valid only during the synchronous callback frame execution. Answers must be
+/// set before the handler returns, as libalpm reads the answer immediately. Packages in payload properties are exposed as
+/// borrowed <see cref="PackageView" /> instances anchored to the callback frame's lifetime; callers wishing to retain
+/// package data after the callback returns must call <see cref="PackageBase.ToSnapshot" /> to create an independent
+/// managed snapshot.
 /// <para>
-/// The set of subclasses is closed: it mirrors <c>_alpm_question_type_t</c>, and
-/// <c>FromUnion</c> is the only thing that creates one - every subclass is sealed.
+/// The set of subclasses is closed: it mirrors <c>_alpm_question_type_t</c>, and <c>FromUnion</c> is the only thing
+/// that creates one - every subclass is sealed.
 /// </para>
 /// </remarks>
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
@@ -230,7 +228,7 @@ public abstract unsafe class AlpmQuestion
       Description = NativeString.FromNative((nint)question->select_provider.depend->desc) ?? "";
     }
 
-    /// <summary>Gets or sets the 0-based index of the chosen provider from <see cref="Providers"/>.</summary>
+    /// <summary>Gets or sets the 0-based index of the chosen provider from <see cref="Providers" />.</summary>
     public int UseIndex
     {
       get => _useIndex;

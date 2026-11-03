@@ -22,9 +22,7 @@ public sealed partial class Transaction
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="Prepare"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="Prepare" />.</summary>
   internal unsafe bool TryPrepare([NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
@@ -45,9 +43,7 @@ public sealed partial class Transaction
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="AddPackage(PackageView)"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="AddPackage(PackageView)" />.</summary>
   internal unsafe bool TryAddPackage(PackageView pkg, [NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
@@ -64,9 +60,7 @@ public sealed partial class Transaction
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="AddPackage(LoadedPackage)"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="AddPackage(LoadedPackage)" />.</summary>
   internal unsafe bool TryAddPackage(LoadedPackage pkg,
     [NotNullWhen(true)] out PackageView? view,
     [NotNullWhen(false)] out AlpmFailure? failure)
@@ -96,9 +90,7 @@ public sealed partial class Transaction
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="RemovePackage(PackageView)"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="RemovePackage(PackageView)" />.</summary>
   internal unsafe bool TryRemovePackage(PackageView pkg, [NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
@@ -116,9 +108,7 @@ public sealed partial class Transaction
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="SystemUpgrade(bool)"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="SystemUpgrade(bool)" />.</summary>
   internal bool TrySystemUpgrade(bool enableDowngrade, [NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
@@ -133,9 +123,7 @@ public sealed partial class Transaction
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="Interrupt"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="Interrupt" />.</summary>
   internal bool TryInterrupt([NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
@@ -150,9 +138,7 @@ public sealed partial class Transaction
     return true;
   }
 
-  /// <summary>
-  /// The failure-returning seam for <see cref="Commit"/>.
-  /// </summary>
+  /// <summary>The failure-returning seam for <see cref="Commit" />.</summary>
   internal unsafe bool TryCommit([NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();

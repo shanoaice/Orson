@@ -4,25 +4,20 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// Read-only view over an <c>alpm_list_t</c>.
-/// </summary>
+/// <summary>Read-only view over an <c>alpm_list_t</c>.</summary>
 /// <remarks>
-/// Ownership contract: <b>this type never owns the underlying list and never frees it.</b>
-/// It is used for lists libalpm owns internally (for example <c>alpm_get_syncdbs</c>,
-/// <c>alpm_db_get_pkgcache</c>, <c>alpm_pkg_get_depends</c>) and for caller-built lists that
-/// libalpm only borrows (the <c>alpm_option_set_*</c>/<c>alpm_db_set_servers</c> family, whose
-/// documentation states "the list will be duped and the original will still need to be freed by
-/// the caller").
+/// Ownership contract: <b>this type never owns the underlying list and never frees it.</b> It is used for lists libalpm
+/// owns internally (for example <c>alpm_get_syncdbs</c>, <c>alpm_db_get_pkgcache</c>, <c>alpm_pkg_get_depends</c>) and for
+/// caller-built lists that libalpm only borrows (the <c>alpm_option_set_*</c>/<c>alpm_db_set_servers</c> family, whose
+/// documentation states "the list will be duped and the original will still need to be freed by the caller").
 /// <para>
-/// Because a borrowed view does not own the memory, it does not implement <see cref="IDisposable"/>.
-/// Lists that must be freed by the caller are either materialized into managed collections or
-/// managed through <see cref="AlpmOwnedList{T}"/>.
+/// Because a borrowed view does not own the memory, it does not implement <see cref="IDisposable" />. Lists that
+/// must be freed by the caller are either materialized into managed collections or managed through
+/// <see cref="AlpmOwnedList{T}" />.
 /// </para>
 /// <para>
-/// Lifetime safety: the view belongs to the database, transaction, or handle it was obtained from.
-/// Accessing elements after that owner is disposed throws an <see cref="AlpmLifetimeException"/>
-/// instead of reading freed memory.
+/// Lifetime safety: the view belongs to the database, transaction, or handle it was obtained from. Accessing
+/// elements after that owner is disposed throws an <see cref="AlpmLifetimeException" /> instead of reading freed memory.
 /// </para>
 /// </remarks>
 public abstract class AlpmList<T> : IReadOnlyCollection<T>
@@ -33,10 +28,9 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
   internal readonly unsafe delegate*<void*, Lifetime?, T> Factory;
 
   /// <summary>
-  /// The stamp guarding this view, captured from the domain the list was borrowed from. Elements
-  /// inherit the same domain through <see cref="Factory"/>, so they observe the same generations;
-  /// <c>null</c> only for lists with no owning native context (the empty
-  /// <see cref="AlpmStringList"/> and caller-owned <see cref="AlpmOwnedList{T}"/> snapshots).
+  /// The stamp guarding this view, captured from the domain the list was borrowed from. Elements inherit the same
+  /// domain through <see cref="Factory" />, so they observe the same generations; <c>null</c> only for lists with no owning
+  /// native context (the empty <see cref="AlpmStringList" /> and caller-owned <see cref="AlpmOwnedList{T}" /> snapshots).
   /// </summary>
   internal readonly LifetimeStamp? Lifetime;
 
@@ -48,8 +42,8 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
   }
 
   /// <summary>
-  /// The only way to obtain the native list pointer. The guard runs here, so a call site cannot
-  /// hand libalpm a list whose owning context was already released.
+  /// The only way to obtain the native list pointer. The guard runs here, so a call site cannot hand libalpm a list
+  /// whose owning context was already released.
   /// </summary>
   internal unsafe _alpm_list_t* ValidatedNative()
   {
@@ -57,26 +51,20 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
     return _native;
   }
 
-  /// <summary>
-  /// Gets the number of elements in the list.
-  /// </summary>
+  /// <summary>Gets the number of elements in the list.</summary>
   public unsafe int Count => (int)NativeMethods.alpm_list_count(ValidatedNative());
 
-  /// <summary>
-  /// Wraps an existing <c>alpm_list_t</c> that this library does not own and must not free.
-  /// </summary>
+  /// <summary>Wraps an existing <c>alpm_list_t</c> that this library does not own and must not free.</summary>
   /// <param name="list">The list to view. May be <c>null</c>, which yields an empty view.</param>
-  /// <param name="factory">Converts one native list item into <typeparamref name="T"/>.</param>
-  /// <param name="lifetime">
-  /// Token guarding traversal and issued elements; <c>null</c> when the list has no owning context.
-  /// </param>
+  /// <param name="factory">Converts one native list item into <typeparamref name="T" />.</param>
+  /// <param name="lifetime">Token guarding traversal and issued elements; <c>null</c> when the list has no owning context.</param>
   internal static unsafe AlpmList<T> Borrow(_alpm_list_t* list, delegate*<void*, Lifetime?, T> factory,
     Lifetime? lifetime)
     => new AlpmBorrowedList<T>(list, factory, lifetime);
 
   /// <summary>
-  /// A forward-only enumerator over the borrowed list. Disposing it only stops enumeration;
-  /// it never releases the underlying list.
+  /// A forward-only enumerator over the borrowed list. Disposing it only stops enumeration; it never releases the
+  /// underlying list.
   /// </summary>
   public unsafe struct Enumerator : IEnumerator<T>
   {
@@ -93,14 +81,12 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       _disposed = false;
     }
 
-    /// <summary>
-    /// Advances to the next node.
-    /// </summary>
+    /// <summary>Advances to the next node.</summary>
     /// <remarks>
-    /// The validation and the dereference of the stored node pointer happen in this one method, so
-    /// no call site can advance past the guard. A view that only checked on the first step would
-    /// read freed memory here: advancing reads the previously visited node's <c>next</c>, which is
-    /// exactly the case a same-thread <c>foreach</c> body can trigger by releasing the owner.
+    /// The validation and the dereference of the stored node pointer happen in this one method, so no call site can
+    /// advance past the guard. A view that only checked on the first step would read freed memory here: advancing reads the
+    /// previously visited node's <c>next</c>, which is exactly the case a same-thread <c>foreach</c> body can trigger by
+    /// releasing the owner.
     /// </remarks>
     private _alpm_list_t* Advance()
     {
@@ -108,14 +94,10 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       return _current is null ? null : _current->next;
     }
 
-    /// <summary>
-    /// Reads the current node's data pointer. Validation comes first, for the same reason as
-    /// <see cref="Advance"/>.
-    /// </summary>
+    /// <summary>Reads the current node's data pointer. Validation comes first, for the same reason as <see cref="Advance" />.</summary>
     /// <returns>
-    /// <see langword="false"/> when there is no current node. A <see langword="true"/> result with a
-    /// null data pointer is legitimate - a libalpm list may carry null payloads - so the two cases
-    /// must not be collapsed into one.
+    /// <see langword="false" /> when there is no current node. A <see langword="true" /> result with a null data
+    /// pointer is legitimate - a libalpm list may carry null payloads - so the two cases must not be collapsed into one.
     /// </returns>
     private bool TryGetCurrentData(out void* data)
     {
@@ -130,9 +112,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       return true;
     }
 
-    /// <summary>
-    /// Gets the element in the collection at the current position of the enumerator.
-    /// </summary>
+    /// <summary>Gets the element in the collection at the current position of the enumerator.</summary>
     public T Current
     {
       get
@@ -147,9 +127,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       }
     }
 
-    /// <summary>
-    /// Advances the enumerator to the next element of the collection.
-    /// </summary>
+    /// <summary>Advances the enumerator to the next element of the collection.</summary>
     public bool MoveNext()
     {
       if (_disposed) throw new ObjectDisposedException(GetType().FullName);
@@ -161,9 +139,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       return _current != null; // comparing the pointer value needs no validation
     }
 
-    /// <summary>
-    /// Sets the enumerator to its initial position, which is before the first element in the collection.
-    /// </summary>
+    /// <summary>Sets the enumerator to its initial position, which is before the first element in the collection.</summary>
     public void Reset()
     {
       if (_disposed) throw new ObjectDisposedException(GetType().FullName);
@@ -171,9 +147,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       _started = false;
     }
 
-    /// <summary>
-    /// Releases all resources used by the <see cref="Enumerator"/>.
-    /// </summary>
+    /// <summary>Releases all resources used by the <see cref="Enumerator" />.</summary>
     public void Dispose()
     {
       _disposed = true;
@@ -182,9 +156,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
     object IEnumerator.Current => Current!;
   }
 
-  /// <summary>
-  /// Returns an enumerator that iterates through the <see cref="AlpmList{T}"/>.
-  /// </summary>
+  /// <summary>Returns an enumerator that iterates through the <see cref="AlpmList{T}" />.</summary>
   public Enumerator GetEnumerator()
   {
     Lifetime?.ThrowIfStale();
@@ -196,8 +168,8 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
   IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
   /// <summary>
-  /// Materializes the view into a managed array in a single traversal pass. Useful when the
-  /// underlying list is about to be freed but its contents are still needed.
+  /// Materializes the view into a managed array in a single traversal pass. Useful when the underlying list is
+  /// about to be freed but its contents are still needed.
   /// </summary>
   public unsafe T[] ToArray()
   {
@@ -218,9 +190,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
   }
 }
 
-/// <summary>
-/// Concrete borrowed view produced by <see cref="AlpmList{T}.Borrow"/>.
-/// </summary>
+/// <summary>Concrete borrowed view produced by <see cref="AlpmList{T}.Borrow" />.</summary>
 internal sealed class AlpmBorrowedList<T> : AlpmList<T>
 {
   internal unsafe AlpmBorrowedList(_alpm_list_t* list, delegate*<void*, Lifetime?, T> factory, Lifetime? lifetime)
@@ -229,18 +199,12 @@ internal sealed class AlpmBorrowedList<T> : AlpmList<T>
   }
 }
 
-/// <summary>
-/// Helper methods for freeing native <c>alpm_list_t</c> structures.
-/// </summary>
+/// <summary>Helper methods for freeing native <c>alpm_list_t</c> structures.</summary>
 internal static class AlpmNativeList
 {
-  /// <summary>
-  /// Frees a native list and optionally its elements. Safe with a <c>null</c> pointer.
-  /// </summary>
+  /// <summary>Frees a native list and optionally its elements. Safe with a <c>null</c> pointer.</summary>
   /// <param name="list">The native list to free, or <c>null</c>.</param>
-  /// <param name="innerFree">
-  /// Optional element destructor, or <c>null</c> if elements do not require individual destruction.
-  /// </param>
+  /// <param name="innerFree">Optional element destructor, or <c>null</c> if elements do not require individual destruction.</param>
   internal static unsafe void Free(_alpm_list_t* list, delegate* unmanaged[Cdecl]<void*, void> innerFree = null)
   {
     if (list == null) return;
@@ -311,23 +275,19 @@ internal static class AlpmNativeList
   }
 }
 
-/// <summary>
-/// Represents a caller-owned native list that frees its resources upon disposal.
-/// </summary>
+/// <summary>Represents a caller-owned native list that frees its resources upon disposal.</summary>
 internal sealed class AlpmOwnedList<T> : AlpmList<T>, IDisposable
 {
   private readonly unsafe delegate* unmanaged[Cdecl]<void*, void> _innerFree;
   private bool _disposed;
 
   /// <param name="list">Caller-owned list, or <c>null</c>.</param>
-  /// <param name="factory">Converts one native list item into <typeparamref name="T"/>.</param>
-  /// <param name="innerFree">
-  /// Required element destructor, or <c>null</c> when the elements are owned elsewhere.
-  /// </param>
+  /// <param name="factory">Converts one native list item into <typeparamref name="T" />.</param>
+  /// <param name="innerFree">Required element destructor, or <c>null</c> when the elements are owned elsewhere.</param>
   /// <param name="lifetime">
   /// Token guarding the snapshot pass and the materialized elements when they point back into a
-  /// native context (e.g. package views owned by a database); <c>null</c> for fully self-contained
-  /// payloads that are copied during materialization.
+  /// native context (e.g. package views owned by a database); <c>null</c> for fully self-contained payloads that are copied
+  /// during materialization.
   /// </param>
   internal unsafe AlpmOwnedList(_alpm_list_t* list, delegate*<void*, Lifetime?, T> factory,
     delegate* unmanaged[Cdecl]<void*, void> innerFree, Lifetime? lifetime) : base(list, factory, lifetime)

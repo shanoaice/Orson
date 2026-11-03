@@ -1,8 +1,6 @@
 namespace Pacpar.Alpm.Tests.Fixtures;
 
-/// <summary>
-/// Specifications for synthetic packages built by <see cref="PackageArchive"/>.
-/// </summary>
+/// <summary>Specifications for synthetic packages built by <see cref="PackageArchive" />.</summary>
 /// <param name="Name">The package name (<c>pkgname</c>).</param>
 internal sealed record PackageSpec(string Name)
 {

@@ -3,16 +3,13 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-/// <summary>
-/// A download callback's payload (<c>alpm_download_event_type_t</c> and the data structures it
-/// describes).
-/// </summary>
+/// <summary>A download callback's payload (<c>alpm_download_event_type_t</c> and the data structures it describes).</summary>
 /// <remarks>
-/// Every event subclass is a managed snapshot whose values are copied from libalpm during callback execution.
-/// Instances are safe to persist or inspect after the callback completes.
+/// Every event subclass is a managed snapshot whose values are copied from libalpm during callback execution. Instances
+/// are safe to persist or inspect after the callback completes.
 /// <para>
-/// The set of subclasses is closed: it mirrors <c>_alpm_download_event_type_t</c>, and
-/// <c>FromUnion</c> is the only thing that creates one - every subclass is sealed.
+/// The set of subclasses is closed: it mirrors <c>_alpm_download_event_type_t</c>, and <c>FromUnion</c> is the only
+/// thing that creates one - every subclass is sealed.
 /// </para>
 /// </remarks>
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
@@ -86,6 +83,7 @@ public abstract class AlpmDownloadEvent
 
     /// <summary>Gets whether the download succeeded.</summary>
     public bool IsSuccessful => Result == 0;
+
     /// <summary>Gets whether the remote file was already up to date and did not need to be retrieved.</summary>
     public bool IsUpToDate => Result == 1;
     /// <summary>Gets whether the download encountered an error.</summary>

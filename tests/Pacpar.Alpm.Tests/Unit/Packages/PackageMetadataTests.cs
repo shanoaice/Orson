@@ -4,8 +4,8 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Packages;
 
 /// <summary>
-/// Covers the package members that read what the package records about itself: the install reason,
-/// its file list, its download size, and its changelog.
+/// Covers the package members that read what the package records about itself: the install reason, its file list,
+/// its download size, and its changelog.
 /// </summary>
 public sealed class PackageMetadataTests : IDisposable
 {
@@ -44,8 +44,8 @@ public sealed class PackageMetadataTests : IDisposable
   }
 
   /// <summary>
-  /// Measured against libalpm 16.0.1: a package the local database owns reports a download size of
-  /// 0 - it is already on disk - rather than the size <c>.PKGINFO</c> records.
+  /// Measured against libalpm 16.0.1: a package the local database owns reports a download size of 0 - it is
+  /// already on disk - rather than the size <c>.PKGINFO</c> records.
   /// </summary>
   [Fact]
   public void DownloadSize_IsZeroForAPackageTheLocalDatabaseOwns()
@@ -56,10 +56,10 @@ public sealed class PackageMetadataTests : IDisposable
   }
 
   /// <summary>
-  /// <c>.CHANGELOG</c> inside the package file is the one place libalpm reads a changelog from, so a
-  /// package loaded from a file has one and an installed package does not: writing a changelog into
-  /// the database entry afterwards changes nothing (measured against libalpm 16.0.1 - neither
-  /// <c>dbpath/local/pkg/changelog</c> nor the same path without <c>local/</c> is read).
+  /// <c>.CHANGELOG</c> inside the package file is the one place libalpm reads a changelog from, so a package loaded
+  /// from a file has one and an installed package does not: writing a changelog into the database entry afterwards changes
+  /// nothing (measured against libalpm 16.0.1 - neither <c>dbpath/local/pkg/changelog</c> nor the same path without
+  /// <c>local/</c> is read).
   /// </summary>
   [Fact]
   public void ReadChangelog_ReadsThePackagedOne_AndNoneFromAnInstalledPackage()

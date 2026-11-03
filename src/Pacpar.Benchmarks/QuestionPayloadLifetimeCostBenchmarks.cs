@@ -7,44 +7,46 @@ using Pacpar.Alpm;
 namespace Pacpar.Benchmarks;
 
 /// <summary>
-/// Cost model behind the question-payload lifetime question: question views are handed the handle's
-/// root token today, and the two ways of making that granularity honest are (a) resolving each
-/// package's owning database token, or (b) copying the package eagerly into a
-/// <see cref="PackageSnapshot"/> that carries no native pointer at all.
+/// Cost model behind the question-payload lifetime question: question views are handed the handle's root token
+/// today, and the two ways of making that granularity honest are (a) resolving each package's owning database token, or
+/// (b) copying the package eagerly into a <see cref="PackageSnapshot" /> that carries no native pointer at all.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The library took (b) - question payloads are detached snapshots now, with
-/// <see cref="AlpmBindingConfig.QuestionPayloadIncludeFiles"/> controlling whether file lists are copied - so this class stands as
-/// the evidence for that decision and as the guard rail for the default: the file list rows are what
-/// keeps file lists excluded by default.
+/// <see cref="AlpmBindingConfig.QuestionPayloadIncludeFiles" /> controlling whether file lists are copied - so this class
+/// stands as the evidence for that decision and as the guard rail for the default: the file list rows are what keeps file
+/// lists excluded by default.
 /// </para>
 /// <para>
-/// The measured delta is per package, because both designs replace the same
-/// <c>new PackageView(ptr, token)</c> that the current code already pays for:
+/// The measured delta is per package, because both designs replace the same <c>new PackageView(ptr, token)</c> that the
+/// current code already pays for:
 /// <list type="bullet">
-/// <item><description>
-/// (a) adds one <c>alpm_pkg_get_db</c> call plus one dictionary hit in the root token's pointer
-/// registry (<c>Lifetime.GetLifetimeTokenForHandle</c>), which is what the view then carries.
-/// </description></item>
-/// <item><description>
+/// <item>
+/// <description>
+/// (a) adds one <c>alpm_pkg_get_db</c> call plus one dictionary hit in the root token's pointer registry (
+/// <c>Lifetime.GetLifetimeTokenForHandle</c>), which is what the view then carries.
+/// </description>
+/// </item>
+/// <item>
+/// <description>
 /// (b) adds a full metadata copy - every scalar property plus the licenses/groups/depends/
 /// optional-depends/conflicts/provides lists - and allocates for all of it.
-/// </description></item>
+/// </description>
+/// </item>
 /// </list>
-/// The workload is the local package cache, which is the conservative choice: local packages carry
-/// install date, reason and validation, so their snapshot is the <i>most</i> expensive one libalpm
-/// can hand to a question, while the <c>alpm_pkg_get_db</c> call costs the same for any db-owned
-/// package. Every native lazy load is forced in <see cref="Setup"/>, so the numbers isolate the
-/// copy itself; the <c>WithFiles</c> rows add the file list, which a question payload never needs,
-/// and therefore also pay its one-time parse.
+/// The workload is the local package cache, which is the conservative choice: local packages carry install date, reason
+/// and validation, so their snapshot is the <i>most</i> expensive one libalpm can hand to a question, while the
+/// <c>alpm_pkg_get_db</c> call costs the same for any db-owned package. Every native lazy load is forced in
+/// <see cref="Setup" />, so the numbers isolate the copy itself; the <c>WithFiles</c> rows add the file list, which a
+/// question payload never needs, and therefore also pay its one-time parse.
 /// </para>
 /// <para>
-/// The benchmark project cannot reference <c>Pacpar.Alpm.Lifetime</c> or the bindings (internal;
-/// only <c>Pacpar.Alpm.Tests</c> is a friend assembly), so the registry and the owner-token lookup
-/// mirror <c>Lifetime.GetLifetimeTokenForHandle</c> exactly - same <c>nint</c>-keyed dictionary,
-/// same hit path - and the native call is declared here. The package pointers come from
-/// <c>PackageBase.BackingStruct</c> through reflection, once, at setup time.
+/// The benchmark project cannot reference <c>Pacpar.Alpm.Lifetime</c> or the bindings (internal; only
+/// <c>Pacpar.Alpm.Tests</c> is a friend assembly), so the registry and the owner-token lookup mirror
+/// <c>Lifetime.GetLifetimeTokenForHandle</c> exactly - same <c>nint</c> -keyed dictionary, same hit path - and the native
+/// call is declared here. The package pointers come from <c>PackageBase.BackingStruct</c> through reflection, once, at
+/// setup time.
 /// </para>
 /// </remarks>
 [MemoryDiagnoser]
@@ -55,8 +57,10 @@ namespace Pacpar.Benchmarks;
 [IterationCount(10)]
 public class QuestionPayloadLifetimeCostBenchmarks
 {
-  /// <summary>Question payloads carry one package (replace, install-ignorepkg) or a handful
-  /// (conflicts, providers, unresolvable targets); four is the working shape here.</summary>
+  /// <summary>
+  /// Question payloads carry one package (replace, install-ignorepkg) or a handful (conflicts, providers,
+  /// unresolvable targets); four is the working shape here.
+  /// </summary>
   private const int PayloadSize = 4;
 
   private static readonly FieldInfo BackingStructField =

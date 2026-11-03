@@ -3,13 +3,12 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Packages;
 
 /// <summary>
-/// Covers <see cref="PackageBase.GetMtreeEntries"/> against packages whose <c>.MTREE</c> the test wrote:
-/// absent, complete, partly filled in, and an entry that fails to read.
+/// Covers <see cref="PackageBase.GetMtreeEntries" /> against packages whose <c>.MTREE</c> the test wrote: absent,
+/// complete, partly filled in, and an entry that fails to read.
 /// </summary>
 /// <remarks>
-/// libalpm reads the mtree from <c>dbpath/local/pkg/mtree</c>, which exists only
-/// once the package is installed, so every case installs first and then reads it back through a
-/// handle opened after the commit.
+/// libalpm reads the mtree from <c>dbpath/local/pkg/mtree</c>, which exists only once the package is installed,
+/// so every case installs first and then reads it back through a handle opened after the commit.
 /// </remarks>
 public sealed class PackageMtreeTests : IDisposable
 {
@@ -18,8 +17,8 @@ public sealed class PackageMtreeTests : IDisposable
   public void Dispose() => _environment.Dispose();
 
   /// <summary>
-  /// Installs a package carrying <paramref name="mtreeContent"/>, reopens the workspace and reads the
-  /// mtree as a list, so a case can assert on the entries.
+  /// Installs a package carrying <paramref name="mtreeContent" />, reopens the workspace and reads the mtree as a
+  /// list, so a case can assert on the entries.
   /// </summary>
   private IReadOnlyList<MtreeEntry> ReadMtreeEntries(string name, string mtreeContent)
   {

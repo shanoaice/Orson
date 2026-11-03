@@ -2,15 +2,12 @@ using Pacpar.Alpm.Tests.Fixtures;
 
 namespace Pacpar.Alpm.Tests.Unit.Session;
 
-/// <summary>
-/// Coverage ledger §4: <c>alpm_checkdeps</c> / <c>alpm_checkconflicts</c>.
-/// </summary>
+/// <summary>Coverage ledger §4: <c>alpm_checkdeps</c> / <c>alpm_checkconflicts</c>.</summary>
 /// <remarks>
-/// Both functions return an allocated list or <c>NULL</c>, and <b>NULL means "nothing wrong"</b> —
-/// not an error (measured: errno stays ALPM_ERR_OK). With an empty local database there is nothing
-/// to check, which is what these tests exercise; the cases that do report a missing dependency or a
-/// conflict are covered through a transaction, in
-/// <see cref="Pacpar.Alpm.Tests.Unit.Errors.TransactionFailureTests"/>.
+/// Both functions return an allocated list or <c>NULL</c>, and <b>NULL means "nothing wrong"</b> — not an error
+/// (measured: errno stays ALPM_ERR_OK). With an empty local database there is nothing to check, which is what these tests
+/// exercise; the cases that do report a missing dependency or a conflict are covered through a transaction, in
+/// <see cref="Pacpar.Alpm.Tests.Unit.Errors.TransactionFailureTests" />.
 /// </remarks>
 public sealed class DependencyCheckTests
 {

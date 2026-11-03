@@ -5,14 +5,13 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Options;
 
 /// <summary>
-/// Covers the non-string branch of the option-collection template now that
-/// <see cref="Depend"/> is a managed snapshot: <c>Add</c> materialises the snapshot for libalpm,
-/// while <c>Contains</c> and <c>Remove</c> resolve the snapshot to the element libalpm stored by
-/// comparing values.
+/// Covers the non-string branch of the option-collection template now that <see cref="Depend" /> is a managed
+/// snapshot: <c>Add</c> materialises the snapshot for libalpm, while <c>Contains</c> and <c>Remove</c> resolve the
+/// snapshot to the element libalpm stored by comparing values.
 /// </summary>
 /// <remarks>
-/// Like <see cref="OptionCollectionTests"/>, this runs against
-/// <see cref="IsolatedAlpmEnvironment"/>, so it stays in the non-integration set.
+/// Like <see cref="OptionCollectionTests" />, this runs against <see cref="IsolatedAlpmEnvironment" />, so it
+/// stays in the non-integration set.
 /// </remarks>
 public sealed unsafe class AssumeInstalledOptionTests : IDisposable
 {
@@ -23,8 +22,8 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
   private AlpmSession AlpmSession => _environment.AlpmSession;
 
   /// <summary>
-  /// Parses a dependency with libalpm, then frees the native struct and hands back the snapshot: from
-  /// this point on the test only holds managed values.
+  /// Parses a dependency with libalpm, then frees the native struct and hands back the snapshot: from this point on
+  /// the test only holds managed values.
   /// </summary>
   private static Depend Parse(string spec)
   {
@@ -50,8 +49,8 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
   }
 
   /// <summary>
-  /// Builds a dependency through the same struct layout <see cref="Depend.ToNative"/> uses, so a test
-  /// can describe a value libalpm's parser cannot produce - a dependency with a description.
+  /// Builds a dependency through the same struct layout <see cref="Depend.ToNative" /> uses, so a test can describe
+  /// a value libalpm's parser cannot produce - a dependency with a description.
   /// </summary>
   private static Depend HandBuilt(string name, string? version, string? description, DepMod mod)
   {
@@ -115,9 +114,9 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
   }
 
   /// <summary>
-  /// The identity comparison <c>Contains</c> used to rely on cannot answer this: libalpm stores its
-  /// own copy of the dependency (probed with <c>alpm_list_find_ptr</c>), so a snapshot that was never
-  /// in the list is the only thing a caller ever has.
+  /// The identity comparison <c>Contains</c> used to rely on cannot answer this: libalpm stores its own copy of the
+  /// dependency (probed with <c>alpm_list_find_ptr</c>), so a snapshot that was never in the list is the only thing a caller
+  /// ever has.
   /// </summary>
   [Fact]
   public void Contains_ComparesByValue()
@@ -131,9 +130,9 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
   }
 
   /// <summary>
-  /// Probed against libalpm 16.0.1: removing with a dependency whose description differs still
-  /// removes the entry, so the description must not take part in the comparison this layer uses
-  /// either - otherwise <c>Contains</c> would answer <c>false</c> for an entry <c>Remove</c> removes.
+  /// Probed against libalpm 16.0.1: removing with a dependency whose description differs still removes the entry,
+  /// so the description must not take part in the comparison this layer uses either - otherwise <c>Contains</c> would answer
+  /// <c>false</c> for an entry <c>Remove</c> removes.
   /// </summary>
   [Fact]
   public void Contains_IgnoresTheDescription()
@@ -146,11 +145,10 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
   }
 
   /// <summary>
-  /// Probed against libalpm 16.0.1: <b>every</b> <c>alpm_option_remove_*</c> returns 1 when it
-  /// removed the entry, 0 when it found nothing and -1 on error, while its own header documents
-  /// "0 on success, -1 on error" for all of them. Testing that result against 0, as this wrapper
-  /// used to, made <see cref="ICollection{T}.Remove"/> answer with the inverse of its contract for
-  /// every option collection; the base class now owns that interpretation.
+  /// Probed against libalpm 16.0.1: <b>every</b> <c>alpm_option_remove_*</c> returns 1 when it removed the entry, 0
+  /// when it found nothing and -1 on error, while its own header documents "0 on success, -1 on error" for all of them.
+  /// Testing that result against 0, as this wrapper used to, made <see cref="ICollection{T}.Remove" /> answer with the
+  /// inverse of its contract for every option collection; the base class now owns that interpretation.
   /// </summary>
   [Fact]
   public void Remove_ReportsWhetherTheDependencyWasThere()
@@ -194,9 +192,8 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
 
   /// <summary>
   /// Probed against libalpm 16.0.1: <c>alpm_option_add_assumeinstalled</c> answers -1 with
-  /// <c>ALPM_ERR_WRONG_ARGS</c> for any modifier other than "any" and "=", while its header documents
-  /// no such restriction. The wrapper must surface that instead of storing something libalpm would
-  /// never match.
+  /// <c>ALPM_ERR_WRONG_ARGS</c> for any modifier other than "any" and "=", while its header documents no such restriction.
+  /// The wrapper must surface that instead of storing something libalpm would never match.
   /// </summary>
   [Fact]
   public void Add_RejectsAModifierLibalpmDoesNotSupport()

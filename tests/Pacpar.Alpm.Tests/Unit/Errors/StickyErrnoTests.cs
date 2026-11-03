@@ -3,23 +3,22 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Errors;
 
 /// <summary>
-/// libalpm's errno is sticky per handle, and whether a given entry point resets it on entry varies
-/// function by function. These tests pin the wrapper against both halves of that: the two server
-/// getters, which must not consult errno at all, and the two cache getters, which may - and do - rely
-/// on the fact that their entry points clear it.
+/// libalpm's errno is sticky per handle, and whether a given entry point resets it on entry varies function by
+/// function. These tests pin the wrapper against both halves of that: the two server getters, which must not consult errno
+/// at all, and the two cache getters, which may - and do - rely on the fact that their entry points clear it.
 /// </summary>
 /// <remarks>
-/// Measured against libalpm 16.0.1: after a query miss leaves <c>ALPM_ERR_PKG_NOT_FOUND</c> on the
-/// handle, <c>alpm_db_get_servers</c> succeeds and leaves the errno exactly as it found it. The
-/// wrapper used to probe it there, so a successful server query threw the earlier package error.
+/// Measured against libalpm 16.0.1: after a query miss leaves <c>ALPM_ERR_PKG_NOT_FOUND</c> on the handle,
+/// <c>alpm_db_get_servers</c> succeeds and leaves the errno exactly as it found it. The wrapper used to probe it there, so
+/// a successful server query threw the earlier package error.
 /// </remarks>
 public sealed class StickyErrnoTests
 {
   private static Database RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("pacpar-sticky", 0);
 
   /// <summary>
-  /// Leaves a non-OK errno on the handle: <c>alpm_db_get_pkg</c> sets
-  /// <c>ALPM_ERR_PKG_NOT_FOUND</c> on a miss and nothing clears it afterwards.
+  /// Leaves a non-OK errno on the handle: <c>alpm_db_get_pkg</c> sets <c>ALPM_ERR_PKG_NOT_FOUND</c> on a miss and
+  /// nothing clears it afterwards.
   /// </summary>
   private static void LeaveAnErrnoBehind(Database database) =>
     Assert.Null(database.GetPackage("definitely-not-installed"));
