@@ -277,79 +277,183 @@ public sealed unsafe partial class Database
   /// <summary>Gets or sets the allowed usage flags for this database.</summary>
   public DatabaseUsage Usage
   {
-    get => TryGetUsage(out var usage, out var failure) ? usage : throw failure.ToException();
+    get
+    {
+      var handlePtr = RawHandle;
+      int rawUsage;
+      var err = NativeMethods.alpm_db_get_usage(ValidatedPtr, &rawUsage);
+      if (err != 0)
+      {
+        var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
+        GC.KeepAlive(this);
+        throw NativeCall.Failure(rawErrno, "get database usage").ToException();
+      }
+
+      GC.KeepAlive(this);
+      return (DatabaseUsage)(uint)rawUsage;
+    }
     set
     {
-      if (!TrySetUsage(value, out var failure))
+      var handlePtr = RawHandle;
+      var err = NativeMethods.alpm_db_set_usage(ValidatedPtr, (int)value);
+      if (err != 0)
       {
-        throw failure.ToException();
+        var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
+        GC.KeepAlive(this);
+        throw NativeCall.Failure(rawErrno, "set database usage").ToException();
       }
+
+      GC.KeepAlive(this);
     }
   }
-
 
   /// <summary>Adds a download server to this database.</summary>
   public void AddServer(string url)
   {
-    if (!TryAddServer(url, out var failure))
-    {
-      throw failure.ToException();
-    }
-  }
+    ArgumentNullException.ThrowIfNull(url);
+    var dbPtr = ValidatedPtr;
+    var handlePtr = RawHandle;
+    Span<byte> scratch = stackalloc byte[256];
+    using var urlBuf = new Utf8Buffer(url, scratch);
 
+    var err = NativeMethods.alpm_db_add_server(dbPtr, urlBuf.Ptr);
+    if (err != 0)
+    {
+      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
+      GC.KeepAlive(this);
+      throw NativeCall.Failure(rawErrno, "add server").ToException();
+    }
+
+    Lifetime.InvalidateFacet(LifetimeFacet.Servers, "Database.AddServer");
+    GC.KeepAlive(this);
+  }
 
   /// <summary>Removes a download server from this database.</summary>
   /// <returns><c>true</c> if the server was removed; <c>false</c> if it was not found.</returns>
   public bool RemoveServer(string url)
   {
-    if (!TryRemoveServer(url, out var removed, out var failure))
+    ArgumentNullException.ThrowIfNull(url);
+    var dbPtr = ValidatedPtr;
+    var handlePtr = RawHandle;
+    Span<byte> scratch = stackalloc byte[256];
+    using var urlBuf = new Utf8Buffer(url, scratch);
+
+    var ret = NativeMethods.alpm_db_remove_server(dbPtr, urlBuf.Ptr);
+    if (ret < 0)
     {
-      throw failure.ToException();
+      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
+      GC.KeepAlive(this);
+      throw NativeCall.Failure(rawErrno, "remove server").ToException();
+    }
+
+    GC.KeepAlive(this);
+    var removed = ret == 0;
+    if (removed)
+    {
+      Lifetime.InvalidateFacet(LifetimeFacet.Servers, "Database.RemoveServer");
     }
 
     return removed;
   }
 
-
   /// <summary>Sets the complete list of download servers for this database.</summary>
   public void SetServers(IEnumerable<string> servers)
   {
-    if (!TrySetServers(servers, out var failure))
+    ArgumentNullException.ThrowIfNull(servers);
+    var dbPtr = ValidatedPtr;
+    var handlePtr = RawHandle;
+    var nativeList = AlpmNativeList.BuildStringList(servers, out var buffers);
+    try
     {
-      throw failure.ToException();
+      var err = NativeMethods.alpm_db_set_servers(dbPtr, nativeList);
+      if (err != 0)
+      {
+        var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
+        GC.KeepAlive(this);
+        throw NativeCall.Failure(rawErrno, "set servers").ToException();
+      }
+
+      Lifetime.InvalidateFacet(LifetimeFacet.Servers, "Database.SetServers");
+      GC.KeepAlive(this);
+    }
+    finally
+    {
+      AlpmNativeList.FreeStringListBuffers(buffers, nativeList);
     }
   }
-
 
   /// <summary>Adds a download cache server to this database.</summary>
   public void AddCacheServer(string url)
   {
-    if (!TryAddCacheServer(url, out var failure))
-    {
-      throw failure.ToException();
-    }
-  }
+    ArgumentNullException.ThrowIfNull(url);
+    var dbPtr = ValidatedPtr;
+    var handlePtr = RawHandle;
+    Span<byte> scratch = stackalloc byte[256];
+    using var urlBuf = new Utf8Buffer(url, scratch);
 
+    var err = NativeMethods.alpm_db_add_cache_server(dbPtr, urlBuf.Ptr);
+    if (err != 0)
+    {
+      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
+      GC.KeepAlive(this);
+      throw NativeCall.Failure(rawErrno, "add cache server").ToException();
+    }
+
+    Lifetime.InvalidateFacet(LifetimeFacet.CacheServers, "Database.AddCacheServer");
+    GC.KeepAlive(this);
+  }
 
   /// <summary>Removes a download cache server from this database.</summary>
   /// <returns><c>true</c> if the cache server was removed; <c>false</c> if it was not found.</returns>
   public bool RemoveCacheServer(string url)
   {
-    if (!TryRemoveCacheServer(url, out var removed, out var failure))
+    ArgumentNullException.ThrowIfNull(url);
+    var dbPtr = ValidatedPtr;
+    var handlePtr = RawHandle;
+    Span<byte> scratch = stackalloc byte[256];
+    using var urlBuf = new Utf8Buffer(url, scratch);
+
+    var ret = NativeMethods.alpm_db_remove_cache_server(dbPtr, urlBuf.Ptr);
+    if (ret < 0)
     {
-      throw failure.ToException();
+      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
+      GC.KeepAlive(this);
+      throw NativeCall.Failure(rawErrno, "remove cache server").ToException();
+    }
+
+    GC.KeepAlive(this);
+    var removed = ret == 0;
+    if (removed)
+    {
+      Lifetime.InvalidateFacet(LifetimeFacet.CacheServers, "Database.RemoveCacheServer");
     }
 
     return removed;
   }
 
-
   /// <summary>Sets the complete list of download cache servers for this database.</summary>
   public void SetCacheServers(IEnumerable<string> servers)
   {
-    if (!TrySetCacheServers(servers, out var failure))
+    ArgumentNullException.ThrowIfNull(servers);
+    var dbPtr = ValidatedPtr;
+    var handlePtr = RawHandle;
+    var nativeList = AlpmNativeList.BuildStringList(servers, out var buffers);
+    try
     {
-      throw failure.ToException();
+      var err = NativeMethods.alpm_db_set_cache_servers(dbPtr, nativeList);
+      if (err != 0)
+      {
+        var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
+        GC.KeepAlive(this);
+        throw NativeCall.Failure(rawErrno, "set cache servers").ToException();
+      }
+
+      Lifetime.InvalidateFacet(LifetimeFacet.CacheServers, "Database.SetCacheServers");
+      GC.KeepAlive(this);
+    }
+    finally
+    {
+      AlpmNativeList.FreeStringListBuffers(buffers, nativeList);
     }
   }
 
@@ -390,10 +494,24 @@ public sealed unsafe partial class Database
   /// </remarks>
   public void Unregister()
   {
-    if (!TryUnregister(out var failure))
+    if (_isLocal)
     {
-      throw failure.ToException();
+      throw new InvalidOperationException(
+        "The local database cannot be unregistered. It represents installed packages and is released when the session is disposed.");
     }
+
+    var dbPtr = ValidatedPtr;
+    var handlePtr = NativeMethods.alpm_db_get_handle(dbPtr);
+    var err = NativeMethods.alpm_db_unregister(dbPtr);
+    if (err != 0)
+    {
+      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
+      GC.KeepAlive(this);
+      throw NativeCall.Failure(rawErrno, "unregister database").ToException();
+    }
+
+    Lifetime.Invalidate("Database.Unregister()");
+    _onUnregistered?.Invoke();
   }
 
   /// <summary>Whether this database is valid.</summary>

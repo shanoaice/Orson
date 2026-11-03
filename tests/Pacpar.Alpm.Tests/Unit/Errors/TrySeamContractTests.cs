@@ -92,18 +92,6 @@ public sealed class TrySeamContractTests : IDisposable
     Assert.Null(failure);
   }
 
-  [Fact]
-  public void TryUnregisterAllSyncDatabases_Success_SetsNullFailure()
-  {
-    _environment.AlpmSession.RegisterSyncDatabase("extra_try", 0);
-    var ok = _environment.AlpmSession.TryUnregisterAllSyncDatabases(out var failure);
-
-    Assert.True(ok);
-    Assert.Null(failure);
-
-    _environment.AlpmSession.RegisterSyncDatabase("extra_try2", 0);
-    _environment.AlpmSession.UnregisterAllSyncDatabases();
-  }
 
   [Fact]
   public void TryLoadPackageCache_LocalDatabase_Success_SetsCacheAndNullFailure()
@@ -150,18 +138,6 @@ public sealed class TrySeamContractTests : IDisposable
     local.Validate();
   }
 
-  [Fact]
-  public void TryUnregister_Success_SetsNullFailure()
-  {
-    var sync = _environment.AlpmSession.RegisterSyncDatabase("sync_unregister_test", 0);
-    var ok = sync.TryUnregister(out var failure);
-
-    Assert.True(ok);
-    Assert.Null(failure);
-
-    var sync2 = _environment.AlpmSession.RegisterSyncDatabase("sync_unregister_public_test", 0);
-    sync2.Unregister();
-  }
 
   [Fact]
   public void TryPrepare_And_TryCommit_Success_SetsNullFailure()
@@ -201,17 +177,6 @@ public sealed class TrySeamContractTests : IDisposable
     tx.SystemUpgrade();
   }
 
-  [Fact]
-  public void TryInterrupt_OnIdleTransaction_Failure_SetsFailure()
-  {
-    using var tx = _environment.AlpmSession.BeginTransaction();
-    var ok = tx.TryInterrupt(out var failure);
-
-    Assert.False(ok);
-    Assert.NotNull(failure);
-    Assert.Equal(AlpmFailureCode.TransactionType, failure.Code);
-    Assert.Throws<AlpmTransactionException>(() => tx.Interrupt());
-  }
 
   [Fact]
   public void TryAddPackage_LoadedPackage_Success_SetsViewAndNullFailure()

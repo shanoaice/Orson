@@ -64,7 +64,7 @@ AlpmSession.get_Version | 1 | static library call | alpm_version takes no handle
 
 AlpmSession.get_Capabilities | 1 | static library call | alpm_capabilities takes no handle and returns a bitmask of compile-time capabilities.
 
-AlpmSession.TryResolveDependency | 2 | token-carrying construction and database lookup | alpm_pkg_get_db and alpm_db_get_name resolve the owning database from the caller's databases, and the constructed PackageView receives that database's child lifetime token.
+AlpmSession.ResolveDependency | 2 | token-carrying construction and database lookup | alpm_pkg_get_db and alpm_db_get_name resolve the owning database from the caller's databases, and the constructed PackageView receives that database's child lifetime token.
 
 PackageChangelogStream | 2 | receiver on stack | PackageChangelogStream holds the owning PackageBase instance, which roots the database or handle lifetime token for the package across changelog read and close operations.
 

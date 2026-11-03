@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Pacpar.Alpm.Bindings;
+using Pacpar.Alpm.Interop;
 
 namespace Pacpar.Alpm;
 
@@ -330,10 +331,19 @@ public sealed partial class AlpmSession : IDisposable
   /// <summary>Unregisters every sync database from this handle.</summary>
   public void UnregisterAllSyncDatabases()
   {
-    if (!TryUnregisterAllSyncDatabases(out var failure))
+    ThrowIfDisposed();
+    if (CurrentTransaction is not null)
     {
-      throw failure.ToException();
+      throw new InvalidOperationException("Cannot unregister databases while a transaction is active.");
     }
+
+    var err = NativeMethods.alpm_unregister_all_syncdbs(Handle);
+    if (err != 0)
+    {
+      throw NativeCall.Failure(Handle, "unregister all sync databases").ToException();
+    }
+
+    _lifetime.InvalidateHandles("AlpmSession.UnregisterAllSyncDatabases()");
   }
 
   /// <summary>Updates the specified synchronization databases from their configured download servers.</summary>
@@ -388,19 +398,31 @@ public sealed partial class AlpmSession : IDisposable
   public void Unlock()
   {
     ThrowIfDisposed();
-    if (!TryUnlock(out var failure))
+    var err = NativeMethods.alpm_unlock(Handle);
+    if (err != 0)
     {
-      throw failure.ToException();
+      throw new InvalidOperationException("The session does not hold the database lock.");
     }
   }
 
   /// <summary>Writes an audit record to the log file.</summary>
-  public void LogAction(string prefix, string message)
+  public unsafe void LogAction(string prefix, string message)
   {
     ThrowIfDisposed();
-    if (!TryLogAction(prefix, message, out var failure))
+    ArgumentNullException.ThrowIfNull(prefix);
+    ArgumentNullException.ThrowIfNull(message);
+
+    var messageWithNewline = message.EndsWith('\n') ? message : message + "\n";
+    var safeMessage = messageWithNewline.Replace("%", "%%");
+    Span<byte> prefixScratch = stackalloc byte[64];
+    Span<byte> messageScratch = stackalloc byte[256];
+    using var prefixBuf = new Utf8Buffer(prefix, prefixScratch);
+    using var messageBuf = new Utf8Buffer(safeMessage, messageScratch);
+
+    var err = NativeMethods.alpm_logaction(Handle, prefixBuf.Ptr, messageBuf.Ptr);
+    if (err != 0)
     {
-      throw failure.ToException();
+      throw NativeCall.Failure(Handle, "log action").ToException();
     }
   }
 
@@ -417,31 +439,63 @@ public sealed partial class AlpmSession : IDisposable
   }
 
   /// <summary>Checks a list of packages for missing dependencies.</summary>
-  public IReadOnlyList<DepMissing> CheckDependencies(
+  public unsafe IReadOnlyList<DepMissing> CheckDependencies(
     IEnumerable<PackageView> packages,
     IEnumerable<PackageView>? remove = null,
     IEnumerable<PackageView>? upgrade = null,
     bool reverseDependencies = false)
   {
     ThrowIfDisposed();
-    if (!TryCheckDependencies(packages, remove, upgrade, reverseDependencies, out var missing, out var failure))
-    {
-      throw failure.ToException();
-    }
+    ArgumentNullException.ThrowIfNull(packages);
 
-    return missing;
+    _alpm_list_t* pkgList = null;
+    _alpm_list_t* remList = null;
+    _alpm_list_t* upgList = null;
+    try
+    {
+      pkgList = AlpmNativeList.BuildPointerList(packages.Select(p => (nint)p.BackingStruct));
+      if (remove is not null)
+      {
+        remList = AlpmNativeList.BuildPointerList(remove.Select(p => (nint)p.BackingStruct));
+      }
+
+      if (upgrade is not null)
+      {
+        upgList = AlpmNativeList.BuildPointerList(upgrade.Select(p => (nint)p.BackingStruct));
+      }
+
+      var result = NativeMethods.alpm_checkdeps(Handle, pkgList, remList, upgList, reverseDependencies ? 1 : 0);
+      return result != null
+        ? AlpmOwnedList<DepMissing>.Take(result, &DepMissing.Factory, &MemoryManagement.DepMissingFreeExtern)
+        : Array.Empty<DepMissing>();
+    }
+    finally
+    {
+      AlpmNativeList.Free(pkgList);
+      AlpmNativeList.Free(remList);
+      AlpmNativeList.Free(upgList);
+    }
   }
 
   /// <summary>Checks a list of packages for conflicts.</summary>
-  public IReadOnlyList<Conflict> CheckConflicts(IEnumerable<PackageView> packages)
+  public unsafe IReadOnlyList<Conflict> CheckConflicts(IEnumerable<PackageView> packages)
   {
     ThrowIfDisposed();
-    if (!TryCheckConflicts(packages, out var conflicts, out var failure))
-    {
-      throw failure.ToException();
-    }
+    ArgumentNullException.ThrowIfNull(packages);
 
-    return conflicts;
+    _alpm_list_t* pkgList = null;
+    try
+    {
+      pkgList = AlpmNativeList.BuildPointerList(packages.Select(p => (nint)p.BackingStruct));
+      var result = NativeMethods.alpm_checkconflicts(Handle, pkgList);
+      return result != null
+        ? AlpmOwnedList<Conflict>.Take(result, &Conflict.Factory, &MemoryManagement.ConflictFreeExtern)
+        : Array.Empty<Conflict>();
+    }
+    finally
+    {
+      AlpmNativeList.Free(pkgList);
+    }
   }
 
   /// <summary>Resolves a dependency string to the package that provides it, searching the given databases in order.</summary>
@@ -460,15 +514,36 @@ public sealed partial class AlpmSession : IDisposable
   /// needs no handle, touches no database, and hands back one of the views you passed in.
   /// </para>
   /// </remarks>
-  public PackageView? ResolveDependency(IEnumerable<Database> databases, string dependency)
+  public unsafe PackageView? ResolveDependency(IEnumerable<Database> databases, string dependency)
   {
     ThrowIfDisposed();
-    if (!TryResolveDependency(databases, dependency, out var satisfier, out var failure))
-    {
-      throw failure.ToException();
-    }
+    ArgumentNullException.ThrowIfNull(databases);
+    ArgumentNullException.ThrowIfNull(dependency);
 
-    return satisfier;
+    var dbList = databases.ToList();
+    _alpm_list_t* nativeList = null;
+    Span<byte> scratch = stackalloc byte[64];
+    using var depBuf = new Utf8Buffer(dependency, scratch);
+    try
+    {
+      nativeList = AlpmNativeList.BuildPointerList(dbList.Select(d => (nint)d.ValidatedPtr));
+      var pkgPtr = NativeMethods.alpm_find_dbs_satisfier(Handle, nativeList, depBuf.Ptr);
+      if (pkgPtr == null)
+      {
+        return null;
+      }
+
+      var dbPtr = NativeMethods.alpm_pkg_get_db(pkgPtr);
+      // Resolved among the wrappers the caller handed in, not through the handle registry: the local
+      // database is never registered there (see AlpmSession.GetLocalDatabase), and a registry lookup would
+      // therefore mint a second domain for it. See Database.ResolveLifetime for what rides on this.
+      var dbLifetime = Database.ResolveLifetime(dbList, dbPtr);
+      return new PackageView(pkgPtr, dbLifetime);
+    }
+    finally
+    {
+      AlpmNativeList.Free(nativeList);
+    }
   }
 
   /// <summary>

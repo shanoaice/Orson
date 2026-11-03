@@ -123,21 +123,6 @@ public sealed partial class Transaction
     return true;
   }
 
-  /// <summary>The failure-returning seam for <see cref="Interrupt" />.</summary>
-  internal bool TryInterrupt([NotNullWhen(false)] out AlpmFailure? failure)
-  {
-    ThrowIfDisposed();
-    var err = NativeMethods.alpm_trans_interrupt(_library.Handle);
-    if (err != 0)
-    {
-      _completionState = CompletionState.Faulted;
-      failure = NativeCall.Failure(_library.Handle, "interrupt transaction");
-      return false;
-    }
-    failure = null;
-    return true;
-  }
-
   /// <summary>The failure-returning seam for <see cref="Commit" />.</summary>
   internal unsafe bool TryCommit([NotNullWhen(false)] out AlpmFailure? failure)
   {
@@ -149,6 +134,7 @@ public sealed partial class Transaction
     // post-bump generation and stay valid for the duration of that callback.
     _library.RootLifetime.Invalidate("Transaction.Commit()");
 
+    _completionState = CompletionState.Committing;
     _alpm_list_t* messages = null;
     var err = NativeMethods.alpm_trans_commit(_library.Handle, &messages);
     if (err != 0)

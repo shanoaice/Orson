@@ -184,4 +184,13 @@ public sealed class TransactionLifecycleTests
 
     Assert.Null(environment.AlpmSession.GetLocalDatabase().GetPackage("removable-pkg"));
   }
+
+  [Fact]
+  public void Interrupt_WhenNotCommitting_ThrowsInvalidOperationException()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    using var tx = environment.AlpmSession.BeginTransaction();
+
+    Assert.Throws<InvalidOperationException>(() => tx.Interrupt());
+  }
 }

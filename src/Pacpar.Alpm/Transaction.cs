@@ -82,6 +82,7 @@ public sealed partial class Transaction : IDisposable
   private enum CompletionState : byte
   {
     InProgress,
+    Committing,
     Committed,
     Faulted,
   }
@@ -243,9 +244,16 @@ public sealed partial class Transaction : IDisposable
   /// <summary>Requests that the active transaction operation be interrupted.</summary>
   public void Interrupt()
   {
-    if (!TryInterrupt(out var failure))
+    ThrowIfDisposed();
+    if (_completionState != CompletionState.Committing)
     {
-      throw failure.ToException();
+      throw new InvalidOperationException("Cannot interrupt a transaction that is not committing.");
+    }
+
+    var err = NativeMethods.alpm_trans_interrupt(_library.Handle);
+    if (err != 0)
+    {
+      throw NativeCall.Failure(_library.Handle, "interrupt transaction").ToException();
     }
   }
 
