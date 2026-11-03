@@ -60,6 +60,11 @@ public sealed class PackageSnapshot
     Provides = [.. package.Provides];
     Replaces = [.. package.Replaces];
     BackupFiles = [.. package.BackupFiles];
+    CheckDepends = [.. package.CheckDepends];
+    MakeDepends = [.. package.MakeDepends];
+    DownloadSize = package.DownloadSize;
+    HasScriptlet = package.HasScriptlet;
+    Base64Signature = package.Base64Signature;
 
     if (includeFiles) Files = [.. package.Files];
   }
@@ -138,6 +143,21 @@ public sealed class PackageSnapshot
 
   /// <summary>The copied backup-file entries, frozen at the moment of the copy.</summary>
   public IReadOnlyList<Backup> BackupFiles { get; }
+
+  /// <summary>Gets the list of dependencies required only to run the test suite when building.</summary>
+  public IReadOnlyList<Depend> CheckDepends { get; }
+
+  /// <summary>Gets the list of dependencies required only to build the package from source.</summary>
+  public IReadOnlyList<Depend> MakeDepends { get; }
+
+  /// <summary>Gets the estimated or calculated download size of the package in bytes.</summary>
+  public long DownloadSize { get; }
+
+  /// <summary>Gets a value indicating whether the package contains an install or upgrade scriptlet.</summary>
+  public bool HasScriptlet { get; }
+
+  /// <summary>Gets the base64-encoded PGP signature of the package, or <c>null</c> if none is present.</summary>
+  public string? Base64Signature { get; }
 
   /// <summary>The copied file list, or <c>null</c> when the snapshot was taken without it.</summary>
   public IReadOnlyList<PackageFile>? Files { get; }

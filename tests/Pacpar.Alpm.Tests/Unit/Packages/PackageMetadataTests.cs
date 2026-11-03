@@ -217,6 +217,11 @@ public sealed class PackageMetadataTests : IDisposable
       Assert.Equal(loaded.Name, snapshot.Name);
       Assert.NotNull(snapshot.Files);
       Assert.Equal(loaded.Files.Count, snapshot.Files.Count);
+      Assert.Equal(loaded.CheckDepends.Select(d => d.Name), snapshot.CheckDepends.Select(d => d.Name));
+      Assert.Equal(loaded.MakeDepends.Select(d => d.Name), snapshot.MakeDepends.Select(d => d.Name));
+      Assert.Equal(loaded.DownloadSize, snapshot.DownloadSize);
+      Assert.Equal(loaded.HasScriptlet, snapshot.HasScriptlet);
+      Assert.Equal(loaded.Base64Signature, snapshot.Base64Signature);
     }
 
     var loadForInstall = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
