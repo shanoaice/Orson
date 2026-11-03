@@ -206,6 +206,85 @@ public sealed class OptionCollectionTests : IDisposable
     Assert.Throws<AlpmLifetimeException>(() => options.SandboxUser);
   }
 
+  [Fact]
+  public void OptionCollections_ReturnSameInstance_OnConsecutiveCalls()
+  {
+    var options = _environment.AlpmSession.Options;
+
+    Assert.Same(options.Architectures, options.Architectures);
+    Assert.Same(options.AssumeInstalled, options.AssumeInstalled);
+    Assert.Same(options.CacheDirectories, options.CacheDirectories);
+    Assert.Same(options.OverwritableFiles, options.OverwritableFiles);
+    Assert.Same(options.HookDirectories, options.HookDirectories);
+    Assert.Same(options.IgnoreGroups, options.IgnoreGroups);
+    Assert.Same(options.IgnorePackages, options.IgnorePackages);
+    Assert.Same(options.NoExtract, options.NoExtract);
+    Assert.Same(options.NoUpgrade, options.NoUpgrade);
+  }
+
+  [Fact]
+  public void OptionCollections_ThrowAlpmLifetimeException_AfterSessionDisposed()
+  {
+    var options = _environment.AlpmSession.Options;
+    var architectures = options.Architectures;
+    var assumeInstalled = options.AssumeInstalled;
+    var cacheDirectories = options.CacheDirectories;
+    var overwritableFiles = options.OverwritableFiles;
+    var hookDirectories = options.HookDirectories;
+    var ignoreGroups = options.IgnoreGroups;
+    var ignorePackages = options.IgnorePackages;
+    var noExtract = options.NoExtract;
+    var noUpgrade = options.NoUpgrade;
+
+    _environment.AlpmSession.Dispose();
+
+    Assert.Throws<AlpmLifetimeException>(() => architectures.Count);
+    Assert.Throws<AlpmLifetimeException>(() => architectures.Add("x86_64"));
+    Assert.Throws<AlpmLifetimeException>(() => architectures.Contains("x86_64"));
+    Assert.Throws<AlpmLifetimeException>(() => architectures.Remove("x86_64"));
+    Assert.Throws<AlpmLifetimeException>(() => architectures.Clear());
+    Assert.Throws<AlpmLifetimeException>(() => architectures.GetEnumerator());
+
+    Assert.Throws<AlpmLifetimeException>(() => assumeInstalled.Count);
+    Assert.Throws<AlpmLifetimeException>(() => cacheDirectories.Count);
+    Assert.Throws<AlpmLifetimeException>(() => overwritableFiles.Count);
+    Assert.Throws<AlpmLifetimeException>(() => hookDirectories.Count);
+    Assert.Throws<AlpmLifetimeException>(() => ignoreGroups.Count);
+    Assert.Throws<AlpmLifetimeException>(() => ignorePackages.Count);
+    Assert.Throws<AlpmLifetimeException>(() => noExtract.Count);
+    Assert.Throws<AlpmLifetimeException>(() => noUpgrade.Count);
+  }
+
+  [Fact]
+  public void OptionsAndCollections_RemainValid_AfterTransactionCommit()
+  {
+    var pkgDir = Path.Combine(_environment.WorkspaceRoot, "packages");
+    Directory.CreateDirectory(pkgDir);
+    var archive = PackageArchive.Create(pkgDir, "pacpar-commit-opts");
+    var pkg = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
+
+    var options = _environment.AlpmSession.Options;
+    options.IgnorePackages.Add("pkg-before");
+
+    using (var tx = _environment.AlpmSession.BeginTransaction(TransactionFlags.NoDeps | TransactionFlags.NoScriptlet))
+    {
+      tx.AddPackage(pkg);
+      tx.Prepare();
+      tx.Commit();
+    }
+
+    // Scalar options remain readable and writable
+    options.CheckSpace = true;
+    Assert.True(options.CheckSpace);
+    Assert.NotEmpty(options.Root);
+
+    // Cached collection option instances remain usable
+    options.IgnorePackages.Add("pkg-after");
+    Assert.True(options.IgnorePackages.Contains("pkg-before"));
+    Assert.True(options.IgnorePackages.Contains("pkg-after"));
+    Assert.Contains("pkg-after", options.IgnorePackages);
+  }
+
   public static TheoryData<string, Func<AlpmOptions, ICollection<string>>, string, string> StringOptionCollections() => new()
   {
     { "Architectures", o => o.Architectures, "x86_64", "aarch64" },

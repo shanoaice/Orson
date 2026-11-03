@@ -35,6 +35,17 @@ internal sealed unsafe class SafeAlpmHandle : SafeHandleZeroOrMinusOneIsInvalid
   /// Whether the native <c>alpm_release</c> invocation succeeded (returned 0).
   /// </summary>
   internal bool ReleaseSucceeded => _releaseResult == 0;
+  /// <summary>
+  /// Throws <see cref="AlpmLifetimeException"/> if the handle has been released or is invalid.
+  /// </summary>
+  internal void ThrowIfDisposed()
+  {
+    if (IsClosed || IsInvalid)
+    {
+      throw new AlpmLifetimeException("the ALPM handle", "AlpmSession.Dispose()");
+    }
+  }
+
 
   protected override bool ReleaseHandle()
   {

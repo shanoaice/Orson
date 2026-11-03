@@ -14,17 +14,25 @@ public sealed unsafe class AlpmOptions
 {
   private readonly SafeAlpmHandle _handle;
 
-  // The ALPM handle's root lifetime token. The option collections are thin, per-access views over
-  // libalpm's handle state: they carry the root token so every native call they make is guarded,
-  // and the lists they hand out retire together with the handle.
+  // The session's lifetime domain. The option collections are cached views over libalpm's handle state:
+  // they carry the lifetime domain so lists handed out by their enumerators inherit that domain,
+  // while the option wrapper and its collections remain valid until the session handle is disposed.
   private readonly RootLifetime _lifetime;
-  private readonly LifetimeStamp _stamp;
 
   internal AlpmOptions(SafeAlpmHandle handle, RootLifetime lifetime)
   {
     _handle = handle;
     _lifetime = lifetime;
-    _stamp = lifetime.Capture();
+
+    Architectures = new Architecture(handle, lifetime);
+    AssumeInstalled = new AssumeInstalled(handle, lifetime);
+    CacheDirectories = new CacheDirectories(handle, lifetime);
+    OverwritableFiles = new OverwritableFiles(handle, lifetime);
+    HookDirectories = new HookDirectories(handle, lifetime);
+    IgnoreGroups = new IgnoreGroups(handle, lifetime);
+    IgnorePackages = new IgnorePackages(handle, lifetime);
+    NoExtract = new NoExtract(handle, lifetime);
+    NoUpgrade = new NoUpgrade(handle, lifetime);
   }
 
   /// <summary>
@@ -44,7 +52,7 @@ public sealed unsafe class AlpmOptions
 
   private T Read<T>(delegate* managed<SafeAlpmHandle, T> reader)
   {
-    _stamp.ThrowIfStale();
+    _handle.ThrowIfDisposed();
     var val = reader(_handle);
     GC.KeepAlive(this);
     return val;
@@ -52,7 +60,7 @@ public sealed unsafe class AlpmOptions
 
   private string? ReadString(delegate* managed<SafeAlpmHandle, byte*> reader)
   {
-    _stamp.ThrowIfStale();
+    _handle.ThrowIfDisposed();
     var val = NativeString.FromNative((nint)reader(_handle));
     GC.KeepAlive(this);
     return val;
@@ -60,21 +68,21 @@ public sealed unsafe class AlpmOptions
 
   private void Write(delegate* managed<SafeAlpmHandle, int, int> writer, int value, [CallerMemberName] string? operation = null)
   {
-    _stamp.ThrowIfStale();
+    _handle.ThrowIfDisposed();
     ThrowIfError(writer(_handle, value), operation);
     GC.KeepAlive(this);
   }
 
   private void WriteUInt(delegate* managed<SafeAlpmHandle, uint, int> writer, uint value, [CallerMemberName] string? operation = null)
   {
-    _stamp.ThrowIfStale();
+    _handle.ThrowIfDisposed();
     ThrowIfError(writer(_handle, value), operation);
     GC.KeepAlive(this);
   }
 
   private void WriteUShort(delegate* managed<SafeAlpmHandle, ushort, int> writer, ushort value, [CallerMemberName] string? operation = null)
   {
-    _stamp.ThrowIfStale();
+    _handle.ThrowIfDisposed();
     ThrowIfError(writer(_handle, value), operation);
     GC.KeepAlive(this);
   }
@@ -93,30 +101,29 @@ public sealed unsafe class AlpmOptions
     [CallerMemberName] string? operation = null)
   {
     ArgumentNullException.ThrowIfNull(value);
-    _stamp.ThrowIfStale();
+    _handle.ThrowIfDisposed();
     Span<byte> scratch = stackalloc byte[256];
     using var buffer = new Utf8Buffer(value, scratch);
     ThrowIfError(setter(_handle, buffer.Ptr), operation);
   }
 
-  public ICollection<string> Architectures => new Architecture(_handle, _lifetime);
+  public ICollection<string> Architectures { get; }
 
-  public ICollection<Depend> AssumeInstalled => new AssumeInstalled(_handle, _lifetime);
+  public ICollection<Depend> AssumeInstalled { get; }
 
-  public ICollection<string> CacheDirectories => new CacheDirectories(_handle, _lifetime);
+  public ICollection<string> CacheDirectories { get; }
 
-  public ICollection<string> OverwritableFiles => new OverwritableFiles(_handle, _lifetime);
+  public ICollection<string> OverwritableFiles { get; }
 
-  public ICollection<string> HookDirectories => new HookDirectories(_handle, _lifetime);
+  public ICollection<string> HookDirectories { get; }
 
-  public ICollection<string> IgnoreGroups => new IgnoreGroups(_handle, _lifetime);
+  public ICollection<string> IgnoreGroups { get; }
 
-  public ICollection<string> IgnorePackages => new IgnorePackages(_handle, _lifetime);
+  public ICollection<string> IgnorePackages { get; }
 
-  public ICollection<string> NoExtract => new NoExtract(_handle, _lifetime);
+  public ICollection<string> NoExtract { get; }
 
-  public ICollection<string> NoUpgrade => new NoUpgrade(_handle, _lifetime);
-
+  public ICollection<string> NoUpgrade { get; }
   public bool CheckSpace
   {
     get => Read(&NativeMethods.alpm_option_get_checkspace) != 0;
@@ -246,7 +253,7 @@ public sealed unsafe class AlpmOptions
     get => ReadString(&NativeMethods.alpm_option_get_sandboxuser);
     set
     {
-      _stamp.ThrowIfStale();
+      _handle.ThrowIfDisposed();
       if (value is null)
       {
         ThrowIfError(NativeMethods.alpm_option_set_sandboxuser(_handle, null));
