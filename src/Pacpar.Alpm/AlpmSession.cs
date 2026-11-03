@@ -453,15 +453,15 @@ public sealed partial class AlpmSession : IDisposable
     _alpm_list_t* upgList = null;
     try
     {
-      pkgList = AlpmNativeList.BuildPointerList(packages.Select(p => (nint)p.BackingStruct));
+      pkgList = AlpmNativeList.BuildPointerList(packages);
       if (remove is not null)
       {
-        remList = AlpmNativeList.BuildPointerList(remove.Select(p => (nint)p.BackingStruct));
+        remList = AlpmNativeList.BuildPointerList(remove);
       }
 
       if (upgrade is not null)
       {
-        upgList = AlpmNativeList.BuildPointerList(upgrade.Select(p => (nint)p.BackingStruct));
+        upgList = AlpmNativeList.BuildPointerList(upgrade);
       }
 
       var result = NativeMethods.alpm_checkdeps(Handle, pkgList, remList, upgList, reverseDependencies ? 1 : 0);
@@ -486,7 +486,7 @@ public sealed partial class AlpmSession : IDisposable
     _alpm_list_t* pkgList = null;
     try
     {
-      pkgList = AlpmNativeList.BuildPointerList(packages.Select(p => (nint)p.BackingStruct));
+      pkgList = AlpmNativeList.BuildPointerList(packages);
       var result = NativeMethods.alpm_checkconflicts(Handle, pkgList);
       return result != null
         ? AlpmOwnedList<Conflict>.Take(result, &Conflict.Factory, &MemoryManagement.ConflictFreeExtern)
@@ -520,13 +520,13 @@ public sealed partial class AlpmSession : IDisposable
     ArgumentNullException.ThrowIfNull(databases);
     ArgumentNullException.ThrowIfNull(dependency);
 
-    var dbList = databases.ToList();
+    var dbList = databases as IReadOnlyList<Database> ?? databases.ToList();
     _alpm_list_t* nativeList = null;
     Span<byte> scratch = stackalloc byte[64];
     using var depBuf = new Utf8Buffer(dependency, scratch);
     try
     {
-      nativeList = AlpmNativeList.BuildPointerList(dbList.Select(d => (nint)d.ValidatedPtr));
+      nativeList = AlpmNativeList.BuildPointerList(dbList);
       var pkgPtr = NativeMethods.alpm_find_dbs_satisfier(Handle, nativeList, depBuf.Ptr);
       if (pkgPtr == null)
       {

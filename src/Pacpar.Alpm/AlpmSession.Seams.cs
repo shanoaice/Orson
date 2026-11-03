@@ -140,7 +140,7 @@ public sealed partial class AlpmSession
     _alpm_list_t* nativeList = null;
     try
     {
-      nativeList = AlpmNativeList.BuildPointerList(dbList.Select(d => (nint)d.ValidatedPtr));
+      nativeList = AlpmNativeList.BuildPointerList(dbList);
       var ret = NativeMethods.alpm_db_update(Handle, nativeList, force ? 1 : 0);
       if (ret < 0)
       {

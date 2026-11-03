@@ -10,12 +10,6 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <PackageId>Pacpar.Alpm</PackageId>
-    <Version>0.1.0</Version>
-    
-  </PropertyGroup>
-
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
 
   <ItemGroup>
@@ -26,10 +20,6 @@
     <InternalsVisibleTo Include="Pacpar.Alpm.Tests" />
     <InternalsVisibleTo Include="Pacpar.Benchmarks" />
     <InternalsVisibleTo Include="Pacpar.Alpm.FSharp" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="ZLinq" />
   </ItemGroup>
 
   <ItemGroup>

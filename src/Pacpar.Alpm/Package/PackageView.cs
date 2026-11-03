@@ -47,13 +47,13 @@ public sealed unsafe partial class PackageView : PackageBase
     ArgumentNullException.ThrowIfNull(packages);
     ArgumentNullException.ThrowIfNull(dependency);
 
-    var pkgList = packages.ToList();
+    var pkgList = packages as IReadOnlyCollection<PackageView> ?? packages.ToList();
     Span<byte> scratch = stackalloc byte[64];
     using var depBuf = new Utf8Buffer(dependency, scratch);
     _alpm_list_t* nativeList = null;
     try
     {
-      nativeList = AlpmNativeList.BuildPointerList(pkgList.Select(p => (nint)p.BackingStruct));
+      nativeList = AlpmNativeList.BuildPointerList(pkgList);
       var matchedPtr = NativeMethods.alpm_find_satisfier(nativeList, depBuf.Ptr);
       if (matchedPtr == null) return null;
 
@@ -61,10 +61,17 @@ public sealed unsafe partial class PackageView : PackageBase
       // - so returning one of those views keeps its domain. Fabricating a view here would issue it
       // with no domain at all, and reading it after the owning database was retired would silently
       // read freed memory instead of throwing AlpmLifetimeException.
-      return pkgList.FirstOrDefault(p => p.BackingStruct == matchedPtr)
-        ?? throw new InvalidOperationException(
-          "libalpm returned a package that is not among the ones passed to the call; " +
-          "there is no domain to anchor the resulting view to.");
+      foreach (var pkg in pkgList)
+      {
+        if (pkg.BackingStruct == matchedPtr)
+        {
+          return pkg;
+        }
+      }
+
+      throw new InvalidOperationException(
+        "libalpm returned a package that is not among the ones passed to the call; " +
+        "there is no domain to anchor the resulting view to.");
     }
     finally
     {
@@ -97,11 +104,11 @@ public sealed unsafe partial class PackageView : PackageBase
     ArgumentNullException.ThrowIfNull(syncDatabases);
     ThrowIfDisposed();
 
-    var dbs = syncDatabases.ToList();
+    var dbs = syncDatabases as IReadOnlyList<Database> ?? syncDatabases.ToList();
     _alpm_list_t* dbsList = null;
     try
     {
-      dbsList = AlpmNativeList.BuildPointerList(dbs.Select(d => (nint)d.ValidatedPtr));
+      dbsList = AlpmNativeList.BuildPointerList(dbs);
       var newPkgPtr = NativeMethods.alpm_sync_get_new_version(BackingStruct, dbsList);
       if (newPkgPtr == null) return null;
 

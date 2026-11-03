@@ -133,7 +133,7 @@ public sealed unsafe partial class Database
     _alpm_list_t* list = null;
     try
     {
-      list = AlpmNativeList.BuildPointerList([(nint)dbPtr]);
+      list = AlpmNativeList.BuildPointerList(dbPtr);
       var ret = NativeMethods.alpm_db_update(handlePtr, list, force ? 1 : 0);
       if (ret < 0)
       {

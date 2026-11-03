@@ -213,6 +213,61 @@ internal static class AlpmNativeList
     NativeMethods.alpm_list_free(list);
   }
 
+  internal static unsafe _alpm_list_t* BuildPointerList(void* pointer)
+  {
+    return pointer != null ? NativeMethods.alpm_list_add(null, pointer) : null;
+  }
+
+  internal static unsafe _alpm_list_t* BuildPointerList(IEnumerable<PackageView> packages)
+  {
+    ArgumentNullException.ThrowIfNull(packages);
+
+    _alpm_list_t* list = null;
+    try
+    {
+      foreach (var pkg in packages)
+      {
+        if (pkg is null)
+        {
+          throw new ArgumentException("The collection contains a null package.", nameof(packages));
+        }
+
+        list = NativeMethods.alpm_list_add(list, pkg.BackingStruct);
+      }
+      return list;
+    }
+    catch
+    {
+      if (list != null) NativeMethods.alpm_list_free(list);
+      throw;
+    }
+  }
+
+  internal static unsafe _alpm_list_t* BuildPointerList(IEnumerable<Database> databases)
+  {
+    ArgumentNullException.ThrowIfNull(databases);
+
+    _alpm_list_t* list = null;
+    try
+    {
+      foreach (var db in databases)
+      {
+        if (db is null)
+        {
+          throw new ArgumentException("The collection contains a null database.", nameof(databases));
+        }
+
+        list = NativeMethods.alpm_list_add(list, db.ValidatedPtr);
+      }
+      return list;
+    }
+    catch
+    {
+      if (list != null) NativeMethods.alpm_list_free(list);
+      throw;
+    }
+  }
+
   internal static unsafe _alpm_list_t* BuildPointerList(IEnumerable<nint> pointers)
   {
     ArgumentNullException.ThrowIfNull(pointers);
