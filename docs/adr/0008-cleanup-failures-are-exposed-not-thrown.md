@@ -21,6 +21,25 @@ conflates two sources, it may never have been registered, and teardown is when i
 an explicit question the caller (or bracket) has to ask rather than something inferred from the
 absence of an exception.
 
+## Amendment: In-flight exception protection and fail-fast teardown
+
+The guideline to avoid throwing from `Dispose()` exists primarily to prevent masking in-flight exceptions.
+In .NET, throwing out of `finally` or `using` causes the CLR to discard any active exception during stack unwinding.
+This loses the root-cause diagnostic information.
+
+However, suppressing cleanup failures unconditionally hides fatal state corruption when no prior exception exists.
+A disposal failure must distinguish between unwinding and clean completion:
+
+1. **When prior execution may have faulted or aborted (uncommitted, in-progress):**
+   An exception may already be in flight.
+   `Dispose()` must suppress teardown exceptions to preserve the primary error.
+   The failure must be recorded on the instance (such as `ReleaseFailure`) for inspection.
+
+2. **When the operation completed cleanly (such as after `Commit()`):**
+   No exception is in flight to mask.
+   A cleanup failure represents fatal unmanaged state corruption (such as a leaked database lock).
+   In this state, `Dispose()` throws to fail fast rather than allowing the application to continue in a damaged state.
+
 ## See also
 
 - [ADR 0001: F# interop boundary and Try seam](./0001-fsharp-interop-boundary-and-try-seam.md)
