@@ -20,21 +20,29 @@ a public `Try*` API doubles the public surface before C# users request it.
 F# code must never call `NativeMethods` directly.
 F# code must never inspect raw pointers or invoke native destructors.
 
-## 2. Failure Boundary and Error Contract
+## 2. Failure Boundary: ROP vs. Exceptions
 
-The core seam reports expected ALPM operation failures as values.
-It does not throw exceptions on expected operational failures.
-The boundary distinguishes three outcomes:
+The internal bridge separates three kinds of outcomes:
 
-1. **Success**: The method returns `true`. The result is valid; `failure` is `null`.
-2. **Query miss**: The lookup completes normally with no match. The method returns `true`, result is `null`, and `failure` is `null`.
-3. **ALPM operation failure**: Native libalpm rejected the operation. The method returns `false`, result is `null`, and `failure` is non-null.
+1. **Expected Operational Outcomes (ROP `Result`)**:
+   Belong in `Result<'T, 'Error>`. These represent anticipated domain outcomes arising from interaction with external environmental state (the filesystem, package repositories, mirrors, native lockfiles, database headers, and cryptographic signatures). Correct code encountering real-world external conditions must handle these as normal business flow.
+   - *Examples*:
+     - Archive missing, corrupted, or unsupported architecture (`TryLoadPackage`, `TryCheckMd5Sum`, `TryGetMtree`).
+     - Unsatisfied dependencies, conflicting packages, or disk file collisions (`TryPrepare`, `TryCommit`, `TryAddPackage`).
+     - Lockfile contention when another pacman instance holds `db.lck` (`TryCreate`, `TryBeginTransaction`).
+     - Network timeout or HTTP 404 during synchronization (`TryUpdate`, `TryUpdateDatabases`, `TryFetchPackageUrls`).
+     - Corrupted database cache or signature verification failure (`TryLoadPackageCache`, `TryValidate`).
 
-The seam throws exceptions only for programmer errors and critical runtime faults:
-- Argument misuse (`ArgumentNullException`, `ArgumentException`).
-- Lifetime violations (`AlpmLifetimeException`, `ObjectDisposedException`).
-- Out-of-memory conditions (`ALPM_ERR_MEMORY` maps to `OutOfMemoryException`).
-- Missing native error state (`AlpmNativeFailureException`).
+2. **Non-Business Faults and Contract Violations (Exceptions)**:
+   Must throw exceptions. These represent bugs, violated invariants, invalid state transitions, in-memory setup mistakes, or unrecoverable system failures. Business logic cannot meaningfully branch on them.
+   - *Contract & argument violations*: Passing `null`, empty paths, or invalid inputs throws `ArgumentNullException` or `ArgumentException` (`ALPM_ERR_WRONG_ARGS`).
+   - *In-memory configuration faults*: Setting scalar options, mutating option lists (`AlpmOptions`, `AlpmOptionList<T>`), configuring callback delegates (`AlpmCallbacks`), setting database usage (`Database.Usage`), or appending mirror URLs (`Database.AddServer`). In `libalpm`, these are simple in-memory linked-list or struct assignments; they do not touch I/O or network and fail only on invalid arguments or out-of-memory. They throw on invalid input.
+   - *State machine & lifecycle violations*: Invoking operations on disposed wrappers, reading stale borrowed views, calling commit before prepare, calling interrupt when idle, or modifying databases during an active transaction (`ObjectDisposedException`, `AlpmLifetimeException`, `InvalidOperationException`, `ALPM_ERR_TRANS_NOT_NULL`, `ALPM_ERR_TRANS_TYPE`).
+   - *Unrecoverable system failures*: Out of native memory (`ALPM_ERR_MEMORY`) maps to `OutOfMemoryException`.
+   - *Teardown failures*: Cleanup failures during `Dispose` follow ADR 0008 (recorded on `ReleaseFailure`).
+
+3. **Normal Query Misses and Pure Calculations (Plain Values / `option`)**:
+   A query finding no match (e.g. searching for an uninstalled package or resolving a dependency satisfier) is a valid query result returning `None` / empty collection, not an error. Pure in-memory calculations (e.g. `CheckDependencies`, `CheckConflicts`) return their computed collections directly without an error channel.
 
 ## 3. Stable Semantic Codes (`AlpmFailureCode`)
 
@@ -94,26 +102,36 @@ It marshals them into safe managed snapshots (`AlpmFailureDetail`) and frees the
 
 ## 5. Operations Providing a `Try*` Twin
 
-Only operations reporting failure through return codes or entry points that reset errno get a `Try*` twin:
+Only operations reporting expected operational failures against external environmental state get a `Try*` twin:
 
-| Type | `Try*` Twin |
-|---|---|
-| `AlpmSession` | `TryCreate(string, string, out AlpmSession?, out AlpmFailure?)` |
-| | `TryLoadPackage(string, bool, SigLevel, out LoadedPackage?, out AlpmFailure?)` |
-| | `TryBeginTransaction(TransactionFlags, out Transaction?, out AlpmFailure?)` |
-| | `TryRegisterSyncDatabase(string, SigLevel, out Database?, out AlpmFailure?)` |
-| | `TryUnregisterAllSyncDatabases(out AlpmFailure?)` |
-| `Database` | `TryLoadPackageCache(out AlpmList<PackageView>?, out AlpmFailure?)` |
-| | `TryLoadGroupCache(out AlpmList<Group>?, out AlpmFailure?)` |
-| | `TryUnregister(out AlpmFailure?)` |
-| | `TryValidate(out AlpmFailure?)` |
-| `Transaction` | `TryPrepare(out AlpmFailure?)` |
-| | `TryCommit(out AlpmFailure?)` |
-| | `TryAddPackage(PackageView, out AlpmFailure?)` |
-| | `TryAddPackage(LoadedPackage, out PackageView?, out AlpmFailure?)` |
-| | `TryRemovePackage(PackageView, out AlpmFailure?)` |
-| | `TrySystemUpgrade(bool, out AlpmFailure?)` |
-| | `TryInterrupt(out AlpmFailure?)` |
+| Type | `Try*` Twin | Operational Failure Modes |
+|---|---|---|
+| `AlpmSession` | `TryCreate(string, string, out AlpmSession?, out AlpmFailure?)` | Database path inaccessible, permission denied, lock contention |
+| | `TryLoadPackage(string, bool, SigLevel, out LoadedPackage?, out AlpmFailure?)` | File not found, corrupted archive, signature failure, bad arch |
+| | `TryBeginTransaction(TransactionFlags, out Transaction?, out AlpmFailure?)` | Database lock contention (`db.lck` held by another process) |
+| | `TryRegisterSyncDatabase(string, SigLevel, out Database?, out AlpmFailure?)` | Database file missing or corrupted |
+| | `TryUpdateDatabases(IEnumerable<Database>, bool, out bool, out AlpmFailure?)` | Network download failure, HTTP error, mirror unreachable |
+| | `TryFetchPackageUrls(IEnumerable<string>, out IReadOnlyList<string>?, out AlpmFailure?)` | Network transfer failure, connection drop |
+| `Database` | `TryLoadPackageCache(out AlpmList<PackageView>?, out AlpmFailure?)` | Local/sync database archive corrupted or invalid |
+| | `TryLoadGroupCache(out AlpmList<Group>?, out AlpmFailure?)` | Group database metadata missing or corrupted |
+| | `TryUpdate(bool, out bool, out AlpmFailure?)` | Network failure syncing repository database |
+| | `TryValidate(out AlpmFailure?)` | Database PGP signature invalid or untrusted |
+| | `TrySearch(IEnumerable<string>, out IReadOnlyList<PackageView>?, out AlpmFailure?)` | Invalid search regex from user query |
+| `Transaction` | `TryPrepare(out AlpmFailure?)` | Unsatisfied dependencies, package conflicts |
+| | `TryCommit(out AlpmFailure?)` | File conflicts on disk, insufficient disk space, hook failure |
+| | `TryAddPackage(PackageView, out AlpmFailure?)` | Duplicate target, package conflict |
+| | `TryAddPackage(LoadedPackage, out PackageView?, out AlpmFailure?)` | Target validation failure, conflict |
+| | `TryRemovePackage(PackageView, out AlpmFailure?)` | Package cannot be removed (required by another package) |
+| | `TrySystemUpgrade(bool, out AlpmFailure?)` | Unresolvable upgrade dependencies |
+| `PackageBase` | `TryCheckMd5Sum(out bool, out AlpmFailure?)` | Package archive corrupted or unreadable on disk |
+| | `TryGetMtree(out PackageMtreeReader?, out AlpmFailure?)` | Package mtree archive corrupted on disk |
+| `PackageView` | `TrySetReason(PackageReason, out AlpmFailure?)` | Database write failure updating package install reason |
+
+**Operations explicitly excluded from `Try*` twins:**
+- In-memory configuration setters and collections (`AlpmOptions`, `AlpmOptionList<T>`, `AlpmCallbacks`, `Database.Usage`, `Database.AddServer`): these modify in-memory structs without I/O or network; failures represent programming bugs or OOM and throw exceptions.
+- Pure in-memory queries and calculations (`CheckDependencies`, `CheckConflicts`, `ResolveDependency`, `FindSatisfier`): these return computed data or `option` directly; missing matches are normal query misses.
+- State-machine invariant checks (`Unlock`, `Interrupt`, `Unregister`): calling these in invalid states violates runtime preconditions and throws `InvalidOperationException`.
+- Teardown operations (`Dispose`): follow ADR 0008 (cleanup failures recorded on `ReleaseFailure`).
 
 Teardown operations (`Dispose`) do not use `Try*` twins.
 They follow ADR 0008: cleanup failures are recorded on `Transaction.ReleaseFailure` rather than thrown.

@@ -547,11 +547,27 @@ This enables decoupled UI rendering loops (e.g., 30-60 FPS) to simply query `ses
 
 ## 8. Error Handling Boundary
 
-The F# API separates three outcomes that must not be collapsed into one error channel:
+The F# API strictly distinguishes three kinds of outcomes:
 
-- A completed lookup with no match is a normal result: `Database.find` returns `None`, and cache or search operations return an empty sequence.
-- An expected ALPM operation failure is an error value: loading a missing package returns `Error PackageNotFound`, and preparing a transaction can return typed dependency, conflict, or validation failures.
-- Caller misuse and runtime faults throw: invalid arguments, use after disposal, stale lifetime tokens, invalid transaction state, out-of-memory conditions, a native failure without an error code, and unexpected managed exceptions are not business outcomes.
+1. **Expected Operational Outcomes (`Result<'T, 'Error>`)**:
+   Belong in `Result<'T, 'Error>` (Railway-Oriented Programming). These represent anticipated domain outcomes resulting from interaction with external environmental state (the filesystem, package repositories, mirrors, native lockfiles, database headers, and cryptographic signatures). Correct code encountering real-world external conditions must handle these as normal business flow.
+   - *Examples*:
+     - Archive missing, corrupted, or unsupported architecture (`Package.load`).
+     - Unsatisfied dependencies, conflicting packages, or disk file collisions (`Transaction.prepare`, `Transaction.commit`, `Transaction.add`).
+     - Lockfile contention when another pacman instance holds `db.lck` (`Session.create`, `Transaction.prepare`).
+     - Network timeout or HTTP 404 during synchronization (`Database.update`, `Session.fetchPackageUrls`).
+     - Corrupted database cache or signature verification failure (`Database.packages`, `Database.validate`).
+
+2. **Non-Business Faults and Contract Violations (Exceptions)**:
+   Must throw exceptions. These represent bugs, violated invariants, invalid state transitions, in-memory setup mistakes, or unrecoverable system failures that business logic cannot meaningfully branch on.
+   - *Contract & argument violations*: Passing `null`, empty paths, or invalid inputs throws `ArgumentNullException` or `ArgumentException` (`ALPM_ERR_WRONG_ARGS`).
+   - *In-memory configuration faults*: Setting scalar options, mutating option lists (`AlpmOptions`, `AlpmOptionList<T>`), configuring callback delegates (`AlpmCallbacks`), setting database usage (`Database.Usage`), or appending mirror URLs (`Database.AddServer`). In `libalpm`, these are simple in-memory linked-list or struct assignments; they do not touch I/O or network and fail only on invalid arguments or out-of-memory. They throw on invalid input.
+   - *State machine & lifecycle violations*: Invoking operations on disposed wrappers, reading stale borrowed views, calling commit before prepare, calling interrupt when idle, or modifying databases during an active transaction (`ObjectDisposedException`, `AlpmLifetimeException`, `InvalidOperationException`, `ALPM_ERR_TRANS_NOT_NULL`, `ALPM_ERR_TRANS_TYPE`).
+   - *Unrecoverable system failures*: Out of native memory (`ALPM_ERR_MEMORY`) maps to `OutOfMemoryException`.
+   - *Teardown failures*: Cleanup failures during `Dispose` follow ADR 0008 (recorded on `ReleaseFailure`).
+
+3. **Normal Query Misses and Pure Calculations (Plain Values / `option`)**:
+   A query finding no match (e.g. `Database.find` or resolving a dependency satisfier) is a valid query result returning `None` / empty collection, not an error. Pure in-memory calculations (e.g. `checkDependencies`, `checkConflicts`) return their computed collections directly without an error channel.
 
 `Pacpar.Alpm` provides an internal, failure-returning core to this project through `InternalsVisibleTo`. That core preserves the native contract at one place: it reads the handle error immediately after the call, distinguishes empty values from failures, and consumes payload-bearing transaction lists with the correct element destructor. It returns typed managed failure values to F#; F# maps them to operation-specific public discriminated unions. The public F# surface therefore exposes neither raw pointers nor generated `_alpm_errno_t` values.
 
@@ -601,7 +617,7 @@ internal abstract record AlpmFailure
 }
 ```
 
-Void operations use `bool TryX(..., out AlpmFailure? failure)`. Lookup operations that can legitimately find nothing use the same Boolean-success contract and a nullable `out` value: `true` plus `value == null` is a completed query miss, while `false` is an ALPM operation failure. Removal operations additionally return `out bool removed`, because "not present" is a successful negative answer rather than an error.
+Void operations use `bool TryX(..., out AlpmFailure? failure)`. Operations that report a boolean status (such as `Database.TryUpdate`, which indicates whether database files changed) return that status in an `out bool` parameter alongside `failure`.
 
 `AlpmFailure` is supplemented by typed payload records for the transaction cases that already have managed snapshots: missing dependencies, conflicting dependencies, file conflicts, and invalid package names. Other operations can use a generic native failure record. `AlpmFailureCode` is a stable semantic enum; `NativeCode` preserves the numeric libalpm value for diagnostics and forward compatibility. `ALPM_ERR_MEMORY` is not returned as an ordinary failure from the bridge: it is surfaced as `OutOfMemoryException` at the boundary.
 
@@ -609,41 +625,35 @@ The C# exception factory consumes the same `AlpmFailure` values to construct the
 
 ### 9.3 Native signal map
 
-The bridge should make each native convention explicit. The following are all of the ROP-eligible groups currently exposed by C#; normal getters and read-only package properties do not need a result wrapper.
+The bridge makes each native convention explicit. The following are all of the ROP-eligible groups exposed by C#; in-memory configuration, query lookups, and state-machine invariants do not use a result wrapper.
 
-| C# operation group | Native signal | F# meaning | Bridge shape |
+| Operation group | Native signal | F# meaning | Bridge shape |
 | --- | --- | --- | --- |
 | create `AlpmSession` | initialization out-errno and null handle | `Result<AlpmSession, SessionError>` | `TryCreate(..., out value, out failure)` |
-| `Unlock`, `LogAction` | return code plus handle errno | `Result<unit, SessionError>` | `TryUnlock(out failure)`, `TryLogAction(..., out failure)` |
+| `LoadPackage` | return code plus handle errno | `Result<LoadedPackage, PackageError>` | `TryLoadPackage(..., out value, out failure)` |
+| `BeginTransaction` | return code plus handle errno (e.g. lock held) | `Result<Transaction, TransactionError>` | `TryBeginTransaction(..., out tx, out failure)` |
 | `FetchPackageUrls` | return code plus handle errno; null on error | `Result<IReadOnlyList<string>, NetworkError>` | `TryFetchPackageUrls(..., out fetchedUrls, out failure)` |
-| `CheckDependencies`, `CheckConflicts` | return code plus list payload | `Result<IReadOnlyList<_>, ResolutionError>` | `TryCheckDependencies(..., out missing, out failure)`, `TryCheckConflicts(..., out conflicts, out failure)` |
-| `AlpmSession.ResolveDependency` | null pointer as lookup miss; the seam reports no failure today | `Result<PackageView option, QueryError>` | `TryResolveDependency(..., out satisfier, out failure)` |
-| `PackageView.FindSatisfier` (static) | null pointer as lookup miss; no handle, so no error channel at all | `PackageView option` | no seam — call the public member directly |
-| `LoadPackage`, `GetSignature` | return code plus handle errno | `Result<_, PackageError>` | `TryX(..., out value, out failure)` |
 | `CheckMd5Sum` | return code plus handle errno; mismatch is a boolean answer | `Result<bool, PackageError>` | `TryCheckMd5Sum(out matches, out failure)` |
-| `PackageView.SetReason` | return code plus handle errno | `Result<unit, PackageError>` | `TrySetReason(..., out failure)` |
-| sync database registration/unregistration | pointer/return code plus handle errno | `Result<_, DatabaseError>` | `TryX(..., out value, out failure)` |
-| `GetPackage` / `GetGroup` | null pointer as a lookup miss | `PackageView option` / `Group option` | no failure channel |
-| package/group caches and server lists | null plus ok errno means empty; null plus errno means failure | `Result<seq<_>, QueryError>` | `TryX(..., out value, out failure)` |
+| `GetMtreeEntries` | archive pointer plus handle errno | `Result<IReadOnlyList<MtreeEntry>?, PackageError>` | `TryGetMtree(out mtree, out failure)` |
+| `PackageView.SetReason` | return code plus handle errno (disk write) | `Result<unit, PackageError>` | `TrySetReason(..., out failure)` |
+| sync database registration | pointer/return code plus handle errno | `Result<Database, DatabaseError>` | `TryRegisterSyncDatabase(..., out value, out failure)` |
+| package/group caches | null plus ok errno means empty; null plus errno means failure | `Result<seq<_>, QueryError>` | `TryLoadPackageCache` / `TryLoadGroupCache` |
 | `Database.Search` | null plus errno on failure; empty list on miss | `Result<IReadOnlyList<PackageView>, QueryError>` | `TrySearch(..., out results, out failure)` |
 | `Database.Update`, `UpdateDatabases` | return code plus handle errno; boolean indicates if updated | `Result<bool, DatabaseError>` | `TryUpdate(..., out updated, out failure)`, `TryUpdateDatabases(..., out updated, out failure)` |
-| `Database.Usage` (get / set) | return code plus handle errno | `Result<DatabaseUsage, DatabaseError>` / `Result<unit, DatabaseError>` | `TryGetUsage(out usage, out failure)`, `TrySetUsage(..., out failure)` |
-| `AddServer` / `RemoveServer` / `SetServers` | return code plus handle errno; remove has a not-present answer | `Result<unit, DatabaseError>` and `Result<bool, DatabaseError>` | `TryAddServer(..., out failure)`, `TryRemoveServer(..., out removed, out failure)`, `TrySetServers(..., out failure)` |
-| `AddCacheServer` / `RemoveCacheServer` / `SetCacheServers` | return code plus handle errno; remove has a not-present answer | `Result<unit, DatabaseError>` and `Result<bool, DatabaseError>` | `TryAddCacheServer(..., out failure)`, `TryRemoveCacheServer(..., out removed, out failure)`, `TrySetCacheServers(..., out failure)` |
 | `Database.Validate` | validity answer plus errno when invalid | `Result<unit, DatabaseError>` | `TryValidate(out failure)` |
-| scalar option setters and option-list add/remove | return code plus handle errno; remove also has a not-present answer | `Result<unit, ConfigurationError>` | `TryX(..., out failure)` and `TryRemove(..., out removed, out failure)` |
-| callback registration/unregistration | return code plus handle errno | `Result<unit, CallbackError>` | `TrySet...(..., out failure)` |
-| transaction begin/add/remove/system-upgrade/interrupt/prepare/commit | return code plus handle errno; prepare/commit also own a failure list | `Result<_, TransactionError>` | `TryX(..., out value, out failure)` with typed payload |
+| transaction `AddPackage` / `RemovePackage` / `SystemUpgrade` | return code plus handle errno | `Result<unit, TransactionError>` | `TryAddPackage` / `TryRemovePackage` / `TrySystemUpgrade` |
+| transaction `Prepare` / `Commit` | return code plus handle errno and failure list payload | `Result<_, TransactionError>` with typed payload | `TryPrepare(out failure)` / `TryCommit(out failure)` |
 
-Disposed objects, stale views, invalid transaction state, argument validation, a native failure that reports no errno, and cleanup/release failures remain exceptions. They are programming, runtime, or unrecoverable resource conditions, not part of the F# railway.
+**Non-ROP Groups:**
+- **Lookups and Queries (`option` / plain collection)**: `GetPackage`, `GetGroup`, `ResolveDependency`, and `FindSatisfier` return `option` (query miss is `None`). `CheckDependencies` and `CheckConflicts` are pure in-memory calculations returning collections directly.
+- **In-Memory Configuration (Exceptions on invalid arguments / OOM)**: `AlpmOptions`, `AlpmOptionList<T>`, `AlpmCallbacks`, `Database.Usage`, `Database.AddServer`, `SetServers`. These do not perform I/O and only fail on programmer errors or memory exhaustion.
+- **Lifecycle & State Machine Invariants (Exceptions on invalid state)**: `Unlock`, `Interrupt`, `Unregister`.
 
 ### 9.4 C# refactor sequence
 
 1. Add the F# project reference and `InternalsVisibleTo` entry. Keep the public C# API surface unchanged.
 2. Add `AlpmFailureCode`, `AlpmFailure` payload records, the `TryX` bridge contract, and the failure builder. Add a mapping test for every generated errno, including the unknown-code fallback.
-3. Split every fallible C# operation in the table above into a failure-returning core and a throwing facade. The facade must call the core and translate `AlpmFailure` through one exception factory; no facade should independently re-read or re-classify errno.
+3. Split every operational C# method in the table above into a failure-returning core and a throwing facade. The facade must call the core and translate `AlpmFailure` through one exception factory; no facade should independently re-read or re-classify errno.
 4. Move transaction payload consumption out of `AlpmTransactionException` into the core failure builder. Preserve the existing managed payload properties and destructor regression tests through the facade.
-5. Add the F# interop translation for all ROP-eligible groups in one module, then expose operation-specific error unions above it. Keep query misses in `option`/empty collections and preserve `removed = false` as a successful answer.
-6. Add F# tests for `Result`/`option` boundaries and C# tests proving that every facade and core pair reports the same failure. Include option-list removal semantics and callback registration failures in the contract tests. Run host tests with `dotnet test src/Pacpar.Alpm.Tests/Pacpar.Alpm.Tests.csproj`; no filter is needed, because the suite is hermetic.
-
-Callbacks themselves remain an exception-safe execution boundary: managed handler exceptions are already caught before they can cross the FFI boundary. Only callback registration and unregistration are ROP-eligible because those are normal configuration operations that libalpm can reject.
+5. Add the F# interop translation for all ROP-eligible groups in one module, then expose operation-specific error unions above it. Keep query misses in `option`/empty collections.
+6. Add F# tests for `Result`/`option` boundaries and C# tests proving that every facade and core pair reports the same failure. Run host tests with `dotnet test src/Pacpar.Alpm.Tests/Pacpar.Alpm.Tests.csproj`; no filter is needed, because the suite is hermetic.
