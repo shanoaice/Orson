@@ -6,11 +6,15 @@ items:
     uid: Pacpar.Alpm.AlpmSession
   - name: AlpmOptions
     uid: Pacpar.Alpm.AlpmOptions
+  - name: Capability
+    uid: Pacpar.Alpm.Capability
 
 - name: Databases
   items:
   - name: Database
     uid: Pacpar.Alpm.Database
+  - name: DatabaseUsage
+    uid: Pacpar.Alpm.DatabaseUsage
   - name: Group
     uid: Pacpar.Alpm.Group
 
@@ -34,6 +38,8 @@ items:
     uid: Pacpar.Alpm.PackageFile
   - name: Backup
     uid: Pacpar.Alpm.Backup
+  - name: MtreeEntry
+    uid: Pacpar.Alpm.MtreeEntry
   - name: PackageOrigin
     uid: Pacpar.Alpm.PackageOrigin
   - name: PackageReason
@@ -87,6 +93,8 @@ items:
       uid: Pacpar.Alpm.AlpmTransactionException.InvalidPackageChecksum
     - name: InvalidPackageSignature
       uid: Pacpar.Alpm.AlpmTransactionException.InvalidPackageSignature
+  - name: AlpmNativeFailureException
+    uid: Pacpar.Alpm.AlpmNativeFailureException
   - name: AlpmLifetimeException
     uid: Pacpar.Alpm.AlpmLifetimeException
 
@@ -104,6 +112,8 @@ items:
     uid: Pacpar.Alpm.PackageOperation
   - name: HookWhen
     uid: Pacpar.Alpm.HookWhen
+  - name: AlpmProgressEvent
+    uid: Pacpar.Alpm.AlpmProgressEvent
   - name: AlpmEvent
     uid: Pacpar.Alpm.AlpmEvent
     items:
@@ -224,131 +234,3 @@ items:
   - name: AlpmStringList
     uid: Pacpar.Alpm.AlpmStringList
 
-- name: Low-Level Bindings
-  items:
-  - name: NativeMethods
-    uid: Pacpar.Alpm.Bindings.NativeMethods
-  - name: Structs
-    items:
-    - name: _alpm_handle_t
-      uid: Pacpar.Alpm.Bindings._alpm_handle_t
-    - name: _alpm_db_t
-      uid: Pacpar.Alpm.Bindings._alpm_db_t
-    - name: _alpm_pkg_t
-      uid: Pacpar.Alpm.Bindings._alpm_pkg_t
-    - name: _alpm_file_t
-      uid: Pacpar.Alpm.Bindings._alpm_file_t
-    - name: _alpm_filelist_t
-      uid: Pacpar.Alpm.Bindings._alpm_filelist_t
-    - name: _alpm_backup_t
-      uid: Pacpar.Alpm.Bindings._alpm_backup_t
-    - name: _alpm_group_t
-      uid: Pacpar.Alpm.Bindings._alpm_group_t
-    - name: _alpm_pgpkey_t
-      uid: Pacpar.Alpm.Bindings._alpm_pgpkey_t
-    - name: _alpm_sigresult_t
-      uid: Pacpar.Alpm.Bindings._alpm_sigresult_t
-    - name: _alpm_siglist_t
-      uid: Pacpar.Alpm.Bindings._alpm_siglist_t
-    - name: _alpm_depend_t
-      uid: Pacpar.Alpm.Bindings._alpm_depend_t
-    - name: _alpm_depmissing_t
-      uid: Pacpar.Alpm.Bindings._alpm_depmissing_t
-    - name: _alpm_conflict_t
-      uid: Pacpar.Alpm.Bindings._alpm_conflict_t
-    - name: _alpm_fileconflict_t
-      uid: Pacpar.Alpm.Bindings._alpm_fileconflict_t
-    - name: _alpm_list_t
-      uid: Pacpar.Alpm.Bindings._alpm_list_t
-    - name: _alpm_event_any_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_any_t
-    - name: _alpm_event_package_operation_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_package_operation_t
-    - name: _alpm_event_optdep_removal_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_optdep_removal_t
-    - name: _alpm_event_scriptlet_info_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_scriptlet_info_t
-    - name: _alpm_event_database_missing_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_database_missing_t
-    - name: _alpm_event_pkgdownload_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_pkgdownload_t
-    - name: _alpm_event_pacnew_created_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_pacnew_created_t
-    - name: _alpm_event_pacsave_created_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_pacsave_created_t
-    - name: _alpm_event_hook_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_hook_t
-    - name: _alpm_event_hook_run_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_hook_run_t
-    - name: _alpm_event_pkg_retrieve_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_pkg_retrieve_t
-    - name: _alpm_event_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_t
-    - name: _alpm_question_any_t
-      uid: Pacpar.Alpm.Bindings._alpm_question_any_t
-    - name: _alpm_question_install_ignorepkg_t
-      uid: Pacpar.Alpm.Bindings._alpm_question_install_ignorepkg_t
-    - name: _alpm_question_replace_t
-      uid: Pacpar.Alpm.Bindings._alpm_question_replace_t
-    - name: _alpm_question_conflict_t
-      uid: Pacpar.Alpm.Bindings._alpm_question_conflict_t
-    - name: _alpm_question_corrupted_t
-      uid: Pacpar.Alpm.Bindings._alpm_question_corrupted_t
-    - name: _alpm_question_remove_pkgs_t
-      uid: Pacpar.Alpm.Bindings._alpm_question_remove_pkgs_t
-    - name: _alpm_question_select_provider_t
-      uid: Pacpar.Alpm.Bindings._alpm_question_select_provider_t
-    - name: _alpm_question_import_key_t
-      uid: Pacpar.Alpm.Bindings._alpm_question_import_key_t
-    - name: _alpm_question_t
-      uid: Pacpar.Alpm.Bindings._alpm_question_t
-    - name: _alpm_download_event_init_t
-      uid: Pacpar.Alpm.Bindings._alpm_download_event_init_t
-    - name: _alpm_download_event_progress_t
-      uid: Pacpar.Alpm.Bindings._alpm_download_event_progress_t
-    - name: _alpm_download_event_retry_t
-      uid: Pacpar.Alpm.Bindings._alpm_download_event_retry_t
-    - name: _alpm_download_event_completed_t
-      uid: Pacpar.Alpm.Bindings._alpm_download_event_completed_t
-    - name: __va_list_tag
-      uid: Pacpar.Alpm.Bindings.__va_list_tag
-    - name: archive
-      uid: Pacpar.Alpm.Bindings.archive
-    - name: archive_entry
-      uid: Pacpar.Alpm.Bindings.archive_entry
-  - name: Enums
-    items:
-    - name: _alpm_errno_t
-      uid: Pacpar.Alpm.Bindings._alpm_errno_t
-    - name: _alpm_siglevel_t
-      uid: Pacpar.Alpm.Bindings._alpm_siglevel_t
-    - name: _alpm_sigstatus_t
-      uid: Pacpar.Alpm.Bindings._alpm_sigstatus_t
-    - name: _alpm_sigvalidity_t
-      uid: Pacpar.Alpm.Bindings._alpm_sigvalidity_t
-    - name: _alpm_depmod_t
-      uid: Pacpar.Alpm.Bindings._alpm_depmod_t
-    - name: _alpm_fileconflicttype_t
-      uid: Pacpar.Alpm.Bindings._alpm_fileconflicttype_t
-    - name: _alpm_event_type_t
-      uid: Pacpar.Alpm.Bindings._alpm_event_type_t
-    - name: _alpm_package_operation_t
-      uid: Pacpar.Alpm.Bindings._alpm_package_operation_t
-    - name: _alpm_hook_when_t
-      uid: Pacpar.Alpm.Bindings._alpm_hook_when_t
-    - name: _alpm_question_type_t
-      uid: Pacpar.Alpm.Bindings._alpm_question_type_t
-    - name: _alpm_progress_t
-      uid: Pacpar.Alpm.Bindings._alpm_progress_t
-    - name: _alpm_download_event_type_t
-      uid: Pacpar.Alpm.Bindings._alpm_download_event_type_t
-    - name: _alpm_loglevel_t
-      uid: Pacpar.Alpm.Bindings._alpm_loglevel_t
-    - name: _alpm_pkgreason_t
-      uid: Pacpar.Alpm.Bindings._alpm_pkgreason_t
-    - name: _alpm_pkgfrom_t
-      uid: Pacpar.Alpm.Bindings._alpm_pkgfrom_t
-    - name: _alpm_pkgvalidation_t
-      uid: Pacpar.Alpm.Bindings._alpm_pkgvalidation_t
-    - name: _alpm_transflag_t
-      uid: Pacpar.Alpm.Bindings._alpm_transflag_t

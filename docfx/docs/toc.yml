@@ -2,3 +2,5 @@
   href: introduction.md
 - name: Getting Started
   href: getting-started.md
+- name: Lifetime and GC Safety
+  href: design-docs/lifetime-and-gc-safety.md
