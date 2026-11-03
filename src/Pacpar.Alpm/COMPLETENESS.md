@@ -7,7 +7,7 @@ behind a pick (priority debates, design discussions) belongs in `docs/adr/`, not
 **Target binding:** `Pacpar.Alpm` (`src/Pacpar.Alpm`)
 **Native baseline:** `libalpm` 16.0.1 (pacman 7.0.0). Check the installed build at runtime with
 `AlpmSession.Version` and `AlpmSession.Capabilities` rather than trusting this number.
-**Last recount:** 2026-10-05.
+**Last recount:** 2026-11-03.
 
 ---
 
@@ -50,7 +50,7 @@ between releases, so treat them as a pointer to read, not as an API contract.
 | :--- | :---: | :---: | :---: | :---: |
 | libalpm entry points | 236 | 236 | 0 | 100% |
 | SafeHandle lease overloads (`NativeMethods.SafeHandle.cs`) | 94 | 94 | 0 | 100% |
-| High-level API, deliberate omissions excluded | 195 | 164 | 31 | 84.1% |
+| High-level API, deliberate omissions excluded | 195 | 167 | 28 | 85.6% |
 | Deliberate omission: `alpm_list_*` utilities | 29 | 0 | 29 | — |
 | Deliberate omission: `alpm_option_get_*cb*` getters | 12 | 0 | 12 | — |
 
@@ -68,7 +68,7 @@ Three layers, as ADR 0006 sets out:
    never exposed through the public API.
 2. **SafeHandle (`NativeMethods.SafeHandle.cs`)** — hand-written overloads that take
    `SafeAlpmHandle`; the marshaller raises the handle's reference count for the call.
-3. **Managed API** — `Alpm`, `Database`, `PackageView`, `Transaction`, `AlpmList<T>`; owns lifetime
+3. **Managed API** — `AlpmSession`, `Database`, `PackageView`, `Transaction`, `AlpmList<T>`; owns lifetime
    tracking, string conversion and error propagation.
 
 Two groups are omitted on purpose:
@@ -100,7 +100,7 @@ rediscover, so it is recorded next to the API it constrains.
 | `alpm_find_dbs_satisfier` | `AlpmSession.ResolveDependency` / `TryResolveDependency` | done | The owning domain resolves among the caller's `Database` wrappers, never through the handle registry — see `Database.ResolveLifetime`. Named for the intent, not the native entry: it resolves a dependency string to a package, and it is the variant that mints a new view. The seam reports no failure today (null pointer is both miss and failure, and no errno is read); kept for ADR 0001 uniformity. |
 | `alpm_db_update` | `Database.Update`, `AlpmSession.UpdateDatabases` | done | Invalidates the database's views *before* the call, so views die even when the update fails. Takes and releases the handle lock internally. Returns 0 when at least one file was downloaded and 1 when every file was already current; the curl and fetch-callback paths aggregate the same way, and `force` downloads again (0) even when content is unchanged. Refuses the local database. An empty native list returns -1 without setting `errno`; the wrapper rejects an empty sequence with `ArgumentException` before calling libalpm. |
 | `alpm_db_search` | `Database.Search` | done | Caller owns the returned list; the package pointers stay with the database. |
-| `alpm_db_get_usage` / `alpm_db_set_usage` | `Database.Usage` | done | Values match `alpm.h` (1/2/4/8, all = 15). |
+| `alpm_db_get_usage` / `alpm_db_set_usage` | `Database.Usage` | done | Values match `alpm.h` (1/2/4/8, all = 15). Managed enum provides `None = 0` to disable all operations. |
 | `alpm_db_add_server`, `alpm_db_remove_server`, `alpm_db_set_servers` | `Database.AddServer`, `RemoveServer`, `SetServers` | done | The bulk setter replaces the list, so it invalidates the database's views. |
 | `alpm_db_add_cache_server`, `alpm_db_remove_cache_server`, `alpm_db_set_cache_servers` | `Database.AddCacheServer`, `RemoveCacheServer`, `SetCacheServers` | done | Same invalidation rule. |
 | `alpm_pkg_download_size` | `PackageBase.DownloadSize` | done | Triggers libalpm's cache lookup for the package; may return 0 for a package already in the cache. |
@@ -113,7 +113,7 @@ rediscover, so it is recorded next to the API it constrains.
 | `alpm_option_get/set_sandboxuser` | `AlpmOptions.SandboxUser` | done | Return 1 means `getpwnam` found no such user, not a malformed string. |
 | `alpm_pkg_mtree_open`, `alpm_pkg_mtree_next`, `alpm_pkg_mtree_close` | `PackageBase.GetMtreeEntries`, `TryGetMtree` (internal `PackageMtreeReader`) | done | Reads `<dbpath>/local/<pkg>/mtree`; returns `null` when absent or non-local. `GetMtreeEntries` materializes a detached list and closes the native archive reader before returning, so the handle never escapes. |
 
-## 5. Not wrapped yet (30)
+## 5. Not wrapped yet (28)
 
 Priority follows pacman usage and whether a consumer can work around it.
 
@@ -146,7 +146,6 @@ A consumer building a package manager on `Pacpar.Alpm` has to provide these itse
 
 ## 7. Suggested order for the remaining work
 
-1. MTREE traversal: the only High-tier item left, and the one `pacman -Qkk` cannot do without.
-2. Bulk option setters: cheap, and they remove the most repetitive call patterns.
-3. PGP family: needs an ownership story for the signature list first.
-4. Everything else on demand, with a consumer that needs it.
+1. Bulk option setters: cheap, and they remove the most repetitive call patterns.
+2. PGP family: needs an ownership story for the signature list first.
+3. Everything else on demand, with a consumer that needs it.

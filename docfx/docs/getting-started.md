@@ -4,11 +4,11 @@ This guide walks through initializing `Pacpar.Alpm`, querying package databases,
 
 ## Installation
 
-Add a project reference to `Pacpar.Alpm`:
+Add a package reference to `Pacpar.Alpm`:
 
 ```xml
 <ItemGroup>
-  <ProjectReference Include="Pacpar.Alpm" Version="1.0.0" />
+  <PackageReference Include="Pacpar.Alpm" Version="..." />
 </ItemGroup>
 ```
 
