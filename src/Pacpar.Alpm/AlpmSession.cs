@@ -8,6 +8,9 @@ namespace Pacpar.Alpm;
 [Flags]
 public enum Capability : uint
 {
+  /// <summary>No optional capabilities supported (0).</summary>
+  None = 0,
+
   /// <summary>Localization support (<c>ALPM_CAPABILITY_NLS</c>).</summary>
   Nls = 1 << 0,
 

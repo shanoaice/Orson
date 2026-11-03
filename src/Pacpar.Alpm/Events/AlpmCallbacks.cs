@@ -49,6 +49,9 @@ public enum ProgressType : uint
 [Flags]
 public enum LogLevel : uint
 {
+  /// <summary>No log level flags set (0).</summary>
+  None = 0,
+
   /// <summary>An error message (<c>ALPM_LOG_ERROR</c>).</summary>
   Error = 1,
 

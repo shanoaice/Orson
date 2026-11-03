@@ -15,6 +15,9 @@ namespace Pacpar.Alpm;
 [Flags]
 public enum TransactionFlags : uint
 {
+  /// <summary>No transaction flags set; standard fully-checked mode (0).</summary>
+  None = 0,
+
   /// <summary>Ignore dependency checks (<c>ALPM_TRANS_FLAG_NODEPS</c>).</summary>
   NoDeps = 1,
 

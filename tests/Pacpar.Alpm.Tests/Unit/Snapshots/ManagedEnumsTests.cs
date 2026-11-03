@@ -29,6 +29,19 @@ public sealed class ManagedEnumsTests
   public void ManagedEnum_MatchesTheNativeEnum(Type nativeType, Type managedType)
     => AssertMirrors(nativeType, managedType);
 
+  [Theory]
+  [InlineData(typeof(TransactionFlags))]
+  [InlineData(typeof(DatabaseUsage))]
+  [InlineData(typeof(SigLevel))]
+  [InlineData(typeof(Capability))]
+  [InlineData(typeof(LogLevel))]
+  public void FlagEnums_DefineZeroAsNone(Type flagEnumType)
+  {
+    Assert.True(flagEnumType.IsDefined(typeof(FlagsAttribute), false));
+    Assert.True(Enum.IsDefined(flagEnumType, 0u));
+    Assert.Equal("None", Enum.GetName(flagEnumType, 0u));
+  }
+
   /// <summary>Both enums must cover exactly the same numeric values.</summary>
   private static void AssertMirrors(Type nativeType, Type managedType)
   {
@@ -43,6 +56,11 @@ public sealed class ManagedEnumsTests
     foreach (var managed in Enum.GetValues(managedType))
     {
       var value = Convert.ToUInt32(managed);
+      if (value == 0 && managedType.IsDefined(typeof(FlagsAttribute), false))
+      {
+        continue;
+      }
+
       var native = Enum.ToObject(nativeType, value);
 
       Assert.True(Enum.IsDefined(nativeType, native), $"{nativeType.Name} has no member for {managed} ({value})");

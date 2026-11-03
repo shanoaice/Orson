@@ -10,6 +10,9 @@ namespace Pacpar.Alpm;
 [Flags]
 public enum SigLevel : uint
 {
+  /// <summary>No signature verification; all signature checks are disabled (<c>Never</c> in pacman configuration) (0).</summary>
+  None = 0,
+
   /// <summary>Packages require a signature (<c>ALPM_SIG_PACKAGE</c>).</summary>
   Package = 1,
 

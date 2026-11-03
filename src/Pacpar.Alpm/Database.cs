@@ -11,6 +11,9 @@ namespace Pacpar.Alpm;
 [Flags]
 public enum DatabaseUsage : uint
 {
+  /// <summary>No database operations permitted; all operations disabled (0).</summary>
+  None = 0,
+
   /// <summary>Enable database synchronization (<c>ALPM_DB_USAGE_SYNC</c>).</summary>
   Sync = 1 << 0,
 
