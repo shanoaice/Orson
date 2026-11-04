@@ -4,7 +4,7 @@
 status: accepted
 ---
 
-The generated bindings and the hand-written `SafeHandle` overloads in `Pacpar.Alpm.Bindings` are to
+The generated bindings and the hand-written `SafeHandle` overloads in `Orson.Alpm.Bindings` are to
 become internal, rather than staying public as a namespace documented "unsafe". An escape hatch is
 not a neutral convenience: using it mutates native state that the managed layer cannot observe,
 which breaks the lifetime and ownership invariants the rest of the wrapper is built to maintain, and
@@ -21,7 +21,7 @@ project that may be edited at all.
 `AlpmException.Errno`, and public exception constructors that took `_alpm_errno_t`. The public
 error surface adopts a numeric native code vocabulary, while the internal failure seam adopts
 `AlpmFailureCode` as [ADR 0001](./0001-fsharp-interop-boundary-and-try-seam.md) defines. `PublicApiSurfaceTests`
-guards the `Pacpar.Alpm.Bindings` namespace from external export.
+guards the `Orson.Alpm.Bindings` namespace from external export.
 ## Implementation notes (2026-10-02)
 
 Landed. What the change actually turned out to require:
@@ -41,12 +41,12 @@ Landed. What the change actually turned out to require:
   member of a public class is public API, so it could not keep naming an internal type. It is now an
   explicit `private protected` constructor plus a `private protected` field - constructible by this
   assembly's subclasses, which is all of them.
-- **In-repo tooling kept friend access.** `Pacpar.Alpm.Tests` already had it; `Pacpar.Benchmarks` was
+- **In-repo tooling kept friend access.** `Orson.Alpm.Tests` already had it; `Orson.Benchmarks` was
   added, because its marshalling benchmarks call `alpm_pkg_vercmp` directly on purpose. The ADR's
   "consumers declare their own P/Invoke" reasoning is about consumers; the benchmarks are measuring
   this wrapper's own binding.
 - **The guard test became real.** `PublicApiSurfaceTests` no longer skips the binding namespace, and a
-  new test pins `Pacpar.Alpm.Bindings` as unexported so a libalpm upgrade plus regeneration cannot
+  new test pins `Orson.Alpm.Bindings` as unexported so a libalpm upgrade plus regeneration cannot
   quietly widen the surface again.
 
 Verified: the whole solution builds, and `PublicApiSurfaceTests` guards the boundary.

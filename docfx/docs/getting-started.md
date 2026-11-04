@@ -1,14 +1,14 @@
-# Getting Started with Pacpar.Alpm
+# Getting Started with Orson.Alpm
 
-This guide walks through initializing `Pacpar.Alpm`, querying package databases, and understanding lifetime expectations.
+This guide walks through initializing `Orson.Alpm`, querying package databases, and understanding lifetime expectations.
 
 ## Installation
 
-Add a package reference to `Pacpar.Alpm`:
+Add a package reference to `Orson.Alpm`:
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="Pacpar.Alpm" Version="..." />
+  <PackageReference Include="Orson.Alpm" Version="..." />
 </ItemGroup>
 ```
 
@@ -20,7 +20,7 @@ If you want to read the MTree info of local packages, you will also need libarch
 The primary entry point is the `AlpmSession` class:
 
 ```csharp
-using Pacpar.Alpm;
+using Orson.Alpm;
 
 // Initialize an ALPM handle with the system root and default database path
 using var alpm = new AlpmSession(root: "/", dbpath: "/var/lib/pacman");

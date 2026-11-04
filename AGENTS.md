@@ -12,7 +12,7 @@ Do not assume Rider is always present.
 When Rider MCP is available:
 
 - Use Rider to trigger solution builds and execute run configurations.
-- Use Rider to inspect and navigate F# code in `src/Pacpar.Alpm.FSharp`.
+- Use Rider to inspect and navigate F# code in `src/Orson.Alpm.FSharp`.
 - Use Rider for interactive debugging and dotTrace profiling.
 - Use Rider for solution-wide namespace adjustments and safe deletion.
 

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src\Orson.Alpm.FSharp\Orson.Alpm.FSharp.fsproj" />
+  <Project Path="src\Orson.Alpm\Orson.Alpm.csproj" />
+  <Project Path="src\Orson.Benchmarks\Orson.Benchmarks.csproj" />
+  <Project Path="tests\Orson.Alpm.Tests\Orson.Alpm.Tests.csproj" />
+</Solution>

@@ -1,0 +1,164 @@
+namespace Orson.Alpm;
+
+/// <summary>
+/// A detached copy of the metadata a <see cref="Package" /> reads, made by
+/// <see cref="Package.ToSnapshot" />.
+/// </summary>
+/// <remarks>
+/// A <see cref="PackageView" /> is a view over memory libalpm owns, so it stops being safe to read as soon as the
+/// database, transaction or handle behind it goes away - from that point on it throws <see cref="AlpmLifetimeException" />
+/// instead of returning data. A snapshot copies every value out when it is constructed and keeps no native pointer at all:
+/// it stays readable after the owning database is unregistered, after the handle is released, and while a transaction
+/// commits.
+/// <para>
+/// Creating a snapshot eagerly reads all package metadata from disk or database caches, which is substantially more
+/// expensive than iterating a lazy <see cref="PackageView" />. Callers should iterate views by default and snapshot only
+/// packages that must outlive the originating database or transaction.
+/// </para>
+/// <para>
+/// Values are captured once. The fields libalpm mutates - <see cref="Reason" />, <see cref="InstallDate" /> and
+/// <see cref="Validation" /> - are frozen at the moment of the copy, which is the point of a snapshot, but two snapshots
+/// taken at different times can therefore disagree.
+/// </para>
+/// <para>
+/// The file list is the one optional part: it is by far the most expensive thing to copy, so it is read only when
+/// <c>includeFiles</c> asks for it and is <c>null</c> otherwise.
+/// </para>
+/// </remarks>
+public sealed class PackageSnapshot
+{
+  /// <summary>
+  /// Copies <paramref name="package" />; when <paramref name="includeFiles" /> is set, the file list is copied too.
+  /// Prefer <see cref="Package.ToSnapshot" />.
+  /// </summary>
+  public PackageSnapshot(Package package, bool includeFiles = false)
+  {
+    ArgumentNullException.ThrowIfNull(package);
+
+    Name = package.Name;
+    Version = package.Version;
+    Filename = package.Filename;
+    Base = package.Base;
+    Description = package.Description;
+    Url = package.Url;
+    BuildDate = package.BuildDate;
+    InstallDate = package.InstallDate;
+    Packager = package.Packager;
+    Md5Sum = package.Md5Sum;
+    Sha256Sum = package.Sha256Sum;
+    Arch = package.Architecture;
+    Size = package.Size;
+    InstalledSize = package.InstalledSize;
+    Origin = package.Origin;
+    Reason = package.Reason;
+    Validation = package.Validation;
+    Licenses = [.. package.Licenses];
+    Groups = [.. package.Groups];
+    Depends = [.. package.Depends];
+    OptionalDepends = [.. package.OptionalDepends];
+    Conflicts = [.. package.Conflicts];
+    Provides = [.. package.Provides];
+    Replaces = [.. package.Replaces];
+    BackupFiles = [.. package.BackupFiles];
+    CheckDepends = [.. package.CheckDepends];
+    MakeDepends = [.. package.MakeDepends];
+    DownloadSize = package.DownloadSize;
+    HasScriptlet = package.HasScriptlet;
+    Base64Signature = package.Base64Signature;
+
+    if (includeFiles) Files = [.. package.Files];
+  }
+
+  /// <summary>Gets the package name.</summary>
+  public string Name { get; }
+
+  /// <summary>Gets the package version.</summary>
+  public PackageVersion Version { get; }
+
+  /// <summary>Gets the filename of the package archive, or <c>null</c> if not applicable.</summary>
+  public string? Filename { get; }
+
+  /// <summary>Gets the package base name, or <c>null</c> if none was specified.</summary>
+  public string? Base { get; }
+
+  /// <summary>Gets the description of the package, or <c>null</c> if none was provided.</summary>
+  public string? Description { get; }
+
+  /// <summary>Gets the home page URL of the package, or <c>null</c> if not specified.</summary>
+  public string? Url { get; }
+
+  /// <summary>Gets the date and time when the package was built.</summary>
+  public DateTimeOffset BuildDate { get; }
+
+  /// <summary>When the package was installed, or <c>null</c> when it is not installed.</summary>
+  public DateTimeOffset? InstallDate { get; }
+
+  /// <summary>Gets the name and contact information of the packager, or <c>null</c> if not specified.</summary>
+  public string? Packager { get; }
+
+  /// <summary>Gets the MD5 checksum of the package, or <c>null</c> if none is recorded.</summary>
+  public string? Md5Sum { get; }
+
+  /// <summary>Gets the SHA-256 checksum of the package, or <c>null</c> if none is recorded.</summary>
+  public string? Sha256Sum { get; }
+
+  /// <summary>Gets the target architecture of the package, or <c>null</c> if not specified.</summary>
+  public string? Arch { get; }
+
+  /// <summary>The package size in bytes, as libalpm reports it.</summary>
+  public long Size { get; }
+
+  /// <summary>The installed size in bytes, as libalpm reports it.</summary>
+  public long InstalledSize { get; }
+
+  /// <summary>Gets the source or origin of the package.</summary>
+  public PackageOrigin Origin { get; }
+
+  /// <summary>Why the package is installed; frozen at the moment of the copy.</summary>
+  public PackageReason Reason { get; }
+
+  /// <summary>Which validations libalpm had performed; frozen at the moment of the copy.</summary>
+  public PackageValidation Validation { get; }
+
+  /// <summary>Gets the list of software licenses covering the package.</summary>
+  public IReadOnlyList<string> Licenses { get; }
+
+  /// <summary>Gets the list of package groups this package belongs to.</summary>
+  public IReadOnlyList<string> Groups { get; }
+
+  /// <summary>Gets the list of mandatory package dependencies.</summary>
+  public IReadOnlyList<Dependency> Depends { get; }
+
+  /// <summary>Gets the list of optional package dependencies.</summary>
+  public IReadOnlyList<Dependency> OptionalDepends { get; }
+
+  /// <summary>Gets the list of packages that conflict with this package.</summary>
+  public IReadOnlyList<Dependency> Conflicts { get; }
+
+  /// <summary>Gets the list of virtual provisions supplied by this package.</summary>
+  public IReadOnlyList<Dependency> Provides { get; }
+
+  /// <summary>Gets the list of packages this package replaces.</summary>
+  public IReadOnlyList<Dependency> Replaces { get; }
+
+  /// <summary>The copied backup-file entries, frozen at the moment of the copy.</summary>
+  public IReadOnlyList<BackupEntry> BackupFiles { get; }
+
+  /// <summary>Gets the list of dependencies required only to run the test suite when building.</summary>
+  public IReadOnlyList<Dependency> CheckDepends { get; }
+
+  /// <summary>Gets the list of dependencies required only to build the package from source.</summary>
+  public IReadOnlyList<Dependency> MakeDepends { get; }
+
+  /// <summary>Gets the estimated or calculated download size of the package in bytes.</summary>
+  public long DownloadSize { get; }
+
+  /// <summary>Gets a value indicating whether the package contains an install or upgrade scriptlet.</summary>
+  public bool HasScriptlet { get; }
+
+  /// <summary>Gets the base64-encoded PGP signature of the package, or <c>null</c> if none is present.</summary>
+  public string? Base64Signature { get; }
+
+  /// <summary>The copied file list, or <c>null</c> when the snapshot was taken without it.</summary>
+  public IReadOnlyList<PackageFile>? Files { get; }
+}

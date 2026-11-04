@@ -1,8 +1,8 @@
-# Pacpar.CLI Considerations: a pacman-shaped CLI with a RazorConsole UI
+# Orson.CLI Considerations: a pacman-shaped CLI with a RazorConsole UI
 
 > **Date:** October 2026
-> **Scope:** What to consider building in `Pacpar.CLI`, and what the underlying layers
-> (`Pacpar.Alpm`, `Pacpar.Alpm.FSharp`, `RazorConsole.Elmish`) should guarantee so those
+> **Scope:** What to consider building in `Orson.CLI`, and what the underlying layers
+> (`Orson.Alpm`, `Orson.Alpm.FSharp`, `RazorConsole.Elmish`) should guarantee so those
 > affordances are reachable when the CLI is built.
 > **Evidence base:** oma 1.28.0's interface (analysed in the oma repo at
 > `docs/arch-driver-ui-analysis.md`), Arch ecosystem research from primary sources
@@ -14,7 +14,7 @@
 
 ## 1. Executive summary
 
-Keep the CLI grammar strictly pacman-shaped — `pacpar <operation> [options] [targets]`
+Keep the CLI grammar strictly pacman-shaped — `orson <operation> [options] [targets]`
 with pacman's operations (`-S`, `-R`, `-Q`, `-U`, `-F`, `-D`, `-T`) and pacman's option
 letters with pacman's semantics. Everything that makes the tool friendlier than pacman
 should live *inside* the flows that grammar already has, not beside it as a second
@@ -37,7 +37,7 @@ has the widgets for all three:
    with a scrollable preview (partitioned tables, colored version diffs, size deltas) and
    in-surface confirm. This is oma's strongest idea and maps directly onto the F# layer's
    existing `PreparedTransaction` / `TransactionSummary` design
-   (`src/Pacpar.Alpm.FSharp/DESIGN.md:27-77`).
+   (`src/Orson.Alpm.FSharp/DESIGN.md:27-77`).
 2. **Pickers** — provider/group/version selection rendered as `Select<T>` menus instead of
    bare numbered prompts, while still accepting pacman's numeric answers.
 3. **The AUR review queue** — the one place where "TUI-ish" is not decoration but the
@@ -82,7 +82,7 @@ feature checklists.
 ### 3.1 Grammar
 
 ```bash
-pacpar <operation> [options] [targets]
+orson <operation> [options] [targets]
 ```
 
 Operations follow pacman: `-S` (sync), `-R` (remove), `-Q` (query), `-U` (upgrade
@@ -124,7 +124,7 @@ Two parity details that are easy to lose in a TUI refresh:
 ### 3.3 One open decision: bare invocation
 
 pacman prints usage on bare invocation; yay/paru run `-Syu`. This is a positioning choice:
-if Pacpar.CLI is a pacman replacement, print usage (shape purity); if it is positioned as
+if Orson.CLI is a pacman replacement, print usage (shape purity); if it is positioned as
 a helper, bare = full upgrade matches user expectation. The oma choice — bare launches a
 full TUI — is the one to *not* copy here; it contradicts both conventions.
 
@@ -144,7 +144,7 @@ Replace `:: Proceed with installation? [Y/n]` with a review surface:
   old→new version diffs colored per segment, per-package size deltas, and a summary line
   (total download size, net disk change). oma's diff presentation (`src/table.rs:520-695`)
   is the reference; the data comes free from `Transaction.GetAddedPackages()` /
-  `GetRemovedPackages()` (`src/Pacpar.Alpm/Transaction.cs:263-287`) plus local-DB
+  `GetRemovedPackages()` (`src/Orson.Alpm/Transaction.cs:263-287`) plus local-DB
   correlation for old versions/sizes.
 - RazorConsole composition: `Panel` (title "Pending changes") + `SpectreTable` sections +
   `Markup` styled spans for diffs + `ViewHeightScrollable` for long transactions + a bottom
@@ -161,13 +161,13 @@ Replace `:: Proceed with installation? [Y/n]` with a review surface:
 
 The model for this surface already exists in the F# design: `PreparedTransaction` exposes
 a pure `TransactionSummary` while holding `db.lck`, then user confirmation, then
-`Transaction.commit` (`src/Pacpar.Alpm.FSharp/DESIGN.md:27-77`). The review surface *is*
+`Transaction.commit` (`src/Orson.Alpm.FSharp/DESIGN.md:27-77`). The review surface *is*
 the UI for that phase — worth keeping the summary type wide enough to render it (see §5.2).
 
 ### 4.2 Pickers
 
 Provider selection (the `AlpmQuestion.SelectProvider` callback,
-`src/Pacpar.Alpm/Events/AlpmQuestion.cs`), group selection, and multi-version selection
+`src/Orson.Alpm/Events/AlpmQuestion.cs`), group selection, and multi-version selection
 are today bare numbered prompts in pacman. Render them as `Select<T>` menus
 (RazorConsole.Core `Select<T>`: focusable list, keyboard navigation, formatter), and
 extend to `oma pick`-style version browsing when both repo and archive versions exist.
@@ -206,7 +206,7 @@ the line-mode fallback is the same typed phrase via stdin.
 
 - The F# event architecture is already shaped for this: `EventSink.toChannel` splits
   critical lifecycle events (unbounded) from progress (bounded, conflating, capacity-1)
-  (`src/Pacpar.Alpm.FSharp/DESIGN.md:162-235`). That conflating channel is exactly the
+  (`src/Orson.Alpm.FSharp/DESIGN.md:162-235`). That conflating channel is exactly the
   backpressure a terminal renderer needs.
 - RazorConsole.Core has **no progress/multi-progress widget** (only `BarChart` and
   `Spinner`). Options: compose progress from styled `Markup` bars inside
@@ -234,11 +234,11 @@ stdout-first keeps the shape honest. `--print-format` remains the machine interf
 These are the contracts that decide whether §4 is cheap or expensive when the CLI is
 built.
 
-### 5.1 `Pacpar.Alpm` (C# binding)
+### 5.1 `Orson.Alpm` (C# binding)
 
 The survey confirms the hard parts are done: transactions
-(`src/Pacpar.Alpm/Transaction.cs:20-335`), callbacks including question-answer mutation
-(`src/Pacpar.Alpm/Events/AlpmCallbacks.cs:115-440`, `AlpmQuestion.cs:89-296`), packages and
+(`src/Orson.Alpm/Transaction.cs:20-335`), callbacks including question-answer mutation
+(`src/Orson.Alpm/Events/AlpmCallbacks.cs:115-440`, `AlpmQuestion.cs:89-296`), packages and
 file lists. The gaps that directly gate the CLI's flows (fuller list in the repo survey
 and `reports/repo-audit-report-cycle1.md`):
 
@@ -250,7 +250,7 @@ and `reports/repo-audit-report-cycle1.md`):
 6. `alpm_pkg_get_db` on `PackageView` — the review surface shows `extra/ripgrep`-style origins; without this the CLI must track origins by hand.
 7. Defect **L-06** (`AlpmEvent.cs:114-115, 132-133`) — null native package pointers in `PackageOperation*` events will SIGSEGV the very event stream the progress UI subscribes to. This is on the UI's critical path.
 
-### 5.2 `Pacpar.Alpm.FSharp` (F# surface)
+### 5.2 `Orson.Alpm.FSharp` (F# surface)
 
 - Keep `TransactionSummary` rich enough to render §4.1 without re-querying libalpm:
   operation kind per package, old/new version strings, download size, installed-size
@@ -296,7 +296,7 @@ None of this lives in libalpm; it is a layer beside it. The pieces (from the rep
 5. **Privilege-separated `makepkg` runner** — unprivileged build (wiki requirement),
    escalation only for the final `pacman -U` equivalent (i.e. `Transaction.AddPackage(loaded)` +
    `Commit`), `--sudoloop`-style behavior for long builds.
-6. **Artifact ingestion** — `Alpm.LoadPackage` (`src/Pacpar.Alpm/Alpm.cs:208`) +
+6. **Artifact ingestion** — `Alpm.LoadPackage` (`src/Orson.Alpm/Alpm.cs:208`) +
    `Transaction.AddPackage` (`Transaction.cs:174`) are already bound; a batch-ingest
    helper for split packages completes the path.
 
@@ -358,5 +358,5 @@ implemented late: it needs a state file and touches the `-Qu` code path.
 - RazorConsole: `RazorConsole.Elmish` repo `docs/research/elmish_razorconsole_architecture.md`,
   `docs/research/implementation_guide.md`; widget facts from RazorConsole.Core 0.6.0 XML docs
   (NuGet package).
-- Pacpar: cited inline (`src/Pacpar.Alpm/…`, `src/Pacpar.Alpm.FSharp/DESIGN.md`,
-  `src/Pacpar.Alpm.Tests/Pending/`, `reports/repo-audit-report-cycle1.md`).
+- Orson: cited inline (`src/Orson.Alpm/…`, `src/Orson.Alpm.FSharp/DESIGN.md`,
+  `tests/Orson.Alpm.Tests/Pending/`, `reports/repo-audit-report-cycle1.md`).

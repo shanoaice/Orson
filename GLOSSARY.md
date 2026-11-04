@@ -1,6 +1,6 @@
-# Pacpar
+# Orson
 
-Pacpar wraps libalpm for .NET and adds a functional-first F# surface over the same native library.
+Orson wraps libalpm for .NET and adds a functional-first F# surface over the same native library.
 
 ## Language
 

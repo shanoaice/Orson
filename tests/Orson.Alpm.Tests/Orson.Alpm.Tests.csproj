@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Orson.Alpm.Tests</RootNamespace>
+  </PropertyGroup>
+
+
+  <!--
+    The va_list forwarding test needs a C caller: C# cannot materialise a va_list, so
+    native/orson_log_shim_test.c plays the role of libalpm firing alpm_cb_log. This stays in the
+    test project on purpose: the library itself ships no native artifact, because it expands the
+    va_list with libc's vasprintf (see LogMessageFormatter).
+  -->
+  <PropertyGroup>
+    <OrsonTestNativeSource>$(MSBuildThisFileDirectory)native/orson_log_shim_test.c</OrsonTestNativeSource>
+    <OrsonTestNativeCc Condition="'$(OrsonTestNativeCc)' == ''">$(CC)</OrsonTestNativeCc>
+    <OrsonTestNativeCc Condition="'$(OrsonTestNativeCc)' == ''">cc</OrsonTestNativeCc>
+    <!--
+      BaseIntermediateOutputPath, not IntermediateOutputPath: both are read during evaluation, and
+      IntermediateOutputPath is only defined by the SDK targets at the bottom of the project, so
+      reading it here yields an empty string and writes the .so into the source tree. The value
+      stays relative so MSBuild and Exec resolve it against the project directory, and the
+      backslash is replaced because BaseIntermediateOutputPath is "obj\" on some hosts even on Unix.
+    -->
+    <OrsonTestNativeOutDir>$(BaseIntermediateOutputPath.Replace('\', '/'))native/</OrsonTestNativeOutDir>
+    <OrsonTestNativeOutput>$(OrsonTestNativeOutDir)liborson_log_shim_test.so</OrsonTestNativeOutput>
+  </PropertyGroup>
+
+  <Target Name="CompileTestNative"
+          Inputs="$(OrsonTestNativeSource)"
+          Outputs="$(OrsonTestNativeOutput)">
+    <MakeDir Directories="$(OrsonTestNativeOutDir)"/>
+    <Exec Command="&quot;$(OrsonTestNativeCc)&quot; -shared -O2 -Wall -Wextra -fPIC -fvisibility=hidden -o &quot;$(OrsonTestNativeOutput)&quot; &quot;$(OrsonTestNativeSource)&quot;"/>
+  </Target>
+
+  <!--
+    Separate target because a target that is up to date is skipped whole, ItemGroup included; and
+    before AssignTargetPaths because that is what turns the Link into a TargetPath in the output.
+  -->
+  <Target Name="IncludeTestNative"
+          BeforeTargets="AssignTargetPaths"
+          DependsOnTargets="CompileTestNative">
+    <ItemGroup Condition="Exists('$(OrsonTestNativeOutput)')">
+      <None Include="$(OrsonTestNativeOutput)"
+            Link="liborson_log_shim_test.so"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"/>
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.MTP" />
+    <PackageReference Include="xunit.v3.mtp-v2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Orson.Alpm\Orson.Alpm.csproj" />
+  </ItemGroup>
+
+</Project>

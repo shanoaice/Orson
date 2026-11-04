@@ -1,0 +1,98 @@
+using System.Runtime.InteropServices;
+using Orson.Alpm.Bindings;
+using Orson.Alpm.Tests.Fixtures;
+
+namespace Orson.Alpm.Tests.Unit.Snapshots;
+
+/// <summary>
+/// The question payload borrows package views under the callback frame's lifetime. These tests verify reading
+/// package properties within the frame, invalidation when the frame completes, and that explicit ToSnapshot() captures an
+/// independent copy that outlives the package.
+/// </summary>
+public sealed unsafe class QuestionPayloadDetailTests : IDisposable
+{
+  private readonly IsolatedAlpmEnvironment _environment = new();
+
+  public void Dispose() => _environment.Dispose();
+
+  private string PackageDirectory => _environment.PackageDirectory;
+
+  private static AlpmQuestion.InstallIgnoredPackage QuestionFor(
+    _alpm_pkg_t* package, ChildLifetime? lifetime = null)
+  {
+    var native = (_alpm_question_t*)NativeMemory.AllocZeroed((nuint)sizeof(_alpm_question_t));
+
+    try
+    {
+      native->type_ = _alpm_question_type_t.ALPM_QUESTION_INSTALL_IGNOREPKG;
+      native->install_ignorepkg.install = 1;
+      native->install_ignorepkg.pkg = package;
+
+      return Assert.IsType<AlpmQuestion.InstallIgnoredPackage>(
+        AlpmQuestion.FromUnion(native, lifetime));
+    }
+    finally
+    {
+      NativeMemory.Free((void*)(nint)native);
+    }
+  }
+
+  [Fact]
+  public void Payload_ReadsPackagePropertiesWithinTheCallbackFrame()
+  {
+    using var pkg = Load("orson-payload-default", file: "usr/bin/probe");
+    var frameLifetime = _environment.AlpmSession.RootLifetime.CreateChild("test frame");
+
+    var question = QuestionFor(pkg.BackingStruct, frameLifetime);
+
+    Assert.Equal("orson-payload-default", question.Package.Name);
+    Assert.NotNull(question.Package.Files);
+    Assert.Contains(question.Package.Files, file => file.Name == "usr/bin/probe");
+  }
+
+  [Fact]
+  public void Payload_DiesWhenCallbackFrameCompletes()
+  {
+    using var pkg = Load("orson-payload-frame-dies", file: "usr/bin/probe");
+    var frameLifetime = _environment.AlpmSession.RootLifetime.CreateChild("test frame");
+
+    var question = QuestionFor(pkg.BackingStruct, frameLifetime);
+    Assert.Equal("orson-payload-frame-dies", question.Package.Name);
+
+    // Frame ends
+    frameLifetime.Invalidate("test frame completed");
+
+    // Reading package or modifying answer now throws AlpmLifetimeException
+    Assert.Throws<AlpmLifetimeException>(() => question.Package.Name);
+    Assert.Throws<AlpmLifetimeException>(() => question.Install = false);
+  }
+
+  [Fact]
+  public void ExplicitSnapshot_OutlivesThePackageAndTheFrame()
+  {
+    PackageSnapshot snapshot;
+    var frameLifetime = _environment.AlpmSession.RootLifetime.CreateChild("test frame");
+
+    using (var pkg = Load("orson-payload-detached", file: "usr/bin/probe"))
+    {
+      var question = QuestionFor(pkg.BackingStruct, frameLifetime);
+      snapshot = question.Package.ToSnapshot(includeFiles: true);
+      Assert.Equal("orson-payload-detached", snapshot.Name);
+    }
+
+    // Invalidate frame
+    frameLifetime.Invalidate("test frame completed");
+
+    // The explicit snapshot stays valid independently of native memory and frame lifetime
+    Assert.Equal("orson-payload-detached", snapshot.Name);
+    Assert.Equal(PackageArchive.Version, snapshot.Version.ToString());
+    Assert.NotNull(snapshot.Files);
+    Assert.Contains(snapshot.Files, file => file.Name == "usr/bin/probe");
+  }
+
+  private LoadedPackage Load(string name, string file)
+    => _environment.AlpmSession.LoadPackage(
+      PackageArchive.Create(PackageDirectory, new PackageSpec(name) { File = file }),
+      full: true,
+      SigLevel.UseDefault);
+}

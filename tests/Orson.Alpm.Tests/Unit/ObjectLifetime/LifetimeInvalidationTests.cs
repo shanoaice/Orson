@@ -1,0 +1,220 @@
+using Orson.Alpm.Tests.Fixtures;
+
+namespace Orson.Alpm.Tests.Unit.ObjectLifetime;
+
+/// <summary>
+/// End-to-end coverage of the invalidation sites the lifetime-token design specifies: releasing a loaded package,
+/// disposing the handle, and committing a transaction must retire exactly the views issued under the affected token, and
+/// every later read must answer <see cref="AlpmLifetimeException" /> instead of touching freed memory.
+/// </summary>
+/// <remarks>
+/// Every test runs against an isolated throwaway root/dbpath (see <see cref="IsolatedAlpmEnvironment" />), so no
+/// project container and no system database are involved.
+/// </remarks>
+public sealed class LifetimeInvalidationTests : IDisposable
+{
+  private readonly IsolatedAlpmEnvironment _environment = new();
+
+  public void Dispose() => _environment.Dispose();
+
+  private string PackageDirectory => _environment.PackageDirectory;
+
+  private string Archive(string name, string? depend = null)
+    => depend == null
+      ? PackageArchive.Create(PackageDirectory, name)
+      : PackageArchive.Create(PackageDirectory, new PackageSpec(name) { Depend = depend });
+
+  private void Install(string name, string? depend = null)
+  {
+    using var transaction = _environment.AlpmSession.BeginTransaction();
+    transaction.AddPackage(_environment.AlpmSession.LoadPackage(Archive(name, depend),
+      full: true, SigLevel.UseDefault));
+    transaction.Prepare();
+    transaction.Commit();
+  }
+
+  [Fact]
+  public void LoadedPackageDispose_InvalidatesTheViewsItIssued()
+  {
+    var pkg = _environment.AlpmSession.LoadPackage(Archive("orson-lifetime-dep", depend: "glibc"),
+      full: true, SigLevel.UseDefault);
+
+    var depends = pkg.Depends;
+    var copied = depends.ToArray();
+    Assert.Equal("glibc", copied[0].Name);
+
+    pkg.Dispose();
+
+    // The wrapper itself reports retirement through ObjectDisposedException (its flag wins)...
+    Assert.Throws<ObjectDisposedException>(() => pkg.Name);
+
+    // ...while the borrowed list, which carries the package's root token, reports the release
+    // through AlpmLifetimeException instead of reading the freed dependency list.
+    var thrown = Assert.Throws<AlpmLifetimeException>(depends.ToArray);
+    Assert.Equal("a loaded package", thrown.Target);
+    Assert.Equal("LoadedPackage.Dispose()", thrown.InvalidatedBy);
+
+    // The materialized Depend snapshots are detached copies and outlive the package.
+    Assert.Equal("glibc", copied[0].Name);
+  }
+
+  [Fact]
+  public void HandOver_InvalidatesTheWrapperAndTheReturnedViewCarriesTheTransaction()
+  {
+    var pkg = _environment.AlpmSession.LoadPackage(Archive("orson-lifetime-handoff"),
+      full: true, SigLevel.UseDefault);
+
+    using var transaction = _environment.AlpmSession.BeginTransaction();
+    var view = transaction.AddPackage(pkg);
+
+    Assert.Equal("orson-lifetime-handoff", view.Name);
+
+    // The wrapper is inert with the hand-over's own reason...
+    Assert.False(pkg.OwnsPackage);
+    Assert.Throws<ObjectDisposedException>(() => pkg.Name);
+
+    // ...and the view handed back is now guarded by the transaction: releasing the transaction
+    // (done by the using above on method exit) retires it through the parent chain as well.
+    transaction.Prepare();
+    transaction.Commit();
+  }
+
+  [Fact]
+  public void HandleDispose_InvalidatesLocalDatabaseViews()
+  {
+    var cache = _environment.AlpmSession.GetLocalDatabase().LoadPackageCache();
+
+    _environment.AlpmSession.Dispose();
+
+    var thrown = Assert.Throws<AlpmLifetimeException>(() =>
+    {
+      foreach (var _ in cache)
+      {
+      }
+    });
+    Assert.Equal("the ALPM handle", thrown.Target);
+    Assert.Equal("AlpmSession.Dispose()", thrown.InvalidatedBy);
+
+    // The token chain also guards ToArray on a stale-but-empty list (null native pointer).
+    Assert.Throws<AlpmLifetimeException>(cache.ToArray);
+  }
+
+  [Fact]
+  public void Commit_RetiresTheLocalDatabaseViewsHeldAcrossIt()
+  {
+    Install("orson-lifetime-first");
+
+    // A view obtained after the first commit, under the fresh token that commit issued.
+    var localDb = _environment.AlpmSession.GetLocalDatabase();
+    var held = localDb.GetPackage("orson-lifetime-first");
+    Assert.NotNull(held);
+    Assert.Equal("orson-lifetime-first", held.Name);
+
+    // The second commit rewrites the local database caches again.
+    Install("orson-lifetime-second");
+
+    // The view held across the commit now reports the commit as its executioner...
+    var thrown = Assert.Throws<AlpmLifetimeException>(() => held.Name);
+    Assert.Equal("the local database", thrown.Target);
+    Assert.Equal("Transaction.Commit()", thrown.InvalidatedBy);
+
+    // ...as does the Database wrapper issued before the commit (same retired token)...
+    Assert.Throws<AlpmLifetimeException>(() => localDb.Name);
+    Assert.Throws<AlpmLifetimeException>(() => localDb.GetPackage("orson-lifetime-first"));
+
+    // ...while a fresh GetLocalDatabase() starts over with a new token and answers normally.
+    var fresh = _environment.AlpmSession.GetLocalDatabase();
+    var reissued = fresh.GetPackage("orson-lifetime-first");
+    Assert.NotNull(reissued);
+    Assert.Equal("orson-lifetime-first", reissued.Name);
+  }
+
+  [Fact]
+  public void SyncDatabaseUnregister_Succeeds_AndRetiresTheRetainedSyncDatabaseList()
+  {
+    var core = _environment.AlpmSession.RegisterSyncDatabase("core", SigLevel.UseDefault);
+    var retained = _environment.AlpmSession.GetSyncDatabases();
+    Assert.Single([.. retained]);
+
+    // Unregister used to throw here, after alpm_db_unregister had already succeeded: the registry
+    // clean-up read the validated pointer after the domain was invalidated, so the root bump below
+    // it never ran and the retained list went on walking a freed node.
+    core.Unregister();
+
+    Assert.Throws<AlpmLifetimeException>(() => core.Name);
+
+    // The list view is stamped with the session, so it dies with the node the unregister freed.
+    var thrown = Assert.Throws<AlpmLifetimeException>(retained.ToArray);
+    Assert.Equal("the ALPM handle", thrown.Target);
+    Assert.Equal("Database.Unregister()", thrown.InvalidatedBy);
+  }
+
+  [Fact]
+  public void LocalDatabaseUnregister_ThrowsInvalidOperationException()
+  {
+    var localDb = _environment.AlpmSession.GetLocalDatabase();
+    Assert.Throws<InvalidOperationException>(localDb.Unregister);
+  }
+
+  [Fact]
+  public void UnregisterAllSyncDatabases_RetiresTheRetainedSyncDatabaseList()
+  {
+    _ = _environment.AlpmSession.RegisterSyncDatabase("core", SigLevel.UseDefault);
+    _ = _environment.AlpmSession.RegisterSyncDatabase("extra", SigLevel.UseDefault);
+    var retained = _environment.AlpmSession.GetSyncDatabases();
+    Assert.Equal(2, retained.ToArray().Length);
+
+    _environment.AlpmSession.UnregisterAllSyncDatabases();
+
+    Assert.Throws<AlpmLifetimeException>(retained.ToArray);
+  }
+
+  [Fact]
+  public void Enumerator_AdvancedPastInvalidation_ThrowsInsteadOfWalkingFreedNodes()
+  {
+    Install("orson-lifetime-enumerator");
+
+    // Taken after the commit, so the cache view carries a live token.
+    var cache = _environment.AlpmSession.GetLocalDatabase().LoadPackageCache();
+
+    using var enumerator = cache.GetEnumerator();
+    Assert.True(enumerator.MoveNext());
+
+    // Materialize one element, so the enumerator now holds a native node to advance from.
+    Assert.False(string.IsNullOrEmpty(enumerator.Current.Name));
+
+    _environment.AlpmSession.Dispose();
+
+    // Advancing dereferences the freed node's next pointer. Only Current re-validated the token, so
+    // without a check in MoveNext this would end the loop silently instead of throwing.
+    Assert.Throws<AlpmLifetimeException>(() => enumerator.MoveNext());
+  }
+
+  [Fact]
+  public void FindGroupPackages_AcrossDatabases_InvalidatesUnregisteredDatabaseMembers()
+  {
+    var dbpath = _environment.AlpmSession.Options.DatabasePath;
+    PackageArchive.CreateSyncDatabase(dbpath, "repo-a", "pkg-a", "shared-group");
+    PackageArchive.CreateSyncDatabase(dbpath, "repo-b", "pkg-b", "shared-group");
+
+    var dbA = _environment.AlpmSession.RegisterSyncDatabase("repo-a", SigLevel.UseDefault);
+    var dbB = _environment.AlpmSession.RegisterSyncDatabase("repo-b", SigLevel.UseDefault);
+
+    var group = dbA.GetGroup("shared-group");
+    Assert.NotNull(group);
+
+    var syncDbs = _environment.AlpmSession.GetSyncDatabases();
+    var packages = group.FindPackages(syncDbs);
+    Assert.Equal(2, packages.Count);
+
+    var pkgA = packages.First(p => p.Name == "pkg-a");
+    var pkgB = packages.First(p => p.Name == "pkg-b");
+    Assert.Equal("pkg-a", pkgA.Name);
+    Assert.Equal("pkg-b", pkgB.Name);
+
+    // Unregister repo-b: pkg-b's child domain is invalidated
+    dbB.Unregister();
+
+    Assert.Throws<AlpmLifetimeException>(() => pkgB.Name);
+  }
+}

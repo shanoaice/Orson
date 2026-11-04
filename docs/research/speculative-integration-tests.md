@@ -1,13 +1,13 @@
 # Speculative Integration Test Plan: Real-World Libalpm & Arch Linux Repository Workflows
 
 > **Document Status**: Architectural Specification & Proposal  
-> **Related Components**: `Pacpar.Alpm`, `containers/alpm-tests`, `src/Pacpar.Alpm.Tests`
+> **Related Components**: `Orson.Alpm`, `containers/alpm-tests`, `tests/Orson.Alpm.Tests`
 
 ---
 
 ## 1. Executive Summary & Purpose
 
-During the test suite audit of `Pacpar.Alpm`, existing integration tests (`Integration/AlpmInitializationTests.cs` and `Integration/NativeMethodsSmokeTests.cs`) were identified as redundant with unit tests and purged. They performed zero privileged operations, verified no system state, and tested no package interactions that could not be run hermetically on a host machine using temporary directory redirection (`IsolatedAlpmEnvironment`).
+During the test suite audit of `Orson.Alpm`, existing integration tests (`Integration/AlpmInitializationTests.cs` and `Integration/NativeMethodsSmokeTests.cs`) were identified as redundant with unit tests and purged. They performed zero privileged operations, verified no system state, and tested no package interactions that could not be run hermetically on a host machine using temporary directory redirection (`IsolatedAlpmEnvironment`).
 
 However, **genuine integration testing remains essential for libalpm wrappers**. Libalpm is not merely a file parser; it is a full package manager engine whose real-world correctness depends on:
 
@@ -37,7 +37,7 @@ To maintain fast developer feedback loops and absolute host safety, tests must b
 
 ### Scenario 1: Sync Database Synchronization & PGP Signature Verification
 
-- **Objective**: Verify that `Pacpar.Alpm` correctly synchronizes remote sync databases (`core.db.tar.gz`, `extra.db.tar.gz`), exposes server lists, and enforces PGP signature verification policies.
+- **Objective**: Verify that `Orson.Alpm` correctly synchronizes remote sync databases (`core.db.tar.gz`, `extra.db.tar.gz`), exposes server lists, and enforces PGP signature verification policies.
 - **Why Container is Required**:
   - GnuPG operations require an initialized, populated pacman keyring (`/etc/pacman.d/gnupg`).
   - Corrupting or modifying keyring trust levels on a host machine can break host package management.

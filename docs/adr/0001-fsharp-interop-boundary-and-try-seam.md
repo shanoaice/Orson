@@ -4,7 +4,7 @@
 status: accepted
 ---
 
-`Pacpar.Alpm.FSharp` builds on top of `Pacpar.Alpm` rather than declaring its own P/Invoke layer.
+`Orson.Alpm.FSharp` builds on top of `Orson.Alpm` rather than declaring its own P/Invoke layer.
 The C# layer centralizes the native ABI, lifetime tracking, and memory management.
 The F# layer owns language ergonomics and error presentation.
 The internal bridge between assemblies is an allocation-free `Try*` seam.
@@ -13,7 +13,7 @@ F# operations call the seam directly and map failures to operation-specific disc
 
 ## 1. Assembly Boundary and Friend Access
 
-`Pacpar.Alpm.FSharp` accesses the internal C# core through `[InternalsVisibleTo("Pacpar.Alpm.FSharp")]`.
+`Orson.Alpm.FSharp` accesses the internal C# core through `[InternalsVisibleTo("Orson.Alpm.FSharp")]`.
 Both assemblies ship together.
 We rejected a separate contract assembly or a public C# `Try*` API:
 a public `Try*` API doubles the public surface before C# users request it.

@@ -1,0 +1,54 @@
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <SupportedOSPlatform>linux</SupportedOSPlatform>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- GenerateBindings runs cargo build -p libalpm-sys-cs to regenerate C# bindings.
+         Disabled by default for fast, toolchain-free local builds; enabled automatically
+         when running under CI or when explicitly requested via -p:GenerateBindings=true. -->
+    <GenerateBindings Condition="'$(GenerateBindings)' == '' and '$(CI)' == 'true'">true</GenerateBindings>
+    <GenerateBindings Condition="'$(GenerateBindings)' == ''">false</GenerateBindings>
+    <RootNamespace>Orson.Alpm</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageId>Orson.Alpm</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>shanoaice</Authors>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Description>C# binding for libalpm, the library behind pacman.</Description>
+    <PackageProjectUrl>https://codeberg.org/shanoaice/Orson/</PackageProjectUrl>
+    <RepositoryUrl>https://codeberg.org/shanoaice/Orson/</RepositoryUrl>
+  </PropertyGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
+
+  <ItemGroup>
+    <!-- ADR 0006 keeps the binding layer internal to this assembly. In-repo tooling that has to
+         reach the raw entry points (the test suite's binding-pairing audit, and the marshalling
+         benchmarks that measure libalpm calls directly) is granted friend access explicitly; an
+         external consumer is not. -->
+    <InternalsVisibleTo Include="Orson.Alpm.Tests" />
+    <InternalsVisibleTo Include="Orson.Benchmarks" />
+    <InternalsVisibleTo Include="Orson.Alpm.FSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="**\*.Seams.cs" DependentUpon="$([System.IO.Path]::GetFileNameWithoutExtension('%(Filename)')).cs" />
+  </ItemGroup>
+
+  <Target Name="GenerateBindings"
+          BeforeTargets="BeforeCompile"
+          Condition="'$(GenerateBindings)' == 'true'">
+    <Message Importance="high" Text="Regenerating C# bindings via cargo build -p libalpm-sys-cs..." />
+    <Exec Command="cargo build -p libalpm-sys-cs"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+</Project>

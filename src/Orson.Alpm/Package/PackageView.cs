@@ -1,0 +1,125 @@
+using Orson.Alpm.Bindings;
+
+namespace Orson.Alpm;
+
+/// <summary>A package libalpm owns: a database package, a transaction member, or one reached through a group.</summary>
+/// <remarks>
+/// A package view is a lightweight reference to memory owned by libalpm. If you need package information to
+/// persist after the database, transaction, or ALPM handle is disposed, call <see cref="Package.ToSnapshot" /> to
+/// create an independent managed snapshot.
+/// </remarks>
+public sealed unsafe partial class PackageView : Package
+{
+  /// <param name="backingStruct">The libalpm-owned package. Not dereferenced here.</param>
+  /// <param name="lifetime">Domain of the context that owns the package memory, if any.</param>
+  internal PackageView(_alpm_pkg_t* backingStruct, ChildLifetime? lifetime) : base(backingStruct)
+  {
+    Lifetime = lifetime?.Capture();
+  }
+
+  internal static PackageView Factory(void* ptr, Lifetime? lifetime)
+  {
+    if (lifetime is RootLifetime)
+    {
+      throw new InvalidOperationException("PackageView cannot be anchored directly to a root lifetime domain; a child domain is required.");
+    }
+    return new((_alpm_pkg_t*)ptr, (ChildLifetime?)lifetime);
+  }
+
+  /// <summary>Finds a package satisfying the specified dependency in a collection of packages.</summary>
+  /// <param name="packages">The packages to search.</param>
+  /// <param name="dependency">The dependency query string (e.g. <c>"glibc&gt;=2.30"</c>).</param>
+  /// <returns>The matching <see cref="PackageView" />, or <c>null</c> if no satisfier was found.</returns>
+  /// <remarks>
+  /// <para>
+  /// The result is one of the views in <paramref name="packages" />, not a new one: libalpm searches the list it was
+  /// handed, so the match is always a package the caller already holds, and it keeps that view's domain. No handle or
+  /// database is involved, which is why this member is static.
+  /// </para>
+  /// <para>
+  /// <c>null</c> covers both "nothing in the list satisfies the dependency" and "the dependency string could not be
+  /// parsed": <c>alpm_find_satisfier</c> takes no handle and therefore has no error channel to tell the two apart. To search
+  /// databases rather than a list you already hold, use <see cref="AlpmSession.ResolveDependency" />.
+  /// </para>
+  /// </remarks>
+  public static PackageView? FindSatisfier(IEnumerable<PackageView> packages, string dependency)
+  {
+    ArgumentNullException.ThrowIfNull(packages);
+    ArgumentNullException.ThrowIfNull(dependency);
+
+    var pkgList = packages as IReadOnlyCollection<PackageView> ?? packages.ToList();
+    Span<byte> scratch = stackalloc byte[64];
+    using var depBuf = new Utf8Buffer(dependency, scratch);
+    _alpm_list_t* nativeList = null;
+    try
+    {
+      nativeList = NativeListMarshal.BuildPointerList(pkgList);
+      var matchedPtr = NativeMethods.alpm_find_satisfier(nativeList, depBuf.Ptr);
+      if (matchedPtr == null) return null;
+
+      // The match always belongs to the caller's own views - libalpm searches the list it was handed
+      // - so returning one of those views keeps its domain. Fabricating a view here would issue it
+      // with no domain at all, and reading it after the owning database was retired would silently
+      // read freed memory instead of throwing AlpmLifetimeException.
+      foreach (var pkg in pkgList)
+      {
+        if (pkg.BackingStruct == matchedPtr)
+        {
+          return pkg;
+        }
+      }
+
+      throw new InvalidOperationException(
+        "libalpm returned a package that is not among the ones passed to the call; " +
+        "there is no domain to anchor the resulting view to.");
+    }
+    finally
+    {
+      NativeListMarshal.Free(nativeList);
+    }
+  }
+
+  /// <summary>Sets the install reason for this package in the local database.</summary>
+  /// <param name="reason">The reason for installation.</param>
+  public void SetReason(PackageReason reason)
+  {
+    if (!TrySetReason(reason, out var failure))
+    {
+      throw failure.ToException();
+    }
+  }
+
+  /// <summary>Gets or sets why this package was installed on the system.</summary>
+  public PackageReason InstallReason
+  {
+    get => Reason;
+    set => SetReason(value);
+  }
+
+  /// <summary>Checks whether a newer version of this package is available in the given synchronization databases.</summary>
+  /// <param name="syncDatabases">The databases to check for upgrades.</param>
+  /// <returns>A <see cref="PackageView" /> for the newer package, or <c>null</c> if no upgrade is available.</returns>
+  public PackageView? GetNewVersion(IEnumerable<Database> syncDatabases)
+  {
+    ArgumentNullException.ThrowIfNull(syncDatabases);
+    ThrowIfDisposed();
+
+    var dbs = syncDatabases as IReadOnlyList<Database> ?? syncDatabases.ToList();
+    _alpm_list_t* dbsList = null;
+    try
+    {
+      dbsList = NativeListMarshal.BuildPointerList(dbs);
+      var newPkgPtr = NativeMethods.alpm_sync_get_new_version(BackingStruct, dbsList);
+      if (newPkgPtr == null) return null;
+
+      var dbPtr = NativeMethods.alpm_pkg_get_db(newPkgPtr);
+      // Resolved among the caller's wrappers rather than the handle registry, for the same reason
+      // AlpmSession.TryResolveDependency does: see Database.ResolveLifetime.
+      return new PackageView(newPkgPtr, Database.ResolveLifetime(dbs, dbPtr));
+    }
+    finally
+    {
+      NativeListMarshal.Free(dbsList);
+    }
+  }
+}

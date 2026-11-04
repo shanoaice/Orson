@@ -1,0 +1,155 @@
+using Orson.Alpm.Tests.Fixtures;
+
+namespace Orson.Alpm.Tests.Unit.Databases;
+
+/// <summary>Coverage ledger §4: server and cache-server administration on a sync database.</summary>
+/// <remarks>
+/// The return conventions here are the opposite of the <c>alpm_option_remove_*</c> family: these return <c>0</c>
+/// when they removed the entry and <c>1</c> when it was not there, measured against libalpm directly. The tests below pin
+/// that in the wrapper's own vocabulary.
+/// </remarks>
+public sealed class DatabaseServerTests
+{
+  private const string Url = "https://example.invalid/$repo/os/$arch";
+  private const string OtherUrl = "https://other.invalid/$repo/os/$arch";
+
+  private static Database RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("orson-test", 0);
+
+  [Fact]
+  public void Servers_StartEmpty()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var db = RegisterSync(environment.AlpmSession);
+
+    Assert.Empty(db.Servers);
+    Assert.Empty(db.CacheServers);
+  }
+
+  [Fact]
+  public void AddServer_ThenRemoveServer_RoundTrips()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var db = RegisterSync(environment.AlpmSession);
+
+    db.AddServer(Url);
+
+    Assert.Equal([Url], db.Servers);
+    Assert.True(db.RemoveServer(Url), "removing a server that is there must answer true");
+    Assert.Empty(db.Servers);
+    Assert.False(db.RemoveServer(Url), "removing a server that is not there must answer false");
+  }
+
+  /// <summary>Measured: libalpm does not deduplicate, the list simply grows.</summary>
+  [Fact]
+  public void AddServer_DoesNotDeduplicate()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var db = RegisterSync(environment.AlpmSession);
+
+    db.AddServer(Url);
+    db.AddServer(Url);
+
+    Assert.Equal(2, db.Servers.Count);
+  }
+
+  [Fact]
+  public void SetServers_ReplacesTheWholeList()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var db = RegisterSync(environment.AlpmSession);
+    db.AddServer(Url);
+
+    db.SetServers([OtherUrl]);
+
+    Assert.Equal([OtherUrl], db.Servers);
+  }
+
+  /// <summary>
+  /// libalpm dups the list it is handed ("the list will be duped and the original will still need to be freed by
+  /// the caller"), so the wrapper is free to release its own buffers immediately. Forcing a collection and reading the
+  /// servers back is what proves the wrapper did not keep pointing at memory it owns.
+  /// </summary>
+  [Fact]
+  public void SetServers_CopiesTheStrings_LibalpmDoesNotAliasOurBuffers()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var db = RegisterSync(environment.AlpmSession);
+
+    db.SetServers([Url, OtherUrl]);
+    GC.Collect();
+    GC.WaitForPendingFinalizers();
+    GC.Collect();
+
+    Assert.Equal([Url, OtherUrl], db.Servers);
+  }
+
+  [Fact]
+  public void CacheServers_BehaveTheSameWayAsServers()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var db = RegisterSync(environment.AlpmSession);
+
+    db.AddCacheServer(Url);
+    Assert.Equal([Url], db.CacheServers);
+
+    Assert.True(db.RemoveCacheServer(Url));
+    Assert.Empty(db.CacheServers);
+    Assert.False(db.RemoveCacheServer(Url));
+
+    db.SetCacheServers([OtherUrl]);
+    Assert.Equal([OtherUrl], db.CacheServers);
+  }
+
+  /// <summary>The two lists are independent: writing one must not touch the other.</summary>
+  [Fact]
+  public void ServersAndCacheServers_AreIndependent()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var db = RegisterSync(environment.AlpmSession);
+
+    db.AddServer(Url);
+    db.AddCacheServer(OtherUrl);
+
+    Assert.Equal([Url], db.Servers);
+    Assert.Equal([OtherUrl], db.CacheServers);
+  }
+
+  /// <summary>
+  /// Removing a server frees the matching node, so a list read before the removal must report the release instead
+  /// of walking freed memory.
+  /// </summary>
+  [Fact]
+  public void RemoveServer_RetiresTheServerListReadBeforeIt()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var db = RegisterSync(environment.AlpmSession);
+    db.SetServers([Url, OtherUrl]);
+
+    var retained = db.Servers;
+    Assert.Equal([Url, OtherUrl], retained.ToArray());
+
+    db.RemoveServer(Url);
+
+    var thrown = Assert.Throws<AlpmLifetimeException>(retained.ToArray);
+    Assert.Equal("the server list", thrown.Target);
+    Assert.Equal("Database.RemoveServer", thrown.InvalidatedBy);
+
+    // The database itself is untouched: the next read binds a view to the rebuilt list.
+    Assert.Equal([OtherUrl], db.Servers);
+  }
+
+  /// <summary>The server list is a separate part of the database, so writing the cache-server list must not retire it.</summary>
+  [Fact]
+  public void SetCacheServers_LeavesTheServerListReadBeforeItAlive()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var db = RegisterSync(environment.AlpmSession);
+    db.AddServer(Url);
+
+    var servers = db.Servers;
+    db.SetCacheServers([OtherUrl]);
+
+    Assert.Equal([Url], servers.ToArray());
+    Assert.Equal([Url], db.Servers.ToArray());
+  }
+}

@@ -2,8 +2,8 @@
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
-runtime="${PACPAR_CONTAINER_RUNTIME:-}"
-image="${PACPAR_ALPM_TEST_IMAGE:-pacpar-alpm-tests}"
+runtime="${ORSON_CONTAINER_RUNTIME:-${PACPAR_CONTAINER_RUNTIME:-}}"
+image="${ORSON_ALPM_TEST_IMAGE:-${PACPAR_ALPM_TEST_IMAGE:-orson-alpm-tests}}"
 
 if [[ -z "$runtime" ]]; then
   for candidate in podman nerdctl docker; do
@@ -15,9 +15,9 @@ if [[ -z "$runtime" ]]; then
 fi
 
 if [[ -z "$runtime" ]]; then
-  printf 'No supported container runtime found. Set PACPAR_CONTAINER_RUNTIME to podman, nerdctl, or docker.\n' >&2
+  printf 'No supported container runtime found. Set ORSON_CONTAINER_RUNTIME to podman, nerdctl, or docker.\n' >&2
   exit 1
 fi
 
 "$runtime" build -f "$repo_root/containers/alpm-tests/Containerfile" -t "$image" "$repo_root"
-"$runtime" run --rm -v "$repo_root:/workspace:Z" -w /workspace "$image" dotnet test --project src/Pacpar.Alpm.Tests/Pacpar.Alpm.Tests.csproj
+"$runtime" run --rm -v "$repo_root:/workspace:Z" -w /workspace "$image" dotnet test --project tests/Orson.Alpm.Tests/Orson.Alpm.Tests.csproj

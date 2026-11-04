@@ -5,7 +5,7 @@ status: accepted
 ---
 
 The public API uses `int` for item counts and `long` for byte sizes. It does not use `nuint` or
-`nint`, and it does not expose any type from `Pacpar.Alpm.Bindings`. `size_t` and `off_t` stay in
+`nint`, and it does not expose any type from `Orson.Alpm.Bindings`. `size_t` and `off_t` stay in
 the binding layer, next to the C signature they come from.
 
 1. **Counts are `int`.** A count of packages, hooks or files takes the same type as
@@ -18,7 +18,7 @@ the binding layer, next to the C signature they come from.
 
 ## Why a single-platform library still follows this
 
-Pacpar.Alpm targets Linux. Every supported machine is 64-bit, so `size_t` never changes width in
+Orson.Alpm targets Linux. Every supported machine is 64-bit, so `size_t` never changes width in
 practice. The rule is not about supporting 32-bit hosts. It exists for three other reasons.
 
 - **Layering.** ADR 0006 makes the generated bindings internal. A `nuint` property puts a

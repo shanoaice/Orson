@@ -1,0 +1,219 @@
+using System.Collections;
+using System.Runtime.InteropServices;
+using Orson.Alpm.Bindings;
+
+namespace Orson.Alpm;
+
+/// <summary>
+/// Template for the <see cref="AlpmOptions" /> properties that libalpm exposes as an <c>alpm_list_t</c> and that
+/// this library surfaces as an <see cref="ICollection{T}" />.
+/// </summary>
+/// <remarks>
+/// A subclass supplies only the native calls that differ: the list getter, the adder, the remover and (for non-string
+/// elements) how an element is marshalled and compared. The collection contract, the <c>errno</c> check and the
+/// allocate/free lifecycle live here once.
+/// <para>
+/// The variation points are abstract methods rather than function pointers on purpose. Address-of on a
+/// <c>[DllImport]</c> method yields a <i>managed</i> pointer to the P/Invoke stub, so it cannot be stored as
+/// <c>delegate* unmanaged[Cdecl]</c> (CS8786); obtaining a real native pointer would need one
+/// <c>[UnmanagedCallersOnly]</c> thunk per libalpm entry point.
+/// </para>
+/// </remarks>
+internal abstract unsafe class AlpmOptionList<T> : ICollection<T>
+{
+  private readonly SafeAlpmHandle _handle;
+
+  /// <summary>The ALPM handle's root lifetime domain. Views handed out by <see cref="View" /> carry this domain.</summary>
+  private protected readonly Lifetime Lifetime;
+
+  private protected AlpmOptionList(SafeAlpmHandle handle, Lifetime lifetime)
+  {
+    _handle = handle;
+    Lifetime = lifetime;
+  }
+
+  /// <summary>The native list getter, for example <c>alpm_option_get_ignorepkgs</c>.</summary>
+  private protected abstract _alpm_list_t* GetList(SafeAlpmHandle handle);
+
+  /// <summary>
+  /// The list libalpm currently exposes, for a subclass whose <see cref="Acquire" /> has to search it (see
+  /// <see cref="AssumeInstalled" />, whose elements libalpm keeps its own copy of).
+  /// </summary>
+  private protected _alpm_list_t* NativeList
+  {
+    get
+    {
+      _handle.ThrowIfDisposed();
+      return GetList(_handle);
+    }
+  }
+
+  /// <summary>The native adder. Returns 0 on success, anything else on failure.</summary>
+  private protected abstract int AddNative(SafeAlpmHandle handle, byte* item);
+
+  /// <summary>
+  /// The native remover, returning libalpm's raw result: <c>1</c> when it removed the entry, <c>0</c> when it found
+  /// nothing and <c>-1</c> on error.
+  /// </summary>
+  private protected abstract int RemoveNative(SafeAlpmHandle handle, byte* item);
+
+  /// <summary>Produces the native item pointer required by libalpm for lookups or removal.</summary>
+  /// <param name="item">The item to acquire a native representation for.</param>
+  /// <param name="owned">Whether <see cref="Release" /> must free the returned pointer.</param>
+  private protected abstract byte* Acquire(T item, out bool owned);
+
+  /// <summary>Releases a pointer produced by <see cref="Acquire" />.</summary>
+  private protected abstract void Release(byte* item, bool owned);
+
+  /// <summary>Wraps a native list in the borrowed view for <typeparamref name="T" /> .</summary>
+  private protected abstract AlpmList<T> View(_alpm_list_t* list);
+
+  /// <summary>Marshals an item for <see cref="Add" />. Defaults to <see cref="Acquire" />.</summary>
+  private protected virtual byte* AcquireForAdd(T item, out bool owned) => Acquire(item, out owned);
+
+  /// <summary>
+  /// Finds an item in the native list. Returns <c>null</c> if not found, otherwise returns a pointer to the stored
+  /// element.
+  /// </summary>
+  private protected virtual byte* FindIn(_alpm_list_t* list, byte* item)
+    => NativeMethods.alpm_list_find_str(list, item);
+
+  public bool IsReadOnly => false;
+
+  public int Count
+  {
+    get
+    {
+      _handle.ThrowIfDisposed();
+      var count = (int)NativeMethods.alpm_list_count(GetList(_handle));
+      GC.KeepAlive(this);
+      return count;
+    }
+  }
+
+  public AlpmList<T>.Enumerator GetEnumerator()
+  {
+    _handle.ThrowIfDisposed();
+    return View(GetList(_handle)).GetEnumerator();
+  }
+
+  IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+
+  IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+  public void Add(T item)
+  {
+    _handle.ThrowIfDisposed();
+    var itemPtr = AcquireForAdd(item, out var owned);
+    try
+    {
+      var err = AddNative(_handle, itemPtr);
+      if (err != 0)
+      {
+        GC.KeepAlive(this);
+        throw AlpmFailure.Of(_handle, "add option entry").ToException();
+      }
+    }
+    finally
+    {
+      Release(itemPtr, owned);
+    }
+  }
+
+  public bool Contains(T item)
+  {
+    _handle.ThrowIfDisposed();
+    var itemPtr = Acquire(item, out var owned);
+    try
+    {
+      // A detached item that libalpm knows nothing about is never contained.
+      if (itemPtr == null) return false;
+
+      // Only "did libalpm find something" may be asked of the result: its finders answer with the
+      // element they stored, not with the needle, which for a string option list is a fresh buffer
+      // this method allocated. Comparing the two rejected every element that *is* present.
+      return FindIn(GetList(_handle), itemPtr) != null;
+    }
+    finally
+    {
+      Release(itemPtr, owned);
+    }
+  }
+
+  public bool Remove(T item)
+  {
+    _handle.ThrowIfDisposed();
+    var itemPtr = Acquire(item, out var owned);
+    try
+    {
+      // Nothing libalpm knows about, so nothing to remove; this also keeps a null pointer out of
+      // alpm_option_remove_*, which does not accept one.
+      if (itemPtr == null) return false;
+
+      // alpm_option_remove_* answer 1 when they removed the entry, 0 when they found nothing and
+      // -1 on error, while their header documents "0 on success, -1 on error". Testing the result
+      // against 0, as this wrapper used to, therefore made Remove answer with the inverse of the
+      // ICollection<T> contract. Only a positive result means the item was removed.
+      var err = RemoveNative(_handle, itemPtr);
+      if (err < 0)
+      {
+        GC.KeepAlive(this);
+        throw AlpmFailure.Of(_handle, "remove option entry").ToException();
+      }
+      return err > 0;
+    }
+    finally
+    {
+      Release(itemPtr, owned);
+    }
+  }
+
+  public void Clear()
+  {
+    _handle.ThrowIfDisposed();
+
+    // Snapshot first: the enumerator caches the current native node, so removing while
+    // enumerating leaves it pointing at a freed node on the next MoveNext().
+    foreach (var item in View(GetList(_handle)).ToArray())
+    {
+      Remove(item);
+    }
+  }
+
+  public void CopyTo(T[] array, int arrayIndex)
+  {
+    ArgumentNullException.ThrowIfNull(array);
+    ArgumentOutOfRangeException.ThrowIfNegative(arrayIndex);
+    _handle.ThrowIfDisposed();
+
+    var count = Count;
+    if (array.Length - arrayIndex < count)
+    {
+      throw new ArgumentException("The destination array is not long enough to hold all items.", nameof(array));
+    }
+
+    var i = 0;
+    foreach (var item in View(GetList(_handle)))
+    {
+      array[arrayIndex + i++] = item;
+    }
+  }
+}
+
+/// <summary><see cref="AlpmOptionList{T}" /> for the option lists whose elements are C strings.</summary>
+internal abstract unsafe class AlpmStringOptionList(SafeAlpmHandle handle, Lifetime lifetime)
+  : AlpmOptionList<string>(handle, lifetime)
+{
+  private protected override byte* Acquire(string item, out bool owned)
+  {
+    owned = true;
+    return NativeString.ToNative(item);
+  }
+
+  private protected override void Release(byte* item, bool owned)
+  {
+    if (owned) NativeMemory.Free(item);
+  }
+
+  private protected override AlpmList<string> View(_alpm_list_t* list) => new AlpmStringList(list, Lifetime);
+}

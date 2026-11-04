@@ -6,7 +6,7 @@
         {
           "src": "../src",
           "files": [
-            "Pacpar.Alpm/Pacpar.Alpm.csproj"
+            "Orson.Alpm/Orson.Alpm.csproj"
           ]
         }
       ],
@@ -49,8 +49,8 @@
       "modern"
     ],
     "globalMetadata": {
-      "_appName": "Pacpar.Alpm",
-      "_appTitle": "Pacpar.Alpm",
+      "_appName": "Orson.Alpm",
+      "_appTitle": "Orson.Alpm",
       "_enableSearch": true,
       "pdf": false
     }

@@ -1,0 +1,39 @@
+using System.Runtime.InteropServices;
+using Orson.Alpm.Bindings;
+
+namespace Orson.Alpm.Tests.Unit.Session;
+
+/// <summary>Coverage ledger §4: libalpm's own version and compile-time capabilities.</summary>
+/// <remarks>
+/// Neither call takes a handle — libalpm allows both before <c>alpm_initialize</c> — so these tests deliberately
+/// build no <see cref="AlpmSession" /> instance. Each assertion compares the wrapper against the raw binding call, which
+/// keeps the test independent of which libalpm build is installed.
+/// </remarks>
+public sealed unsafe class VersionAndCapabilitiesTests
+{
+  [Fact]
+  public void Version_ReportsTheSameStringAsTheNativeCall()
+  {
+    var native = Marshal.PtrToStringUTF8((nint)NativeMethods.alpm_version());
+
+    Assert.NotNull(native);
+    Assert.Equal(native, AlpmSession.Version);
+
+    // The installed Arch package reports "16.0.1"; assert the shape rather than the value.
+    Assert.Matches(@"^\d+\.\d+", AlpmSession.Version);
+  }
+
+  /// <summary>
+  /// A capability libalpm reports but this wrapper does not model must not be dropped: it is carried through as an
+  /// undeclared bit. The Arch build reports all three (<c>NLS|DOWNLOADER|SIGNATURES</c> = 7), but a differently built
+  /// libalpm may report fewer, so this test only asserts the invariant.
+  /// </summary>
+  [Fact]
+  public void Capabilities_OnlyContainBitsTheEnumDeclares()
+  {
+    const Capability declared = Capability.Nls | Capability.Downloader | Capability.Signatures;
+
+    Assert.True((AlpmSession.Capabilities & ~declared) == 0,
+      $"libalpm reported a capability this build does not model: {(uint)AlpmSession.Capabilities}");
+  }
+}
