@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Orson.Alpm.Tests.Fixtures;
 
-namespace Orson.Alpm.Tests.Unit.Snapshots;
+namespace Orson.Alpm.Tests.Unit.Interop;
 
 /// <summary>
 /// libalpm's string contract is UTF-8, so both the marshalling helpers and one end-to-end option round trip must

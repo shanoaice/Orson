@@ -25,7 +25,7 @@ To recount:
 ```bash
 python3 - <<'EOF'
 import re, pathlib
-root = pathlib.Path('src/Pacpar.Alpm')
+root = pathlib.Path('src/Orson.Alpm')
 eps = sorted(set(re.findall(r'EntryPoint\s*=\s*"([^"]+)"',
     (root/'bindings/NativeMethods.libalpm.g.cs').read_text())))
 used = set()

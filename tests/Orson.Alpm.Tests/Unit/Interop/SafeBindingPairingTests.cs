@@ -6,7 +6,7 @@ namespace Orson.Alpm.Tests.Unit.Interop;
 
 /// <summary>
 /// Guards the handwritten <c>[LibraryImport]</c> layer in
-/// <c>src/Orson.Alpm/Interop/NativeMethods.SafeHandle.cs</c> against drift in the csbindgen-generated <c>[DllImport]</c>
+/// <c>src/Orson.Alpm/bindings/NativeMethods.SafeHandle.cs</c> against drift in the csbindgen-generated <c>[DllImport]</c>
 /// declarations.
 /// </summary>
 /// <remarks>
