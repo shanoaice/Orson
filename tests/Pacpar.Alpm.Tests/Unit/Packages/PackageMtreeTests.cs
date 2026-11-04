@@ -3,7 +3,7 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Packages;
 
 /// <summary>
-/// Covers <see cref="PackageBase.GetMtreeEntries" /> against packages whose <c>.MTREE</c> the test wrote: absent,
+/// Covers <see cref="Package.GetMtreeEntries" /> against packages whose <c>.MTREE</c> the test wrote: absent,
 /// complete, partly filled in, and an entry that fails to read.
 /// </summary>
 /// <remarks>

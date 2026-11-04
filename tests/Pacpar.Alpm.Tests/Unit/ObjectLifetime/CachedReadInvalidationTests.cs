@@ -4,7 +4,7 @@ namespace Pacpar.Alpm.Tests.Unit.ObjectLifetime;
 
 /// <summary>A cached read must still report that its owner is gone.</summary>
 /// <remarks>
-/// Every cached member of <see cref="PackageBase" /> answers out of its cache from the second read on, and a
+/// Every cached member of <see cref="Package" /> answers out of its cache from the second read on, and a
 /// cache hit never evaluates the guarded pointer accessor - so each of those members has to check the stamp itself. This
 /// class warms every cache first, because the missing guard only shows on the read that comes <i>out of</i> the cache: the
 /// first read still crosses the interop boundary, and the guarded accessor throws for it whether or not the member checks
@@ -41,7 +41,7 @@ public sealed class CachedReadInvalidationTests : IDisposable
     _ = pkg.Packager;
     _ = pkg.Md5Sum;
     _ = pkg.Sha256Sum;
-    _ = pkg.Arch;
+    _ = pkg.Architecture;
     _ = pkg.Base64Signature;
 
     _environment.AlpmSession.Dispose();
@@ -54,7 +54,7 @@ public sealed class CachedReadInvalidationTests : IDisposable
     Assert.Throws<AlpmLifetimeException>(() => pkg.Packager);
     Assert.Throws<AlpmLifetimeException>(() => pkg.Md5Sum);
     Assert.Throws<AlpmLifetimeException>(() => pkg.Sha256Sum);
-    Assert.Throws<AlpmLifetimeException>(() => pkg.Arch);
+    Assert.Throws<AlpmLifetimeException>(() => pkg.Architecture);
     Assert.Throws<AlpmLifetimeException>(() => pkg.Base64Signature);
   }
 }

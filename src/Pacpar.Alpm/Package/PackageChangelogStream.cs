@@ -11,11 +11,11 @@ namespace Pacpar.Alpm;
 /// </remarks>
 internal sealed unsafe class PackageChangelogStream : Stream
 {
-  private readonly PackageBase _package;
+  private readonly Package _package;
   private void* _fp;
   private bool _disposed;
 
-  internal PackageChangelogStream(PackageBase package, void* fp)
+  internal PackageChangelogStream(Package package, void* fp)
   {
     _package = package;
     _fp = fp;

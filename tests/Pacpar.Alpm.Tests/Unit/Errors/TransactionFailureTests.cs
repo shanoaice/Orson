@@ -51,7 +51,7 @@ public sealed unsafe class TransactionFailureTests : IDisposable
 
     var missing = Assert.Single(failure.Dependencies);
     Assert.Equal("pacpar-needs", missing.Target);
-    Assert.Equal("missing-xyz", missing.Depend?.Name);
+    Assert.Equal("missing-xyz", missing.Dependency?.Name);
   }
 
   [Fact]
@@ -69,7 +69,7 @@ public sealed unsafe class TransactionFailureTests : IDisposable
     var detail = Assert.IsType<AlpmFailureDetail.MissingDependencies>(failure.Detail);
     var missing = Assert.Single(detail.Dependencies);
     Assert.Equal("pacpar-needs-try", missing.Target);
-    Assert.Equal("missing-xyz", missing.Depend?.Name);
+    Assert.Equal("missing-xyz", missing.Dependency?.Name);
   }
 
   /// <summary>

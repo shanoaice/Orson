@@ -43,7 +43,7 @@ public sealed class Group
   /// member stays tied to the database that owns it. Unregistering one database therefore retires its own members, but not
   /// the members of a sibling database.
   /// </remarks>
-  public unsafe IReadOnlyList<PackageView> FindGroupPackages(AlpmList<Database> dbs)
+  public unsafe IReadOnlyList<PackageView> FindPackages(AlpmList<Database> dbs)
   {
     Span<byte> scratch = stackalloc byte[64];
     using var nameBuf = new Utf8Buffer(Name, scratch);
@@ -54,7 +54,7 @@ public sealed class Group
   }
 
   /// <summary>
-  /// Element factory for <see cref="FindGroupPackages" />: binds a package to the domain of the database that owns
+  /// Element factory for <see cref="FindPackages" />: binds a package to the domain of the database that owns
   /// it.
   /// </summary>
   /// <remarks>

@@ -25,12 +25,12 @@ namespace Pacpar.Alpm;
 /// session has been released throws <see cref="AlpmLifetimeException" />.
 /// </para>
 /// </remarks>
-public abstract unsafe partial class PackageBase
+public abstract unsafe partial class Package
 {
   // Only this class and its derived types can see the pointer. A sibling in the same assembly
   // (Transaction, for one) cannot read it, so "reach for the pointer without the guard" is not a
   // shape that can be written any more.
-  private protected PackageBase(_alpm_pkg_t* backingStruct)
+  private protected Package(_alpm_pkg_t* backingStruct)
   {
     BackingStruct = backingStruct;
   }
@@ -305,7 +305,7 @@ public abstract unsafe partial class PackageBase
   private bool _archLoaded;
 
   /// <summary>The target CPU architecture for this package (e.g. "x86_64", "any").</summary>
-  public string? Arch
+  public string? Architecture
   {
     get
     {
@@ -383,37 +383,37 @@ public abstract unsafe partial class PackageBase
   public AlpmStringList Groups => new(NativeMethods.alpm_pkg_get_groups(BackingStruct), Lifetime?.Domain);
 
   /// <summary>The list of packages required to run this package.</summary>
-  public AlpmList<Depend> Depends => Depend.ListFactory(NativeMethods.alpm_pkg_get_depends(BackingStruct), Lifetime?.Domain);
+  public AlpmList<Dependency> Depends => Dependency.ListFactory(NativeMethods.alpm_pkg_get_depends(BackingStruct), Lifetime?.Domain);
 
   /// <summary>The list of optional packages that provide additional functionality.</summary>
-  public AlpmList<Depend> OptionalDepends => Depend.ListFactory(NativeMethods.alpm_pkg_get_optdepends(BackingStruct), Lifetime?.Domain);
+  public AlpmList<Dependency> OptionalDepends => Dependency.ListFactory(NativeMethods.alpm_pkg_get_optdepends(BackingStruct), Lifetime?.Domain);
 
   /// <summary>The list of dependencies required only to run the test suite when building.</summary>
-  public AlpmList<Depend> CheckDepends => Depend.ListFactory(NativeMethods.alpm_pkg_get_checkdepends(BackingStruct), Lifetime?.Domain);
+  public AlpmList<Dependency> CheckDepends => Dependency.ListFactory(NativeMethods.alpm_pkg_get_checkdepends(BackingStruct), Lifetime?.Domain);
 
   /// <summary>The list of dependencies required only to build the package from source.</summary>
-  public AlpmList<Depend> MakeDepends => Depend.ListFactory(NativeMethods.alpm_pkg_get_makedepends(BackingStruct), Lifetime?.Domain);
+  public AlpmList<Dependency> MakeDepends => Dependency.ListFactory(NativeMethods.alpm_pkg_get_makedepends(BackingStruct), Lifetime?.Domain);
 
   /// <summary>The list of packages that conflict with this package.</summary>
-  public AlpmList<Depend> Conflicts => Depend.ListFactory(NativeMethods.alpm_pkg_get_conflicts(BackingStruct), Lifetime?.Domain);
+  public AlpmList<Dependency> Conflicts => Dependency.ListFactory(NativeMethods.alpm_pkg_get_conflicts(BackingStruct), Lifetime?.Domain);
 
   /// <summary>The virtual provisions or features provided by this package.</summary>
-  public AlpmList<Depend> Provides => Depend.ListFactory(NativeMethods.alpm_pkg_get_provides(BackingStruct), Lifetime?.Domain);
+  public AlpmList<Dependency> Provides => Dependency.ListFactory(NativeMethods.alpm_pkg_get_provides(BackingStruct), Lifetime?.Domain);
 
   /// <summary>The list of packages that this package replaces.</summary>
-  public AlpmList<Depend> Replaces => Depend.ListFactory(NativeMethods.alpm_pkg_get_replaces(BackingStruct), Lifetime?.Domain);
+  public AlpmList<Dependency> Replaces => Dependency.ListFactory(NativeMethods.alpm_pkg_get_replaces(BackingStruct), Lifetime?.Domain);
 
   /// <summary>The package's file list, read on demand.</summary>
   public FileList Files => new(NativeMethods.alpm_pkg_get_files(BackingStruct), Lifetime?.Domain);
 
   /// <summary>The list of configuration files marked for backup (subject to .pacnew / .pacsave preservation rules).</summary>
-  public AlpmList<Backup> BackupFiles => Backup.ListFactory(NativeMethods.alpm_pkg_get_backup(BackingStruct), Lifetime?.Domain);
+  public AlpmList<BackupEntry> BackupFiles => BackupEntry.ListFactory(NativeMethods.alpm_pkg_get_backup(BackingStruct), Lifetime?.Domain);
 
   /// <summary>Gets the names of packages that depend on this package.</summary>
   public IReadOnlyList<string> GetRequiredBy()
   {
     var list = AlpmStringList.TakeOwned(NativeMethods.alpm_pkg_compute_requiredby(BackingStruct),
-      &MemoryManagement.CFreeExtern);
+      &UnmanagedDestructors.CFreeExtern);
     GC.KeepAlive(this);
     return list;
   }
@@ -422,7 +422,7 @@ public abstract unsafe partial class PackageBase
   public IReadOnlyList<string> GetOptionalFor()
   {
     var list = AlpmStringList.TakeOwned(NativeMethods.alpm_pkg_compute_optionalfor(BackingStruct),
-      &MemoryManagement.CFreeExtern);
+      &UnmanagedDestructors.CFreeExtern);
     GC.KeepAlive(this);
     return list;
   }
@@ -486,7 +486,7 @@ public abstract unsafe partial class PackageBase
       if (buffer != null)
       {
         _signature = new Span<byte>(buffer, (int)len).ToArray();
-        MemoryManagement.CFree(buffer);
+        UnmanagedDestructors.CFree(buffer);
       }
 
       _signatureLoaded = true;

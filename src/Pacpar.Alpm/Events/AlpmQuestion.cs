@@ -9,7 +9,7 @@ namespace Pacpar.Alpm;
 /// Question payloads are borrowed references valid only during the synchronous callback frame execution. Answers must be
 /// set before the handler returns, as libalpm reads the answer immediately. Packages in payload properties are exposed as
 /// borrowed <see cref="PackageView" /> instances anchored to the callback frame's lifetime; callers wishing to retain
-/// package data after the callback returns must call <see cref="PackageBase.ToSnapshot" /> to create an independent
+/// package data after the callback returns must call <see cref="Package.ToSnapshot" /> to create an independent
 /// managed snapshot.
 /// <para>
 /// The set of subclasses is closed: it mirrors <c>_alpm_question_type_t</c>, and <c>FromUnion</c> is the only thing
@@ -40,9 +40,9 @@ public abstract unsafe class AlpmQuestion
     {
       _alpm_question_type_t.ALPM_QUESTION_INSTALL_IGNOREPKG => new InstallIgnoredPackage(backingStruct, lifetime),
       _alpm_question_type_t.ALPM_QUESTION_REPLACE_PKG => new ReplacePackage(backingStruct, lifetime),
-      _alpm_question_type_t.ALPM_QUESTION_CONFLICT_PKG => new ConflictPkg(backingStruct, lifetime),
-      _alpm_question_type_t.ALPM_QUESTION_CORRUPTED_PKG => new CorruptedPkg(backingStruct, lifetime),
-      _alpm_question_type_t.ALPM_QUESTION_REMOVE_PKGS => new RemovePkgs(backingStruct, lifetime),
+      _alpm_question_type_t.ALPM_QUESTION_CONFLICT_PKG => new PackageConflict(backingStruct, lifetime),
+      _alpm_question_type_t.ALPM_QUESTION_CORRUPTED_PKG => new CorruptedPackage(backingStruct, lifetime),
+      _alpm_question_type_t.ALPM_QUESTION_REMOVE_PKGS => new RemovePackages(backingStruct, lifetime),
       _alpm_question_type_t.ALPM_QUESTION_SELECT_PROVIDER => new SelectProvider(backingStruct, lifetime),
       _alpm_question_type_t.ALPM_QUESTION_IMPORT_KEY => new ImportKey(backingStruct, lifetime),
       _ => throw new ArgumentException($"Unknown question type: {backingStruct->type_}"),
@@ -112,11 +112,11 @@ public abstract unsafe class AlpmQuestion
   }
 
   /// <summary>Question asked when two packages conflict during transaction preparation.</summary>
-  public sealed class ConflictPkg : AlpmQuestion
+  public sealed class PackageConflict : AlpmQuestion
   {
     private bool _remove;
 
-    internal ConflictPkg(_alpm_question_t* question, ChildLifetime? lifetime) : base(question, lifetime)
+    internal PackageConflict(_alpm_question_t* question, ChildLifetime? lifetime) : base(question, lifetime)
     {
       var conflict = question->conflict.conflict;
 
@@ -157,15 +157,15 @@ public abstract unsafe class AlpmQuestion
   }
 
   /// <summary>Question asked when a downloaded package file is found to be corrupted.</summary>
-  public sealed class CorruptedPkg : AlpmQuestion
+  public sealed class CorruptedPackage : AlpmQuestion
   {
     private bool _remove;
 
-    internal CorruptedPkg(_alpm_question_t* question, ChildLifetime? lifetime) : base(question, lifetime)
+    internal CorruptedPackage(_alpm_question_t* question, ChildLifetime? lifetime) : base(question, lifetime)
     {
       _remove = question->corrupted.remove != 0;
       FilePath = NativeString.FromNative((nint)question->corrupted.filepath) ?? "";
-      Reason = ErrorHandler.StrError(question->corrupted.reason) ?? "";
+      Reason = ErrnoMapper.StrError(question->corrupted.reason) ?? "";
     }
 
     /// <summary>Gets or sets whether the corrupted package file should be removed.</summary>
@@ -188,11 +188,11 @@ public abstract unsafe class AlpmQuestion
   }
 
   /// <summary>Question asked when unresolvable dependencies require removing packages.</summary>
-  public sealed class RemovePkgs : AlpmQuestion
+  public sealed class RemovePackages : AlpmQuestion
   {
     private bool _skip;
 
-    internal RemovePkgs(_alpm_question_t* question, ChildLifetime? lifetime) : base(question, lifetime)
+    internal RemovePackages(_alpm_question_t* question, ChildLifetime? lifetime) : base(question, lifetime)
     {
       _skip = question->remove_pkgs.skip != 0;
       Packages = AlpmList<PackageView>.Borrow(question->remove_pkgs.packages, &PackageView.Factory, lifetime).ToArray();

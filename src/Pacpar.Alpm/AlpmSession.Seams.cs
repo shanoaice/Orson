@@ -180,7 +180,7 @@ public sealed partial class AlpmSession
         // returns an error while still populating the out parameter.
         if (fetchedList != null)
         {
-          NativeListMarshal.Free(fetchedList, &MemoryManagement.CFreeExtern);
+          NativeListMarshal.Free(fetchedList, &UnmanagedDestructors.CFreeExtern);
         }
 
         fetchedUrls = null;
@@ -188,7 +188,7 @@ public sealed partial class AlpmSession
         return false;
       }
 
-      fetchedUrls = AlpmStringList.TakeOwned(fetchedList, &MemoryManagement.CFreeExtern);
+      fetchedUrls = AlpmStringList.TakeOwned(fetchedList, &UnmanagedDestructors.CFreeExtern);
       failure = null;
       return true;
     }

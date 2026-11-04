@@ -69,9 +69,9 @@ public sealed class DependencyCheckTests
     var result = env.AlpmSession.CheckDependencies(packages, remove: [libfoo], upgrade: [], reverseDependencies: true);
     var missing = Assert.Single(result);
     Assert.Equal("app-needs-libfoo", missing.Target);
-    Assert.NotNull(missing.Depend);
-    Assert.Equal("libfoo", missing.Depend.Name);
-    Assert.Equal("libfoo", missing.CausingPkg);
+    Assert.NotNull(missing.Dependency);
+    Assert.Equal("libfoo", missing.Dependency.Name);
+    Assert.Equal("libfoo", missing.CausingPackage);
   }
 
   [Fact]

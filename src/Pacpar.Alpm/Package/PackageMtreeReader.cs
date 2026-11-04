@@ -6,7 +6,7 @@ namespace Pacpar.Alpm;
 /// <summary>An internal forward-only reader over an installed package's mtree entries ( <c>.MTREE</c>).</summary>
 /// <remarks>
 /// <para>
-/// The reader is single-use and is owned by <see cref="PackageBase.GetMtreeEntries" />, which materializes the
+/// The reader is single-use and is owned by <see cref="Package.GetMtreeEntries" />, which materializes the
 /// entries into a managed list and disposes the reader before returning. It is not part of the public API.
 /// </para>
 /// <para>
@@ -18,12 +18,12 @@ namespace Pacpar.Alpm;
 /// </remarks>
 internal sealed unsafe class PackageMtreeReader : IDisposable
 {
-  private readonly PackageBase _package;
+  private readonly Package _package;
   private readonly archive* _archive;
   private MtreeEntry? _current;
   private bool _disposed;
 
-  internal PackageMtreeReader(PackageBase package, archive* archive)
+  internal PackageMtreeReader(Package package, archive* archive)
   {
     _package = package;
     _archive = archive;

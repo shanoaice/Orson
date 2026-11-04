@@ -5,7 +5,7 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm.Interop;
 
-internal static partial class MemoryManagement
+internal static partial class UnmanagedDestructors
 {
   [LibraryImport("libc", EntryPoint = "free")]
   internal unsafe static partial void CFree(void* ptr);

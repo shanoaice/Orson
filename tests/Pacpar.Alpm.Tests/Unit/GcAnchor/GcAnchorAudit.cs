@@ -164,7 +164,7 @@ internal static class GcAnchorAudit
   private static IEnumerable<MethodBase> GetScannableMethods(Type type) =>
     // Constructors are part of the surface. GetMethods never returns them, and the snapshot types
     // do their native reads inside theirs: PackageFile copies mode/size/name out of the entry,
-    // ConflictPkg calls alpm_pkg_get_name on the packages inside the conflict, Group materialises
+    // PackageConflict calls alpm_pkg_get_name on the packages inside the conflict, Group materialises
     // its package list. Leaving constructors out hid exactly the sites this audit exists to find.
     type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
         .Cast<MethodBase>()

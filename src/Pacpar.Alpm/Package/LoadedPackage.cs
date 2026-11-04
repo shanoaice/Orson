@@ -16,7 +16,7 @@ namespace Pacpar.Alpm;
 /// transfer occurs, unmanaged resources are retained until the owning <see cref="AlpmSession" /> is disposed.
 /// </para>
 /// </remarks>
-public sealed unsafe class LoadedPackage : PackageBase, IDisposable
+public sealed unsafe class LoadedPackage : Package, IDisposable
 {
   private readonly LoadedPackageRegistry _registry;
   private readonly ChildLifetime _lifetime;

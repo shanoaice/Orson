@@ -4,7 +4,7 @@ namespace Pacpar.Alpm;
 
 /// <summary>
 /// <c>alpm_option_get_assumeinstalled</c> and its add/remove pair, as an <see cref="ICollection{T}" /> of
-/// <see cref="Depend" /> snapshots.
+/// <see cref="Dependency" /> snapshots.
 /// </summary>
 /// <remarks>
 /// Unlike the string option lists, libalpm stores its <i>own</i> copy of a dependency rather than retaining the passed-in
@@ -12,13 +12,13 @@ namespace Pacpar.Alpm;
 /// <list type="bullet">
 /// <item>
 /// <description>
-/// <b>Add</b> materialises the snapshot (<see cref="Depend.ToNative" />) and lets libalpm copy it. The struct
+/// <b>Add</b> materialises the snapshot (<see cref="Dependency.ToNative" />) and lets libalpm copy it. The struct
 /// carries no <c>name_hash</c>; libalpm recomputes that field for the copy it stores.
 /// </description>
 /// </item>
 /// <item>
 /// <description>
-/// <b>Contains</b>/<b>Remove</b> compare by <i>value</i> through <see cref="Depend.Matches" /> and then hand
+/// <b>Contains</b>/<b>Remove</b> compare by <i>value</i> through <see cref="Dependency.Matches" /> and then hand
 /// libalpm the element it stored, because its removal predicate compares the <c>name_hash</c> too and a struct this layer
 /// built can never satisfy that.
 /// </description>
@@ -26,7 +26,7 @@ namespace Pacpar.Alpm;
 /// </list>
 /// </remarks>
 internal sealed unsafe class AssumeInstalled(SafeAlpmHandle handle, Lifetime lifetime)
-  : AlpmOptionList<Depend>(handle, lifetime)
+  : AlpmOptionList<Dependency>(handle, lifetime)
 {
   private protected override _alpm_list_t* GetList(SafeAlpmHandle h) => NativeMethods.alpm_option_get_assumeinstalled(h);
 
@@ -44,14 +44,14 @@ internal sealed unsafe class AssumeInstalled(SafeAlpmHandle handle, Lifetime lif
   /// Finds the stored native pointer matching <paramref name="item" /> by value so that it can be safely passed to
   /// libalpm removal functions that compare internal pointers and hashes.
   /// </remarks>
-  private protected override byte* Acquire(Depend item, out bool owned)
+  private protected override byte* Acquire(Dependency item, out bool owned)
   {
     owned = false;
 
     for (var node = NativeList; node != null; node = node->next)
     {
       var stored = (_alpm_depend_t*)node->data;
-      if (new Depend(stored).Matches(item)) return (byte*)stored;
+      if (new Dependency(stored).Matches(item)) return (byte*)stored;
     }
 
     return null;
@@ -61,7 +61,7 @@ internal sealed unsafe class AssumeInstalled(SafeAlpmHandle handle, Lifetime lif
   /// Materialises the snapshot for <c>Add</c>. libalpm copies the dependency into the list, so the temporary struct
   /// is released again as soon as the call returns.
   /// </summary>
-  private protected override byte* AcquireForAdd(Depend item, out bool owned)
+  private protected override byte* AcquireForAdd(Dependency item, out bool owned)
   {
     owned = true;
     return (byte*)item.ToNative();
@@ -69,10 +69,10 @@ internal sealed unsafe class AssumeInstalled(SafeAlpmHandle handle, Lifetime lif
 
   private protected override void Release(byte* item, bool owned)
   {
-    if (owned) Depend.FreeNative((_alpm_depend_t*)item);
+    if (owned) Dependency.FreeNative((_alpm_depend_t*)item);
   }
 
-  private protected override AlpmList<Depend> View(_alpm_list_t* list) => Depend.ListFactory(list, Lifetime);
+  private protected override AlpmList<Dependency> View(_alpm_list_t* list) => Dependency.ListFactory(list, Lifetime);
 
   /// <summary>
   /// Identity search: <see cref="Acquire" /> already resolved the snapshot to the stored element, and returning

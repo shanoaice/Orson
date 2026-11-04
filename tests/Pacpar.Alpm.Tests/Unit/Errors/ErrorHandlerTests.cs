@@ -2,12 +2,12 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm.Tests.Unit.Errors;
 
-public sealed class ErrorHandlerTests
+public sealed class ErrnoMapperTests
 {
   [Fact]
   public void GetException_ReturnsNull_ForOk()
   {
-    var exception = ErrorHandler.GetException(_alpm_errno_t.ALPM_ERR_OK);
+    var exception = ErrnoMapper.GetException(_alpm_errno_t.ALPM_ERR_OK);
 
     Assert.Null(exception);
   }
@@ -26,7 +26,7 @@ public sealed class ErrorHandlerTests
   [InlineData((int)_alpm_errno_t.ALPM_ERR_RETRIEVE_PREPARE, typeof(AlpmRetrieveException))]
   public void GetException_ReturnsExpectedExceptionType(int errno, Type expectedType)
   {
-    var exception = ErrorHandler.GetException(errno);
+    var exception = ErrnoMapper.GetException(errno);
 
     Assert.NotNull(exception);
     Assert.IsType(expectedType, exception);
@@ -40,7 +40,7 @@ public sealed class ErrorHandlerTests
   {
     // A native condition is not caller misuse. Reporting it as an ArgumentException
     // made it indistinguishable from real parameter validation, which does carry a ParamName.
-    var exception = Assert.IsType<AlpmException>(ErrorHandler.GetException(errno));
+    var exception = Assert.IsType<AlpmException>(ErrnoMapper.GetException(errno));
 
     Assert.Equal(errno, exception.Errno);
   }
@@ -68,7 +68,7 @@ public sealed class ErrorHandlerTests
   {
     var unknown = Enum.GetValues<_alpm_errno_t>()
       .Where(errno => errno != _alpm_errno_t.ALPM_ERR_OK)
-      .Where(errno => ErrorHandler.Categorize(errno) == AlpmErrorCategory.Unknown)
+      .Where(errno => ErrnoMapper.Categorize(errno) == AlpmErrorCategory.Unknown)
       .ToArray();
 
     Assert.Empty(unknown);
@@ -79,7 +79,7 @@ public sealed class ErrorHandlerTests
   {
     var unknown = Enum.GetValues<_alpm_errno_t>()
       .Where(errno => errno != _alpm_errno_t.ALPM_ERR_OK && errno != _alpm_errno_t.ALPM_ERR_MEMORY)
-      .Where(errno => ErrorHandler.CodeOf((int)errno) == AlpmFailureCode.UnknownNative)
+      .Where(errno => ErrnoMapper.CodeOf((int)errno) == AlpmFailureCode.UnknownNative)
       .ToArray();
 
     Assert.Empty(unknown);
@@ -95,7 +95,7 @@ public sealed class ErrorHandlerTests
       var failure = AlpmFailure.Of((int)errno, "test");
       var ex = failure.ToException();
 
-      var expectedType = ErrorHandler.Categorize(errno) switch
+      var expectedType = ErrnoMapper.Categorize(errno) switch
       {
         AlpmErrorCategory.Database => typeof(AlpmDatabaseException),
         AlpmErrorCategory.Package => typeof(AlpmPackageException),
@@ -114,7 +114,7 @@ public sealed class ErrorHandlerTests
   {
     var errno = (_alpm_errno_t)ushort.MaxValue;
 
-    var exception = Assert.IsType<AlpmException>(ErrorHandler.GetException(errno));
+    var exception = Assert.IsType<AlpmException>(ErrnoMapper.GetException(errno));
 
     Assert.Equal((int)errno, exception.Errno);
     Assert.Contains(((int)errno).ToString(), exception.Message);
@@ -140,9 +140,9 @@ public sealed class ErrorHandlerTests
   [InlineData((int)_alpm_errno_t.ALPM_ERR_PKG_INVALID_ARCH)]
   public unsafe void PayloadErrnos_AreReportedAsTransactionErrors_FromBothEntryPoints(int errno)
   {
-    Assert.Equal(AlpmErrorCategory.Transaction, ErrorHandler.Categorize((_alpm_errno_t)errno));
+    Assert.Equal(AlpmErrorCategory.Transaction, ErrnoMapper.Categorize((_alpm_errno_t)errno));
 
-    var generic = Assert.IsType<AlpmTransactionException>(ErrorHandler.GetException(errno));
+    var generic = Assert.IsType<AlpmTransactionException>(ErrnoMapper.GetException(errno));
     var transaction = Assert.IsAssignableFrom<AlpmTransactionException>(
       AlpmFailure.Take(errno, null, "Failed to prepare transaction").ToException());
     Assert.IsAssignableFrom<AlpmTransactionException>(transaction);

@@ -38,7 +38,7 @@ public enum PackageOperation : uint
 /// <remarks>
 /// Event payloads carrying package views are borrowed references valid only for the duration of the callback execution
 /// frame. Callers wishing to retain package data after the callback returns must call
-/// <see cref="PackageBase.ToSnapshot" /> to create an independent managed snapshot.
+/// <see cref="Package.ToSnapshot" /> to create an independent managed snapshot.
 /// <para>
 /// The set of subclasses is closed: it mirrors <c>_alpm_event_type_t</c>, and <c>FromUnion</c> is the only thing
 /// that creates one - every subclass is sealed, so the union cannot grow a member libalpm does not have.
@@ -265,12 +265,12 @@ public abstract class AlpmEvent
   {
     internal unsafe OptionalDependencyRemoval(_alpm_event_t* native, ChildLifetime? lifetime)
     {
-      OptionalDependency = new Depend(native->optdep_removal.optdep);
+      OptionalDependency = new Dependency(native->optdep_removal.optdep);
       Package = new PackageView(native->optdep_removal.pkg, lifetime);
     }
 
     /// <summary>Gets the optional dependency being removed.</summary>
-    public Depend OptionalDependency { get; }
+    public Dependency OptionalDependency { get; }
     /// <summary>Gets the package that referenced the optional dependency.</summary>
     public PackageView Package { get; }
   }

@@ -21,7 +21,7 @@ namespace Pacpar.Benchmarks;
 /// <c>Scan_Class_LibraryPath</c> is today's code and is the baseline. It doubles as the COLD class path: each
 /// BenchmarkDotNet invocation walks the same <see cref="AlpmList{T}" />, but the library constructs a new
 /// <see cref="PackageView" /> per element per pass, so no cache survives a pass and every property read goes back to
-/// libalpm and allocates a fresh string. Note that <see cref="PackageBase.Version" /> is not cached even on one instance,
+/// libalpm and allocates a fresh string. Note that <see cref="Package.Version" /> is not cached even on one instance,
 /// so it allocates a Version plus a string per read.
 /// </item>
 /// <item>
@@ -321,7 +321,7 @@ public class StructViewBenchmarks
 
 /// <summary>
 /// The shared, pointer-keyed entry B-2 proposes: it owns the lifetime token and the lazy metadata cache that
-/// today live inside <see cref="PackageBase" /> - which is exactly why a per-pass view cannot reuse them and calls back
+/// today live inside <see cref="Package" /> - which is exactly why a per-pass view cannot reuse them and calls back
 /// into libalpm on every element.
 /// </summary>
 internal sealed class PackageEntry

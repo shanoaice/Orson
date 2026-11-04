@@ -2,7 +2,7 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-internal sealed unsafe class Architecture(SafeAlpmHandle handle, Lifetime lifetime)
+internal sealed unsafe class Architectures(SafeAlpmHandle handle, Lifetime lifetime)
   : AlpmStringOptionList(handle, lifetime)
 {
   private protected override _alpm_list_t* GetList(SafeAlpmHandle h) => NativeMethods.alpm_option_get_architectures(h);

@@ -204,7 +204,7 @@ public sealed class LifetimeInvalidationTests : IDisposable
     Assert.NotNull(group);
 
     var syncDbs = _environment.AlpmSession.GetSyncDatabases();
-    var packages = group.FindGroupPackages(syncDbs);
+    var packages = group.FindPackages(syncDbs);
     Assert.Equal(2, packages.Count);
 
     var pkgA = packages.First(p => p.Name == "pkg-a");

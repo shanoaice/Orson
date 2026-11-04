@@ -88,7 +88,7 @@ public sealed partial class Transaction : IDisposable
   }
 
   private CompletionState _completionState = CompletionState.InProgress;
-  private readonly AlpmSession _library;
+  private readonly AlpmSession _session;
   private readonly LifetimeStamp _stamp;
 
   /// <summary>
@@ -99,11 +99,11 @@ public sealed partial class Transaction : IDisposable
   /// </summary>
   internal readonly ChildLifetime Lifetime;
 
-  private Transaction(AlpmSession alpmLibrary)
+  private Transaction(AlpmSession alpmSession)
   {
-    _library = alpmLibrary;
-    _stamp = alpmLibrary.RootLifetime.Capture();
-    Lifetime = alpmLibrary.RootLifetime.CreateChild("the transaction");
+    _session = alpmSession;
+    _stamp = alpmSession.RootLifetime.Capture();
+    Lifetime = alpmSession.RootLifetime.CreateChild("the transaction");
   }
 
 
@@ -250,10 +250,10 @@ public sealed partial class Transaction : IDisposable
       throw new InvalidOperationException("Cannot interrupt a transaction that is not committing.");
     }
 
-    var err = NativeMethods.alpm_trans_interrupt(_library.Handle);
+    var err = NativeMethods.alpm_trans_interrupt(_session.Handle);
     if (err != 0)
     {
-      throw AlpmFailure.Of(_library.Handle, "interrupt transaction").ToException();
+      throw AlpmFailure.Of(_session.Handle, "interrupt transaction").ToException();
     }
   }
 
@@ -282,7 +282,7 @@ public sealed partial class Transaction : IDisposable
     get
     {
       ThrowIfDisposed();
-      return AlpmList<PackageView>.Borrow(NativeMethods.alpm_trans_get_add(_library.Handle),
+      return AlpmList<PackageView>.Borrow(NativeMethods.alpm_trans_get_add(_session.Handle),
         &PackageView.Factory, Lifetime);
     }
   }
@@ -297,8 +297,8 @@ public sealed partial class Transaction : IDisposable
     get
     {
       ThrowIfDisposed();
-      var flags = (TransactionFlags)NativeMethods.alpm_trans_get_flags(_library.Handle);
-      GC.KeepAlive(_library);
+      var flags = (TransactionFlags)NativeMethods.alpm_trans_get_flags(_session.Handle);
+      GC.KeepAlive(_session);
       GC.KeepAlive(this);
       return flags;
     }
@@ -314,7 +314,7 @@ public sealed partial class Transaction : IDisposable
     get
     {
       ThrowIfDisposed();
-      return AlpmList<PackageView>.Borrow(NativeMethods.alpm_trans_get_remove(_library.Handle),
+      return AlpmList<PackageView>.Borrow(NativeMethods.alpm_trans_get_remove(_session.Handle),
         &PackageView.Factory, Lifetime);
     }
   }
@@ -349,7 +349,7 @@ public sealed partial class Transaction : IDisposable
 
     GC.SuppressFinalize(this);
 
-    if (_library.Disposed)
+    if (_session.Disposed)
     {
       // The session released this transaction on its way out; see IsReleased.
       IsReleased = true;
@@ -361,11 +361,11 @@ public sealed partial class Transaction : IDisposable
     // the failure path: alpm_trans_release only fails when the transaction is already gone.
     Lifetime.Invalidate("Transaction.Dispose()");
 
-    var err = NativeMethods.alpm_trans_release(_library.Handle);
+    var err = NativeMethods.alpm_trans_release(_session.Handle);
     if (err == 0)
     {
       IsReleased = true;
-      _library.CurrentTransaction = null;
+      _session.CurrentTransaction = null;
       return;
     }
 
@@ -376,8 +376,8 @@ public sealed partial class Transaction : IDisposable
     //    ReleaseFailure without throwing (ADR 0008).
     // 2. Committed: Commit succeeded, so no exception is in flight to mask. A failed release
     //    indicates native state corruption (e.g., retained db.lck), so throw to fail fast.
-    var failure = AlpmFailure.Of(_library.Handle, "release transaction");
-    GC.KeepAlive(_library);
+    var failure = AlpmFailure.Of(_session.Handle, "release transaction");
+    GC.KeepAlive(_session);
     GC.KeepAlive(this);
 
     var ex = failure.ToException();

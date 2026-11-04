@@ -5,11 +5,11 @@ namespace Pacpar.Alpm;
 /// <summary>A package version (<c>alpm_pkg_get_version</c>), ordered by libalpm's own <c>alpm_pkg_vercmp</c>.</summary>
 /// <remarks>
 /// A managed snapshot: the version text is copied on construction, so a value taken from
-/// <see cref="PackageBase.Version" /> stays valid after the package that produced it is disposed.
+/// <see cref="Package.Version" /> stays valid after the package that produced it is disposed.
 /// <para>
 /// The type has value semantics. <see cref="Equals(PackageVersion)" /> and the <c>==</c> operator compare the copied
 /// text, so two instances that report the same text are interchangeable - which matters because every read of
-/// <see cref="PackageBase.Version" /> builds a new instance.
+/// <see cref="Package.Version" /> builds a new instance.
 /// </para>
 /// <para>
 /// That equality is a different relation from <see cref="CompareTo(PackageVersion)" /> returning 0, and the two
@@ -69,7 +69,7 @@ public sealed class PackageVersion : IComparable<PackageVersion>, IEquatable<Pac
 
   /// <summary>Whether the two operands carry the same version text, or are both <see langword="null" />.</summary>
   /// <remarks>
-  /// Two reads of <see cref="PackageBase.Version" /> never produce the same instance, so the operator compares text
+  /// Two reads of <see cref="Package.Version" /> never produce the same instance, so the operator compares text
   /// rather than object identity.
   /// </remarks>
   public static bool operator ==(PackageVersion? left, PackageVersion? right) =>

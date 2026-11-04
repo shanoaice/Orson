@@ -5,7 +5,7 @@ using Pacpar.Alpm.Tests.Fixtures;
 namespace Pacpar.Alpm.Tests.Unit.Options;
 
 /// <summary>
-/// Covers the non-string branch of the option-collection template now that <see cref="Depend" /> is a managed
+/// Covers the non-string branch of the option-collection template now that <see cref="Dependency" /> is a managed
 /// snapshot: <c>Add</c> materialises the snapshot for libalpm, while <c>Contains</c> and <c>Remove</c> resolve the
 /// snapshot to the element libalpm stored by comparing values.
 /// </summary>
@@ -25,7 +25,7 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
   /// Parses a dependency with libalpm, then frees the native struct and hands back the snapshot: from this point on
   /// the test only holds managed values.
   /// </summary>
-  private static Depend Parse(string spec)
+  private static Dependency Parse(string spec)
   {
     var specPtr = NativeString.ToNative(spec);
     try
@@ -35,7 +35,7 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
 
       try
       {
-        return new Depend(native);
+        return new Dependency(native);
       }
       finally
       {
@@ -49,10 +49,10 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
   }
 
   /// <summary>
-  /// Builds a dependency through the same struct layout <see cref="Depend.ToNative" /> uses, so a test can describe
+  /// Builds a dependency through the same struct layout <see cref="Dependency.ToNative" /> uses, so a test can describe
   /// a value libalpm's parser cannot produce - a dependency with a description.
   /// </summary>
-  private static Depend HandBuilt(string name, string? version, string? description, DepMod mod)
+  private static Dependency HandBuilt(string name, string? version, string? description, DependencyComparison mod)
   {
     var native = (_alpm_depend_t*)NativeMemory.AllocZeroed((nuint)sizeof(_alpm_depend_t));
     native->name = NativeString.ToNative(name);
@@ -63,11 +63,11 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
 
     try
     {
-      return new Depend(native);
+      return new Dependency(native);
     }
     finally
     {
-      Depend.FreeNative(native);
+      Dependency.FreeNative(native);
     }
   }
 
@@ -82,7 +82,7 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
     var stored = Assert.Single(collection);
     Assert.Equal("foobar", stored.Name);
     Assert.Equal("1.0", stored.Version);
-    Assert.Equal(DepMod.Equal, stored.Depmod);
+    Assert.Equal(DependencyComparison.Equal, stored.Depmod);
 
     // The snapshot is a value, not a pointer into the list, and the list is not the snapshot's owner.
     collection.Clear();
@@ -94,7 +94,7 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
   {
     var collection = AlpmSession.Options.AssumeInstalled;
 
-    collection.Add(HandBuilt("foobar", "1.0", "needed by a test", DepMod.Equal));
+    collection.Add(HandBuilt("foobar", "1.0", "needed by a test", DependencyComparison.Equal));
 
     Assert.Equal("needed by a test", Assert.Single(collection).Description);
   }
@@ -109,7 +109,7 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
     var stored = Assert.Single(collection);
     Assert.Equal("foobar", stored.Name);
     Assert.Null(stored.Version);
-    Assert.Equal(DepMod.Any, stored.Depmod);
+    Assert.Equal(DependencyComparison.Any, stored.Depmod);
     Assert.True(collection.Contains(Parse("foobar")));
   }
 
@@ -138,9 +138,9 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
   public void Contains_IgnoresTheDescription()
   {
     var collection = AlpmSession.Options.AssumeInstalled;
-    collection.Add(HandBuilt("foobar", "1.0", "stored description", DepMod.Equal));
+    collection.Add(HandBuilt("foobar", "1.0", "stored description", DependencyComparison.Equal));
 
-    Assert.True(collection.Contains(HandBuilt("foobar", "1.0", "another description", DepMod.Equal)));
+    Assert.True(collection.Contains(HandBuilt("foobar", "1.0", "another description", DependencyComparison.Equal)));
     Assert.True(collection.Contains(Parse("foobar=1.0")));
   }
 
@@ -201,7 +201,7 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
     var collection = AlpmSession.Options.AssumeInstalled;
 
     var exception = Assert.Throws<AlpmException>(
-      () => collection.Add(HandBuilt("foobar", "1.0", null, DepMod.GreaterOrEqual)));
+      () => collection.Add(HandBuilt("foobar", "1.0", null, DependencyComparison.GreaterOrEqual)));
 
     Assert.Equal((int)_alpm_errno_t.ALPM_ERR_WRONG_ARGS, exception.Errno);
     Assert.Empty(collection);

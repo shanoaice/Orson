@@ -24,7 +24,7 @@ public sealed unsafe class AlpmOptions
     _handle = handle;
     _lifetime = lifetime;
 
-    Architectures = new Architecture(handle, lifetime);
+    Architectures = new Architectures(handle, lifetime);
     AssumeInstalled = new AssumeInstalled(handle, lifetime);
     CacheDirectories = new CacheDirectories(handle, lifetime);
     OverwritableFiles = new OverwritableFiles(handle, lifetime);
@@ -111,7 +111,7 @@ public sealed unsafe class AlpmOptions
   public ICollection<string> Architectures { get; }
 
   /// <summary>Gets the collection used to query and modify the virtual dependencies assumed to already be installed.</summary>
-  public ICollection<Depend> AssumeInstalled { get; }
+  public ICollection<Dependency> AssumeInstalled { get; }
 
   /// <summary>Gets the collection used to query and modify the package cache directories.</summary>
   public ICollection<string> CacheDirectories { get; }

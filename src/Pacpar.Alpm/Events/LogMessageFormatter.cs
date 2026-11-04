@@ -38,7 +38,7 @@ internal static unsafe partial class LogMessageFormatter
     finally
     {
       // vasprintf allocates with malloc, and CFree is libc's free.
-      MemoryManagement.CFree(buffer);
+      UnmanagedDestructors.CFree(buffer);
     }
   }
 }

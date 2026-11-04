@@ -62,7 +62,7 @@ internal sealed class AlpmFailure
   internal static AlpmFailure Of(int errno, string operation)
   {
     RejectNotAFailureValue(errno, operation);
-    return new AlpmFailure(ErrorHandler.CodeOf(errno), errno, ErrorHandler.StrError(errno), operation, null);
+    return new AlpmFailure(ErrnoMapper.CodeOf(errno), errno, ErrnoMapper.StrError(errno), operation, null);
   }
 
   /// <summary>
@@ -92,24 +92,24 @@ internal sealed class AlpmFailure
   {
     RejectNotAFailureValue(errno, operation);
 
-    var code = ErrorHandler.CodeOf(errno);
+    var code = ErrnoMapper.CodeOf(errno);
 
     AlpmFailureDetail? detail = code switch
     {
       AlpmFailureCode.UnsatisfiedDependencies =>
         new AlpmFailureDetail.MissingDependencies(
-          AlpmOwnedList<DepMissing>.Take(data, &DepMissing.Factory, &MemoryManagement.DepMissingFreeExtern)),
+          AlpmOwnedList<MissingDependency>.Take(data, &MissingDependency.Factory, &UnmanagedDestructors.DepMissingFreeExtern)),
       AlpmFailureCode.ConflictingDependencies =>
         new AlpmFailureDetail.ConflictingDependencies(
-          AlpmOwnedList<Conflict>.Take(data, &Conflict.Factory, &MemoryManagement.ConflictFreeExtern)),
+          AlpmOwnedList<Conflict>.Take(data, &Conflict.Factory, &UnmanagedDestructors.ConflictFreeExtern)),
       AlpmFailureCode.FileConflicts =>
         new AlpmFailureDetail.ConflictingFiles(
-          AlpmOwnedList<FileConflict>.Take(data, &FileConflict.Factory, &MemoryManagement.FileConflictFreeExtern)),
+          AlpmOwnedList<FileConflict>.Take(data, &FileConflict.Factory, &UnmanagedDestructors.FileConflictFreeExtern)),
       AlpmFailureCode.PackageInvalid
         or AlpmFailureCode.PackageInvalidChecksum
         or AlpmFailureCode.PackageInvalidSignature
         or AlpmFailureCode.PackageInvalidArchitecture =>
-        new AlpmFailureDetail.RejectedPackages(AlpmStringList.TakeOwned(data, &MemoryManagement.CFreeExtern)),
+        new AlpmFailureDetail.RejectedPackages(AlpmStringList.TakeOwned(data, &UnmanagedDestructors.CFreeExtern)),
       _ => null
     };
 
@@ -118,7 +118,7 @@ internal sealed class AlpmFailure
       NativeListMarshal.Free(data, null);
     }
 
-    return new AlpmFailure(code, errno, ErrorHandler.StrError(errno), operation, detail);
+    return new AlpmFailure(code, errno, ErrnoMapper.StrError(errno), operation, detail);
   }
 
   /// <summary>
@@ -152,7 +152,7 @@ internal sealed class AlpmFailure
         return new AlpmTransactionException.InvalidPackageArchitecture(rejected.Packages, context);
     }
 
-    return ErrorHandler.Create(NativeCode, Message, context);
+    return ErrnoMapper.Create(NativeCode, Message, context);
   }
 
   /// <inheritdoc />
@@ -163,7 +163,7 @@ internal sealed class AlpmFailure
   {
     if (errno == (int)_alpm_errno_t.ALPM_ERR_MEMORY)
     {
-      throw new OutOfMemoryException(ErrorHandler.StrError(errno));
+      throw new OutOfMemoryException(ErrnoMapper.StrError(errno));
     }
 
     if (errno == (int)_alpm_errno_t.ALPM_ERR_OK)
@@ -174,7 +174,7 @@ internal sealed class AlpmFailure
 }
 
 /// <summary>Turns libalpm errnos into semantic codes and exceptions.</summary>
-internal static class ErrorHandler
+internal static class ErrnoMapper
 {
   /// <summary>
   /// The exception describing <paramref name="errno" />, or <c>null</c> if and only if it is
@@ -433,9 +433,9 @@ internal enum AlpmFailureCode
 internal abstract class AlpmFailureDetail
 {
   /// <summary>Dependencies the transaction could not satisfy.</summary>
-  internal sealed class MissingDependencies(IReadOnlyList<DepMissing> dependencies) : AlpmFailureDetail
+  internal sealed class MissingDependencies(IReadOnlyList<MissingDependency> dependencies) : AlpmFailureDetail
   {
-    internal IReadOnlyList<DepMissing> Dependencies { get; } = dependencies;
+    internal IReadOnlyList<MissingDependency> Dependencies { get; } = dependencies;
   }
 
   /// <summary>Dependencies that conflict with each other.</summary>

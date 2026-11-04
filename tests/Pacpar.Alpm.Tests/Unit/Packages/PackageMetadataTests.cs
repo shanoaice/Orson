@@ -177,7 +177,7 @@ public sealed class PackageMetadataTests : IDisposable
       Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1700000000L), loaded.BuildDate);
       Assert.Equal(4096L, loaded.InstalledSize);
       Assert.True(loaded.Size > 0);
-      Assert.Equal("x86_64", loaded.Arch);
+      Assert.Equal("x86_64", loaded.Architecture);
       Assert.Equal(PackageOrigin.File, loaded.Origin);
       _ = loaded.Validation;
       Assert.True(loaded.HasScriptlet);
@@ -188,7 +188,7 @@ public sealed class PackageMetadataTests : IDisposable
       var dep = Assert.Single(loaded.Depends);
       Assert.Equal("glibc", dep.Name);
       Assert.Equal("2.38", dep.Version);
-      Assert.Equal(DepMod.GreaterOrEqual, dep.Depmod);
+      Assert.Equal(DependencyComparison.GreaterOrEqual, dep.Depmod);
 
       var optdep = Assert.Single(loaded.OptionalDepends);
       Assert.Equal("python", optdep.Name);

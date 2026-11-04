@@ -3,7 +3,7 @@ using Pacpar.Alpm.Bindings;
 
 namespace Pacpar.Alpm;
 
-public abstract unsafe partial class PackageBase
+public abstract unsafe partial class Package
 {
   /// <summary>The failure-returning seam for <see cref="CheckMd5Sum" />.</summary>
   /// <param name="matches">

@@ -21,7 +21,7 @@ public sealed class ManagedEnumsTests
   [Theory]
   [InlineData(typeof(_alpm_pkgfrom_t), typeof(PackageOrigin))]
   [InlineData(typeof(_alpm_pkgreason_t), typeof(PackageReason))]
-  [InlineData(typeof(_alpm_depmod_t), typeof(DepMod))]
+  [InlineData(typeof(_alpm_depmod_t), typeof(DependencyComparison))]
   [InlineData(typeof(_alpm_hook_when_t), typeof(HookWhen))]
   [InlineData(typeof(_alpm_package_operation_t), typeof(PackageOperation))]
   [InlineData(typeof(_alpm_progress_t), typeof(ProgressType))]

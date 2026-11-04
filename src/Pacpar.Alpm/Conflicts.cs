@@ -6,7 +6,7 @@ namespace Pacpar.Alpm;
 public sealed class FileConflict
 {
   /// <summary>The target or package that causes the conflict.</summary>
-  public string? Ctarget { get; }
+  public string? ConflictingTarget { get; }
 
   /// <summary>The path of the conflicting file.</summary>
   public string? File { get; }
@@ -16,7 +16,7 @@ public sealed class FileConflict
 
   internal unsafe FileConflict(_alpm_fileconflict_t* backingStruct)
   {
-    Ctarget = NativeString.FromNative((nint)backingStruct->ctarget);
+    ConflictingTarget = NativeString.FromNative((nint)backingStruct->ctarget);
     File = NativeString.FromNative((nint)backingStruct->file);
     Target = NativeString.FromNative((nint)backingStruct->target);
   }
@@ -35,7 +35,7 @@ public sealed class Conflict
 
   internal unsafe Conflict(_alpm_conflict_t* backingStruct)
   {
-    Reason = new Depend(backingStruct->reason);
+    Reason = new Dependency(backingStruct->reason);
     Package1Name = NativeString.FromNative((nint)NativeMethods.alpm_pkg_get_name(backingStruct->package1))!;
     Package2Name = NativeString.FromNative((nint)NativeMethods.alpm_pkg_get_name(backingStruct->package2))!;
   }
@@ -43,5 +43,5 @@ public sealed class Conflict
   internal static unsafe Conflict Factory(void* ptr, Lifetime? lifetime) => new((_alpm_conflict_t*)ptr);
 
   /// <summary>The dependency relationship that caused this conflict.</summary>
-  public Depend Reason { get; }
+  public Dependency Reason { get; }
 }

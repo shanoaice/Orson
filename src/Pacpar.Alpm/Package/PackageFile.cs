@@ -5,7 +5,7 @@ namespace Pacpar.Alpm;
 /// <summary>One entry of a package's file list (<c>alpm_file_t</c>).</summary>
 /// <remarks>
 /// A managed snapshot: mode, size and name are copied out of the package's file list when the entry is read, so a
-/// <see cref="PackageFile" /> taken from <see cref="PackageBase.Files" /> remains valid.
+/// <see cref="PackageFile" /> taken from <see cref="Package.Files" /> remains valid.
 /// </remarks>
 public readonly struct PackageFile
 {

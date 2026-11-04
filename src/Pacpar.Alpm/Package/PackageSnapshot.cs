@@ -1,8 +1,8 @@
 namespace Pacpar.Alpm;
 
 /// <summary>
-/// A detached copy of the metadata a <see cref="PackageBase" /> reads, made by
-/// <see cref="PackageBase.ToSnapshot" />.
+/// A detached copy of the metadata a <see cref="Package" /> reads, made by
+/// <see cref="Package.ToSnapshot" />.
 /// </summary>
 /// <remarks>
 /// A <see cref="PackageView" /> is a view over memory libalpm owns, so it stops being safe to read as soon as the
@@ -29,9 +29,9 @@ public sealed class PackageSnapshot
 {
   /// <summary>
   /// Copies <paramref name="package" />; when <paramref name="includeFiles" /> is set, the file list is copied too.
-  /// Prefer <see cref="PackageBase.ToSnapshot" />.
+  /// Prefer <see cref="Package.ToSnapshot" />.
   /// </summary>
-  public PackageSnapshot(PackageBase package, bool includeFiles = false)
+  public PackageSnapshot(Package package, bool includeFiles = false)
   {
     ArgumentNullException.ThrowIfNull(package);
 
@@ -46,7 +46,7 @@ public sealed class PackageSnapshot
     Packager = package.Packager;
     Md5Sum = package.Md5Sum;
     Sha256Sum = package.Sha256Sum;
-    Arch = package.Arch;
+    Arch = package.Architecture;
     Size = package.Size;
     InstalledSize = package.InstalledSize;
     Origin = package.Origin;
@@ -127,28 +127,28 @@ public sealed class PackageSnapshot
   public IReadOnlyList<string> Groups { get; }
 
   /// <summary>Gets the list of mandatory package dependencies.</summary>
-  public IReadOnlyList<Depend> Depends { get; }
+  public IReadOnlyList<Dependency> Depends { get; }
 
   /// <summary>Gets the list of optional package dependencies.</summary>
-  public IReadOnlyList<Depend> OptionalDepends { get; }
+  public IReadOnlyList<Dependency> OptionalDepends { get; }
 
   /// <summary>Gets the list of packages that conflict with this package.</summary>
-  public IReadOnlyList<Depend> Conflicts { get; }
+  public IReadOnlyList<Dependency> Conflicts { get; }
 
   /// <summary>Gets the list of virtual provisions supplied by this package.</summary>
-  public IReadOnlyList<Depend> Provides { get; }
+  public IReadOnlyList<Dependency> Provides { get; }
 
   /// <summary>Gets the list of packages this package replaces.</summary>
-  public IReadOnlyList<Depend> Replaces { get; }
+  public IReadOnlyList<Dependency> Replaces { get; }
 
   /// <summary>The copied backup-file entries, frozen at the moment of the copy.</summary>
-  public IReadOnlyList<Backup> BackupFiles { get; }
+  public IReadOnlyList<BackupEntry> BackupFiles { get; }
 
   /// <summary>Gets the list of dependencies required only to run the test suite when building.</summary>
-  public IReadOnlyList<Depend> CheckDepends { get; }
+  public IReadOnlyList<Dependency> CheckDepends { get; }
 
   /// <summary>Gets the list of dependencies required only to build the package from source.</summary>
-  public IReadOnlyList<Depend> MakeDepends { get; }
+  public IReadOnlyList<Dependency> MakeDepends { get; }
 
   /// <summary>Gets the estimated or calculated download size of the package in bytes.</summary>
   public long DownloadSize { get; }

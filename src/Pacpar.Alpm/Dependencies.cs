@@ -5,7 +5,7 @@ namespace Pacpar.Alpm;
 
 /// <summary>The version comparison a dependency uses (libalpm's <c>_alpm_depmod_t</c>).</summary>
 /// <remarks>The values map directly to libalpm comparison operators, where unconstrained dependencies use <see cref="Any" /> (1). Zero is not a valid operator.</remarks>
-public enum DepMod : uint
+public enum DependencyComparison : uint
 {
   /// <summary>Any version satisfies the dependency (<c>ALPM_DEP_MOD_ANY</c>).</summary>
   Any = 1,
@@ -39,19 +39,19 @@ public enum DepMod : uint
 /// <c>name_hash</c>, which only a struct libalpm built itself carries.
 /// </para>
 /// </remarks>
-public sealed unsafe class Depend
+public sealed unsafe class Dependency
 {
   /// <summary>Creates a detached, fully managed copy of a native dependency.</summary>
-  internal Depend(_alpm_depend_t* backingStruct)
+  internal Dependency(_alpm_depend_t* backingStruct)
   {
     Name = NativeString.FromNative((nint)backingStruct->name);
     Version = NativeString.FromNative((nint)backingStruct->version);
     Description = NativeString.FromNative((nint)backingStruct->desc);
-    Depmod = (DepMod)(uint)backingStruct->mod_;
+    Depmod = (DependencyComparison)(uint)backingStruct->mod_;
   }
 
-  /// <summary>Creates a new copy of <see cref="Depend" /> from managed components</summary>
-  private Depend(string? name, string? version, string? description, DepMod depmod)
+  /// <summary>Creates a new copy of <see cref="Dependency" /> from managed components</summary>
+  private Dependency(string? name, string? version, string? description, DependencyComparison depmod)
   {
     Name = name;
     Version = version;
@@ -59,7 +59,7 @@ public sealed unsafe class Depend
     Depmod = depmod;
   }
 
-  internal static Depend Factory(void* ptr, Lifetime? lifetime) => new((_alpm_depend_t*)ptr);
+  internal static Dependency Factory(void* ptr, Lifetime? lifetime) => new((_alpm_depend_t*)ptr);
 
   /// <summary>
   /// Borrowed view over a dependency list owned by libalpm (for example <c>alpm_pkg_get_depends</c>,
@@ -67,8 +67,8 @@ public sealed unsafe class Depend
   /// </summary>
   /// <param name="alpmList">The borrowed list. May be <c>null</c>.</param>
   /// <param name="lifetime">Token of the context that owns the list; guards traversal.</param>
-  internal static AlpmList<Depend> ListFactory(_alpm_list_t* alpmList, Lifetime? lifetime)
-    => AlpmList<Depend>.Borrow(alpmList, &Factory, lifetime);
+  internal static AlpmList<Dependency> ListFactory(_alpm_list_t* alpmList, Lifetime? lifetime)
+    => AlpmList<Dependency>.Borrow(alpmList, &Factory, lifetime);
 
   /// <summary>An optional description of why this dependency is required or recommended.</summary>
   public string? Description { get; }
@@ -80,10 +80,10 @@ public sealed unsafe class Depend
   public string? Version { get; }
 
   /// <summary>The comparison operator applied to <see cref="Version" />.</summary>
-  public DepMod Depmod { get; }
+  public DependencyComparison Depmod { get; }
 
   /// <summary>Determines whether this dependency matches <paramref name="other" /> by name, version, and version modifier.</summary>
-  internal bool Matches(Depend other)
+  internal bool Matches(Dependency other)
     => string.Equals(Name, other.Name, StringComparison.Ordinal)
        && string.Equals(Version ?? string.Empty, other.Version ?? string.Empty, StringComparison.Ordinal)
        && Depmod == other.Depmod;
@@ -122,26 +122,26 @@ public sealed unsafe class Depend
 /// <see cref="Transaction.Prepare" /> copies the values out and frees the native memory (list and elements). No native
 /// pointer is retained.
 /// </remarks>
-public sealed class DepMissing
+public sealed class MissingDependency
 {
-  private DepMissing(string? target, string? causingPkg, Depend? depend)
+  private MissingDependency(string? target, string? causingPackage, Dependency? dependency)
   {
     Target = target;
-    CausingPkg = causingPkg;
-    Depend = depend;
+    CausingPackage = causingPackage;
+    Dependency = dependency;
   }
 
   // Token parameter unused: a DepMissing is an eager snapshot of caller-owned failure data.
-  internal static unsafe DepMissing Factory(void* native, Lifetime? lifetime)
+  internal static unsafe MissingDependency Factory(void* native, Lifetime? lifetime)
     => new(NativeString.FromNative((nint)((_alpm_depmissing_t*)native)->target),
       NativeString.FromNative((nint)((_alpm_depmissing_t*)native)->causingpkg),
-      ((_alpm_depmissing_t*)native)->depend != null ? new Depend(((_alpm_depmissing_t*)native)->depend) : null);
+      ((_alpm_depmissing_t*)native)->depend != null ? new Dependency(((_alpm_depmissing_t*)native)->depend) : null);
 
   /// <summary>The dependency requirement that could not be satisfied.</summary>
-  public Depend? Depend { get; }
+  public Dependency? Dependency { get; }
 
   /// <summary>The name of the package that caused this dependency to be required, if known.</summary>
-  public string? CausingPkg { get; }
+  public string? CausingPackage { get; }
 
   /// <summary>The target package or resource name that triggered the dependency check.</summary>
   public string? Target { get; }

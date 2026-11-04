@@ -9,8 +9,8 @@ namespace Pacpar.Benchmarks;
 /// </summary>
 /// <remarks>
 /// The library now caches with a flag on every property that can be absent, so the pair below is the fixed path
-/// on an absent property (<see cref="PackageBase.Filename" />) against the coalescing path on one libalpm always sets (
-/// <see cref="PackageBase.Name" />). The pre-fix comparison - the same loop over the old coalescing implementation, 91.67
+/// on an absent property (<see cref="Package.Filename" />) against the coalescing path on one libalpm always sets (
+/// <see cref="Package.Name" />). The pre-fix comparison - the same loop over the old coalescing implementation, 91.67
 /// us against 10.04 us - is why this class exists as the regression check for the fix.
 /// </remarks>
 [MemoryDiagnoser]

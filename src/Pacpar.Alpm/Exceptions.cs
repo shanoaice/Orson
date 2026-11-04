@@ -20,10 +20,10 @@ public class AlpmException : Exception
   /// <param name="context">Optional operation description, e.g. "Failed to add package: foo".</param>
   /// <param name="inner">Optional inner exception.</param>
   public AlpmException(int errno, string? strError = null, string? context = null, Exception? inner = null)
-    : base(BuildMessage(errno, strError ?? ErrorHandler.StrError(errno), context), inner)
+    : base(BuildMessage(errno, strError ?? ErrnoMapper.StrError(errno), context), inner)
   {
     Errno = errno;
-    StrError = strError ?? ErrorHandler.StrError(errno);
+    StrError = strError ?? ErrnoMapper.StrError(errno);
   }
 
   /// <summary>Gets the raw native libalpm error code (<c>pm_errno</c>).</summary>
@@ -38,7 +38,7 @@ public class AlpmException : Exception
 
   private static string BuildMessage(int errno, string? strError, string? context)
   {
-    var name = ErrorHandler.NameOf(errno);
+    var name = ErrnoMapper.NameOf(errno);
     var detail = string.IsNullOrEmpty(strError) ? name : $"{name}: {strError}";
 
     return string.IsNullOrEmpty(context) ? detail : $"{context} ({detail})";
@@ -63,12 +63,12 @@ public sealed class AlpmDatabaseException(int errno, string? strError = null, st
 public sealed class AlpmPackageException(
   int errno,
   string? strError = null,
-  PackageBase? package = null,
+  Package? package = null,
   string? context = null)
   : AlpmException(errno, strError, context)
 {
   /// <summary>The package the failed call was operating on, when known.</summary>
-  public PackageBase? Package { get; } = package;
+  public Package? Package { get; } = package;
 }
 
 /// <summary>A signature or keyring error (<c>ALPM_ERR_SIG_*</c>, missing signature support).</summary>
@@ -100,11 +100,11 @@ public class AlpmTransactionException(int errno, string? strError = null, string
   : AlpmException(errno, strError, context)
 {
   /// <summary>Dependencies the transaction could not satisfy ( <c>ALPM_ERR_UNSATISFIED_DEPS</c>).</summary>
-  public sealed class MissingDependencies(IReadOnlyList<DepMissing> dependencies, string? context = null)
+  public sealed class MissingDependencies(IReadOnlyList<MissingDependency> dependencies, string? context = null)
     : AlpmTransactionException((int)_alpm_errno_t.ALPM_ERR_UNSATISFIED_DEPS, context: context)
   {
     /// <summary>The unsatisfied dependencies, snapshotted out of libalpm's list.</summary>
-    public IReadOnlyList<DepMissing> Dependencies { get; } = dependencies;
+    public IReadOnlyList<MissingDependency> Dependencies { get; } = dependencies;
   }
 
   /// <summary>Dependencies that conflict with each other (<c>ALPM_ERR_CONFLICTING_DEPS</c>).</summary>

@@ -17,7 +17,7 @@ public class ListTraversalBenchmarks
 {
   private AlpmSession _alpm = null!;
   private PackageView _pkg = null!;
-  private AlpmList<Depend> _depends = null!;
+  private AlpmList<Dependency> _depends = null!;
 
   [GlobalSetup]
   public void Setup()

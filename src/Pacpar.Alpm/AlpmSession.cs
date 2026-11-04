@@ -31,7 +31,7 @@ public enum Capability : uint
 /// libalpm is not thread-safe, so a session, the databases and transactions that hang off it, and every view they
 /// issue belong to one thread at a time. The rest of the library assumes this contract, and if you violates it, bad things
 /// WILL happen. Concurrent work belongs on other threads that hand results back to the session's thread, and anything that
-/// must cross a thread boundary should be copied out with <see cref="PackageBase.ToSnapshot" /> first.
+/// must cross a thread boundary should be copied out with <see cref="Package.ToSnapshot" /> first.
 /// </remarks>
 public sealed partial class AlpmSession : IDisposable
 {
@@ -234,7 +234,7 @@ public sealed partial class AlpmSession : IDisposable
   public Exception? GetCurrentError()
   {
     ThrowIfDisposed();
-    return ErrorHandler.GetException(Errno);
+    return ErrnoMapper.GetException(Errno);
   }
 
   /// <summary>Loads a package archive from disk.</summary>
@@ -439,7 +439,7 @@ public sealed partial class AlpmSession : IDisposable
   }
 
   /// <summary>Checks a list of packages for missing dependencies.</summary>
-  public unsafe IReadOnlyList<DepMissing> CheckDependencies(
+  public unsafe IReadOnlyList<MissingDependency> CheckDependencies(
     IEnumerable<PackageView> packages,
     IEnumerable<PackageView>? remove = null,
     IEnumerable<PackageView>? upgrade = null,
@@ -466,8 +466,8 @@ public sealed partial class AlpmSession : IDisposable
 
       var result = NativeMethods.alpm_checkdeps(Handle, pkgList, remList, upgList, reverseDependencies ? 1 : 0);
       return result != null
-        ? AlpmOwnedList<DepMissing>.Take(result, &DepMissing.Factory, &MemoryManagement.DepMissingFreeExtern)
-        : Array.Empty<DepMissing>();
+        ? AlpmOwnedList<MissingDependency>.Take(result, &MissingDependency.Factory, &UnmanagedDestructors.DepMissingFreeExtern)
+        : Array.Empty<MissingDependency>();
     }
     finally
     {
@@ -489,7 +489,7 @@ public sealed partial class AlpmSession : IDisposable
       pkgList = NativeListMarshal.BuildPointerList(packages);
       var result = NativeMethods.alpm_checkconflicts(Handle, pkgList);
       return result != null
-        ? AlpmOwnedList<Conflict>.Take(result, &Conflict.Factory, &MemoryManagement.ConflictFreeExtern)
+        ? AlpmOwnedList<Conflict>.Take(result, &Conflict.Factory, &UnmanagedDestructors.ConflictFreeExtern)
         : Array.Empty<Conflict>();
     }
     finally

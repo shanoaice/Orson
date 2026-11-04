@@ -119,7 +119,7 @@ public sealed unsafe class ManagedSnapshotTests
 
       // Backup is an eager snapshot: the factory takes the list's token for shape compatibility,
       // but this test's memory is pacpar-owned, so no context guards it.
-      var backup = Backup.Factory(native, null);
+      var backup = BackupEntry.Factory(native, null);
 
       Scramble(name, "etc/pacman.conf");
       Scramble(hash, "deadbeef");
@@ -414,7 +414,7 @@ public sealed unsafe class ManagedSnapshotTests
       *conflictStruct = default;
       *dependStruct = default;
 
-      var conflict = Assert.IsType<AlpmQuestion.ConflictPkg>(payload);
+      var conflict = Assert.IsType<AlpmQuestion.PackageConflict>(payload);
       Assert.True(conflict.Remove);
       Assert.Equal("pacpar-pkg-one", conflict.Package1.Name);
       Assert.Equal("pacpar-pkg-two", conflict.Package2.Name);
@@ -462,7 +462,7 @@ public sealed unsafe class ManagedSnapshotTests
       NativeMethods.alpm_list_free(members);
       members = null;
 
-      var remove = Assert.IsType<AlpmQuestion.RemovePkgs>(payload);
+      var remove = Assert.IsType<AlpmQuestion.RemovePackages>(payload);
       Assert.False(remove.Skip);
       Assert.Equal("pacpar-member-list", Assert.Single(remove.Packages).Name);
     }

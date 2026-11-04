@@ -5,19 +5,19 @@ namespace Pacpar.Alpm;
 
 public sealed partial class Transaction
 {
-  internal static bool TryCreate(AlpmSession alpmLibrary, TransactionFlags flags,
+  internal static bool TryCreate(AlpmSession alpmSession, TransactionFlags flags,
     [NotNullWhen(true)] out Transaction? transaction,
     [NotNullWhen(false)] out AlpmFailure? failure)
   {
-    var err = NativeMethods.alpm_trans_init(alpmLibrary.Handle, (int)flags);
+    var err = NativeMethods.alpm_trans_init(alpmSession.Handle, (int)flags);
     if (err != 0)
     {
       transaction = null;
-      failure = AlpmFailure.Of(alpmLibrary.Handle, "start transaction");
+      failure = AlpmFailure.Of(alpmSession.Handle, "start transaction");
       return false;
     }
 
-    transaction = new Transaction(alpmLibrary);
+    transaction = new Transaction(alpmSession);
     failure = null;
     return true;
   }
@@ -29,12 +29,12 @@ public sealed partial class Transaction
 
     _alpm_list_t* errData = null;
 
-    var err = NativeMethods.alpm_trans_prepare(_library.Handle, &errData);
+    var err = NativeMethods.alpm_trans_prepare(_session.Handle, &errData);
     if (err != 0)
     {
       _completionState = CompletionState.Faulted;
-      failure = AlpmFailure.Take(_library.Errno, errData, "prepare transaction");
-      GC.KeepAlive(_library);
+      failure = AlpmFailure.Take(_session.Errno, errData, "prepare transaction");
+      GC.KeepAlive(_session);
       GC.KeepAlive(this);
       return false;
     }
@@ -49,11 +49,11 @@ public sealed partial class Transaction
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(pkg);
 
-    var err = NativeMethods.alpm_add_pkg(_library.Handle, pkg.BackingStruct);
+    var err = NativeMethods.alpm_add_pkg(_session.Handle, pkg.BackingStruct);
     if (err != 0)
     {
       _completionState = CompletionState.Faulted;
-      failure = AlpmFailure.Of(_library.Handle, "add package");
+      failure = AlpmFailure.Of(_session.Handle, "add package");
       return false;
     }
     failure = null;
@@ -72,12 +72,12 @@ public sealed partial class Transaction
     // repeating the call is a caller error rather than something libalpm could act on.
     pkg.ThrowIfNotOwned();
 
-    var err = NativeMethods.alpm_add_pkg(_library.Handle, pkg.BackingStruct);
+    var err = NativeMethods.alpm_add_pkg(_session.Handle, pkg.BackingStruct);
     if (err != 0)
     {
       _completionState = CompletionState.Faulted;
       view = null;
-      failure = AlpmFailure.Of(_library.Handle, "add package");
+      failure = AlpmFailure.Of(_session.Handle, "add package");
       return false;
     }
 
@@ -96,11 +96,11 @@ public sealed partial class Transaction
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(pkg);
 
-    var err = NativeMethods.alpm_remove_pkg(_library.Handle, pkg.BackingStruct);
+    var err = NativeMethods.alpm_remove_pkg(_session.Handle, pkg.BackingStruct);
     if (err != 0)
     {
       _completionState = CompletionState.Faulted;
-      failure = AlpmFailure.Of(_library.Handle, "remove package");
+      failure = AlpmFailure.Of(_session.Handle, "remove package");
       return false;
     }
 
@@ -112,11 +112,11 @@ public sealed partial class Transaction
   internal bool TrySystemUpgrade(bool enableDowngrade, [NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
-    var err = NativeMethods.alpm_sync_sysupgrade(_library.Handle, enableDowngrade ? 1 : 0);
+    var err = NativeMethods.alpm_sync_sysupgrade(_session.Handle, enableDowngrade ? 1 : 0);
     if (err != 0)
     {
       _completionState = CompletionState.Faulted;
-      failure = AlpmFailure.Of(_library.Handle, "compute system upgrade");
+      failure = AlpmFailure.Of(_session.Handle, "compute system upgrade");
       return false;
     }
     failure = null;
@@ -132,16 +132,16 @@ public sealed partial class Transaction
     // payload views to callbacks. Retire every stamp in the session before the call, so nothing can
     // pass its check while libalpm rewrites the object graph; views a callback creates capture the
     // post-bump generation and stay valid for the duration of that callback.
-    _library.RootLifetime.Invalidate("Transaction.Commit()");
+    _session.RootLifetime.Invalidate("Transaction.Commit()");
 
     _completionState = CompletionState.Committing;
     _alpm_list_t* messages = null;
-    var err = NativeMethods.alpm_trans_commit(_library.Handle, &messages);
+    var err = NativeMethods.alpm_trans_commit(_session.Handle, &messages);
     if (err != 0)
     {
       _completionState = CompletionState.Faulted;
-      failure = AlpmFailure.Take(_library.Errno, messages, "commit transaction");
-      GC.KeepAlive(_library);
+      failure = AlpmFailure.Take(_session.Errno, messages, "commit transaction");
+      GC.KeepAlive(_session);
       GC.KeepAlive(this);
       return false;
     }
@@ -150,7 +150,7 @@ public sealed partial class Transaction
     // database's token conservatively - libalpm does not tell us which caches it dropped - and let
     // the next GetLocalDatabase() issue a fresh one. Callers that keep package data across a commit
     // call ToSnapshot() first.
-    _library.InvalidateLocalDatabase("Transaction.Commit()");
+    _session.InvalidateLocalDatabase("Transaction.Commit()");
     failure = null;
     return true;
   }

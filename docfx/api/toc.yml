@@ -20,8 +20,8 @@ items:
 
 - name: Packages & Files
   items:
-  - name: PackageBase
-    uid: Pacpar.Alpm.PackageBase
+  - name: Package
+    uid: Pacpar.Alpm.Package
   - name: LoadedPackage
     uid: Pacpar.Alpm.LoadedPackage
   - name: PackageView
@@ -36,8 +36,8 @@ items:
     uid: Pacpar.Alpm.FileList.Enumerator
   - name: PackageFile
     uid: Pacpar.Alpm.PackageFile
-  - name: Backup
-    uid: Pacpar.Alpm.Backup
+  - name: BackupEntry
+    uid: Pacpar.Alpm.BackupEntry
   - name: MtreeEntry
     uid: Pacpar.Alpm.MtreeEntry
   - name: PackageOrigin
@@ -53,16 +53,16 @@ items:
     uid: Pacpar.Alpm.Transaction
   - name: TransactionFlags
     uid: Pacpar.Alpm.TransactionFlags
-  - name: Depend
-    uid: Pacpar.Alpm.Depend
-  - name: DepMissing
-    uid: Pacpar.Alpm.DepMissing
+  - name: Dependency
+    uid: Pacpar.Alpm.Dependency
+  - name: MissingDependency
+    uid: Pacpar.Alpm.MissingDependency
   - name: Conflict
     uid: Pacpar.Alpm.Conflict
   - name: FileConflict
     uid: Pacpar.Alpm.FileConflict
-  - name: DepMod
-    uid: Pacpar.Alpm.DepMod
+  - name: DependencyComparison
+    uid: Pacpar.Alpm.DependencyComparison
 
 - name: Exceptions & Diagnostics
   items:
@@ -209,12 +209,12 @@ items:
       uid: Pacpar.Alpm.AlpmQuestion.InstallIgnoredPackage
     - name: ReplacePackage
       uid: Pacpar.Alpm.AlpmQuestion.ReplacePackage
-    - name: ConflictPkg
-      uid: Pacpar.Alpm.AlpmQuestion.ConflictPkg
-    - name: CorruptedPkg
-      uid: Pacpar.Alpm.AlpmQuestion.CorruptedPkg
-    - name: RemovePkgs
-      uid: Pacpar.Alpm.AlpmQuestion.RemovePkgs
+    - name: PackageConflict
+      uid: Pacpar.Alpm.AlpmQuestion.PackageConflict
+    - name: CorruptedPackage
+      uid: Pacpar.Alpm.AlpmQuestion.CorruptedPackage
+    - name: RemovePackages
+      uid: Pacpar.Alpm.AlpmQuestion.RemovePackages
     - name: SelectProvider
       uid: Pacpar.Alpm.AlpmQuestion.SelectProvider
     - name: ImportKey
