@@ -9,6 +9,14 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+  <PropertyGroup>
+    <PackageId>Pacpar.Alpm</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>shanoaice</Authors>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Description>C# binding for libalpm, the library behind pacman.</Description>
+    <PackageProjectUrl>https://codeberg.org/shanoaice/Pacpar/</PackageProjectUrl>
+  </PropertyGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
 
