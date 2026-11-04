@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Orson.Alpm.Bindings;
 
@@ -16,22 +15,21 @@ namespace Orson.Alpm;
 /// that creates one - every subclass is sealed.
 /// </para>
 /// </remarks>
-[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 public abstract unsafe class AlpmQuestion
 {
-  private protected _alpm_question_t* BackingStruct;
-  private protected readonly LifetimeStamp Stamp;
+  private readonly _alpm_question_t* _backingStruct;
+  private readonly LifetimeStamp _stamp;
 
-  private protected AlpmQuestion(_alpm_question_t* question, ChildLifetime? lifetime)
+  private AlpmQuestion(_alpm_question_t* question, ChildLifetime? lifetime)
   {
-    BackingStruct = question;
-    Stamp = lifetime?.Capture() ?? default;
+    _backingStruct = question;
+    _stamp = lifetime?.Capture() ?? default;
   }
 
   [MethodImpl(MethodImplOptions.AggressiveInlining)]
-  private protected void ThrowIfStale()
+  private void ThrowIfStale()
   {
-    Stamp.ThrowIfStale();
+    _stamp.ThrowIfStale();
   }
 
   internal static AlpmQuestion FromUnion(_alpm_question_t* backingStruct, ChildLifetime? lifetime)
@@ -67,7 +65,7 @@ public abstract unsafe class AlpmQuestion
       set
       {
         ThrowIfStale();
-        BackingStruct->install_ignorepkg.install = value ? 1 : 0;
+        _backingStruct->install_ignorepkg.install = value ? 1 : 0;
         _install = value;
       }
     }
@@ -96,7 +94,7 @@ public abstract unsafe class AlpmQuestion
       set
       {
         ThrowIfStale();
-        BackingStruct->replace.replace = value ? 1 : 0;
+        _backingStruct->replace.replace = value ? 1 : 0;
         _replace = value;
       }
     }
@@ -135,7 +133,7 @@ public abstract unsafe class AlpmQuestion
       set
       {
         ThrowIfStale();
-        BackingStruct->conflict.remove = value ? 1 : 0;
+        _backingStruct->conflict.remove = value ? 1 : 0;
         _remove = value;
       }
     }
@@ -175,7 +173,7 @@ public abstract unsafe class AlpmQuestion
       set
       {
         ThrowIfStale();
-        BackingStruct->corrupted.remove = value ? 1 : 0;
+        _backingStruct->corrupted.remove = value ? 1 : 0;
         _remove = value;
       }
     }
@@ -205,7 +203,7 @@ public abstract unsafe class AlpmQuestion
       set
       {
         ThrowIfStale();
-        BackingStruct->remove_pkgs.skip = value ? 1 : 0;
+        _backingStruct->remove_pkgs.skip = value ? 1 : 0;
         _skip = value;
       }
     }
@@ -235,7 +233,7 @@ public abstract unsafe class AlpmQuestion
       set
       {
         ThrowIfStale();
-        BackingStruct->select_provider.use_index = value;
+        _backingStruct->select_provider.use_index = value;
         _useIndex = value;
       }
     }
@@ -272,7 +270,7 @@ public abstract unsafe class AlpmQuestion
       set
       {
         ThrowIfStale();
-        BackingStruct->import_key.import = value ? 1 : 0;
+        _backingStruct->import_key.import = value ? 1 : 0;
         _import = value;
       }
     }
