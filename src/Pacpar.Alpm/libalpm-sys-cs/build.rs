@@ -10,23 +10,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         .probe("libalpm")
         .unwrap();
 
-    let header = lib
-        .include_paths
-        .iter()
-        .map(|i| i.join("alpm.h"))
-        .find(|i| i.exists())
-        .expect("could not find alpm.h");
+    println!("cargo:rerun-if-env-changed=ALPM_INCLUDE_DIR");
     let mut include = lib
         .include_paths
         .iter()
         .map(|i| format!("-I{}", i.display()))
         .collect::<Vec<_>>();
 
-    println!("cargo:rerun-if-env-changed=ALPM_INCLUDE_DIR");
-    if let Ok(path) = env::var("ALPM_INCLUDE_DIR") {
+    let header = if let Ok(path) = env::var("ALPM_INCLUDE_DIR") {
         include.clear();
-        include.insert(0, path);
-    }
+        include.push(format!("-I{path}"));
+        std::path::PathBuf::from(path).join("alpm.h")
+    } else {
+        lib.include_paths
+            .iter()
+            .map(|i| i.join("alpm.h"))
+            .find(|i| i.exists())
+            .expect("could not find alpm.h")
+    };
+
+    println!("cargo:rerun-if-changed={}", header.display());
 
     let bindings = bindgen::builder()
         .clang_args(&include)

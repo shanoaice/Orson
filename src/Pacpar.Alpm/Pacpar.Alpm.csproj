@@ -4,10 +4,17 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <SupportedOSPlatform>linux</SupportedOSPlatform>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- GenerateBindings runs cargo build -p libalpm-sys-cs to regenerate C# bindings.
+         Disabled by default for fast, toolchain-free local builds; enabled automatically
+         when running under CI or when explicitly requested via -p:GenerateBindings=true. -->
+    <GenerateBindings Condition="'$(GenerateBindings)' == '' and '$(CI)' == 'true'">true</GenerateBindings>
+    <GenerateBindings Condition="'$(GenerateBindings)' == ''">false</GenerateBindings>
   </PropertyGroup>
   <PropertyGroup>
     <PackageId>Pacpar.Alpm</PackageId>
@@ -34,14 +41,12 @@
     <Compile Update="**\*.Seams.cs" DependentUpon="$([System.IO.Path]::GetFileNameWithoutExtension('%(Filename)')).cs" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <BuildDependsOn>
-    GenerateBindings;$(BuildDependsOn)
-    </BuildDependsOn>
-  </PropertyGroup>
-
-  <Target Name="GenerateBindings">
-    <Exec Command="cargo build -p libalpm-sys-cs"/>
+  <Target Name="GenerateBindings"
+          BeforeTargets="BeforeCompile"
+          Condition="'$(GenerateBindings)' == 'true'">
+    <Message Importance="high" Text="Regenerating C# bindings via cargo build -p libalpm-sys-cs..." />
+    <Exec Command="cargo build -p libalpm-sys-cs"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
   </Target>
 
 </Project>
