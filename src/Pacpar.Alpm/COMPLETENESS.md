@@ -75,7 +75,7 @@ Two groups are omitted on purpose:
 
 - **`alpm_list_*` (29)** — a generic C linked list. .NET collections replace it. `AlpmList<T>` and
   `AlpmStringList` expose native lists without exposing node pointers, and the helpers in
-  `AlpmNativeList` are internal.
+  `NativeListMarshal` are internal.
 - **`alpm_option_get_*cb*` (12)** — getters for registered callback pointers and their `void*`
   contexts. Pacman only ever sets callbacks. In C# the callbacks are managed delegates held by
   `Pacpar.Alpm.AlpmCallbacks`; handing out raw function pointers and contexts would break managed

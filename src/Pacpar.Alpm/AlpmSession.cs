@@ -453,15 +453,15 @@ public sealed partial class AlpmSession : IDisposable
     _alpm_list_t* upgList = null;
     try
     {
-      pkgList = AlpmNativeList.BuildPointerList(packages);
+      pkgList = NativeListMarshal.BuildPointerList(packages);
       if (remove is not null)
       {
-        remList = AlpmNativeList.BuildPointerList(remove);
+        remList = NativeListMarshal.BuildPointerList(remove);
       }
 
       if (upgrade is not null)
       {
-        upgList = AlpmNativeList.BuildPointerList(upgrade);
+        upgList = NativeListMarshal.BuildPointerList(upgrade);
       }
 
       var result = NativeMethods.alpm_checkdeps(Handle, pkgList, remList, upgList, reverseDependencies ? 1 : 0);
@@ -471,9 +471,9 @@ public sealed partial class AlpmSession : IDisposable
     }
     finally
     {
-      AlpmNativeList.Free(pkgList);
-      AlpmNativeList.Free(remList);
-      AlpmNativeList.Free(upgList);
+      NativeListMarshal.Free(pkgList);
+      NativeListMarshal.Free(remList);
+      NativeListMarshal.Free(upgList);
     }
   }
 
@@ -486,7 +486,7 @@ public sealed partial class AlpmSession : IDisposable
     _alpm_list_t* pkgList = null;
     try
     {
-      pkgList = AlpmNativeList.BuildPointerList(packages);
+      pkgList = NativeListMarshal.BuildPointerList(packages);
       var result = NativeMethods.alpm_checkconflicts(Handle, pkgList);
       return result != null
         ? AlpmOwnedList<Conflict>.Take(result, &Conflict.Factory, &MemoryManagement.ConflictFreeExtern)
@@ -494,7 +494,7 @@ public sealed partial class AlpmSession : IDisposable
     }
     finally
     {
-      AlpmNativeList.Free(pkgList);
+      NativeListMarshal.Free(pkgList);
     }
   }
 
@@ -526,7 +526,7 @@ public sealed partial class AlpmSession : IDisposable
     using var depBuf = new Utf8Buffer(dependency, scratch);
     try
     {
-      nativeList = AlpmNativeList.BuildPointerList(dbList);
+      nativeList = NativeListMarshal.BuildPointerList(dbList);
       var pkgPtr = NativeMethods.alpm_find_dbs_satisfier(Handle, nativeList, depBuf.Ptr);
       if (pkgPtr == null)
       {
@@ -542,7 +542,7 @@ public sealed partial class AlpmSession : IDisposable
     }
     finally
     {
-      AlpmNativeList.Free(nativeList);
+      NativeListMarshal.Free(nativeList);
     }
   }
 

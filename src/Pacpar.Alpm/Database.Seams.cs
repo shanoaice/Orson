@@ -15,14 +15,14 @@ public sealed unsafe partial class Database
     var dbPtr = ValidatedPtr;
     var handlePtr = RawHandle;
 
-    var needleList = AlpmNativeList.BuildStringList(needles, out var buffers);
+    var needleList = NativeListMarshal.BuildStringList(needles, out var buffers);
     _alpm_list_t* retList = null;
     try
     {
       var ret = NativeMethods.alpm_db_search(dbPtr, needleList, &retList);
       if (ret < 0)
       {
-        AlpmNativeList.Free(retList);
+        NativeListMarshal.Free(retList);
         var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
         GC.KeepAlive(this);
         results = null;
@@ -39,7 +39,7 @@ public sealed unsafe partial class Database
     }
     finally
     {
-      AlpmNativeList.FreeStringListBuffers(buffers, needleList);
+      NativeListMarshal.FreeStringListBuffers(buffers, needleList);
     }
   }
 
@@ -133,7 +133,7 @@ public sealed unsafe partial class Database
     _alpm_list_t* list = null;
     try
     {
-      list = AlpmNativeList.BuildPointerList(dbPtr);
+      list = NativeListMarshal.BuildPointerList(dbPtr);
       var ret = NativeMethods.alpm_db_update(handlePtr, list, force ? 1 : 0);
       if (ret < 0)
       {
@@ -151,7 +151,7 @@ public sealed unsafe partial class Database
     }
     finally
     {
-      AlpmNativeList.Free(list);
+      NativeListMarshal.Free(list);
     }
   }
 

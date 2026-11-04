@@ -101,7 +101,7 @@ internal sealed class AlpmFailure
 
     if (detail is null)
     {
-      AlpmNativeList.Free(data, null);
+      NativeListMarshal.Free(data, null);
     }
 
     return new AlpmFailure(code, errno, ErrorHandler.StrError(errno), operation, detail);

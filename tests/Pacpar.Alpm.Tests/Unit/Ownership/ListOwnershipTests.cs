@@ -47,7 +47,7 @@ public sealed unsafe class ListOwnershipTests
   [Fact]
   public void BuildStringList_NullElement_ThrowsAndFreesEarlierBuffers()
     => Assert.Throws<ArgumentException>(() =>
-      AlpmNativeList.BuildStringList(["alpha", null!], out _));
+      NativeListMarshal.BuildStringList(["alpha", null!], out _));
 
   [Fact]
   public void Borrow_ElementAt_ThrowsOnOutOfRange()
@@ -128,7 +128,7 @@ public sealed unsafe class ListOwnershipTests
   }
 
   private static void FreeNativeStringList(_alpm_list_t* list)
-    => AlpmNativeList.Free(list, &MemoryManagement.CFreeExtern);
+    => NativeListMarshal.Free(list, &MemoryManagement.CFreeExtern);
 
   // The lifetime parameter matches the factory delegate shape; this test's strings are owned by the
   // test itself, so the views are borrowed with a null token and the factory never looks at it.

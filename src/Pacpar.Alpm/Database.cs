@@ -362,7 +362,7 @@ public sealed unsafe partial class Database
     ArgumentNullException.ThrowIfNull(servers);
     var dbPtr = ValidatedPtr;
     var handlePtr = RawHandle;
-    var nativeList = AlpmNativeList.BuildStringList(servers, out var buffers);
+    var nativeList = NativeListMarshal.BuildStringList(servers, out var buffers);
     try
     {
       var err = NativeMethods.alpm_db_set_servers(dbPtr, nativeList);
@@ -378,7 +378,7 @@ public sealed unsafe partial class Database
     }
     finally
     {
-      AlpmNativeList.FreeStringListBuffers(buffers, nativeList);
+      NativeListMarshal.FreeStringListBuffers(buffers, nativeList);
     }
   }
 
@@ -437,7 +437,7 @@ public sealed unsafe partial class Database
     ArgumentNullException.ThrowIfNull(servers);
     var dbPtr = ValidatedPtr;
     var handlePtr = RawHandle;
-    var nativeList = AlpmNativeList.BuildStringList(servers, out var buffers);
+    var nativeList = NativeListMarshal.BuildStringList(servers, out var buffers);
     try
     {
       var err = NativeMethods.alpm_db_set_cache_servers(dbPtr, nativeList);
@@ -453,7 +453,7 @@ public sealed unsafe partial class Database
     }
     finally
     {
-      AlpmNativeList.FreeStringListBuffers(buffers, nativeList);
+      NativeListMarshal.FreeStringListBuffers(buffers, nativeList);
     }
   }
 

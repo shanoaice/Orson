@@ -53,7 +53,7 @@ public sealed unsafe partial class PackageView : PackageBase
     _alpm_list_t* nativeList = null;
     try
     {
-      nativeList = AlpmNativeList.BuildPointerList(pkgList);
+      nativeList = NativeListMarshal.BuildPointerList(pkgList);
       var matchedPtr = NativeMethods.alpm_find_satisfier(nativeList, depBuf.Ptr);
       if (matchedPtr == null) return null;
 
@@ -75,7 +75,7 @@ public sealed unsafe partial class PackageView : PackageBase
     }
     finally
     {
-      AlpmNativeList.Free(nativeList);
+      NativeListMarshal.Free(nativeList);
     }
   }
 
@@ -108,7 +108,7 @@ public sealed unsafe partial class PackageView : PackageBase
     _alpm_list_t* dbsList = null;
     try
     {
-      dbsList = AlpmNativeList.BuildPointerList(dbs);
+      dbsList = NativeListMarshal.BuildPointerList(dbs);
       var newPkgPtr = NativeMethods.alpm_sync_get_new_version(BackingStruct, dbsList);
       if (newPkgPtr == null) return null;
 
@@ -119,7 +119,7 @@ public sealed unsafe partial class PackageView : PackageBase
     }
     finally
     {
-      AlpmNativeList.Free(dbsList);
+      NativeListMarshal.Free(dbsList);
     }
   }
 }

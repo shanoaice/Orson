@@ -140,7 +140,7 @@ public sealed partial class AlpmSession
     _alpm_list_t* nativeList = null;
     try
     {
-      nativeList = AlpmNativeList.BuildPointerList(dbList);
+      nativeList = NativeListMarshal.BuildPointerList(dbList);
       var ret = NativeMethods.alpm_db_update(Handle, nativeList, force ? 1 : 0);
       if (ret < 0)
       {
@@ -155,7 +155,7 @@ public sealed partial class AlpmSession
     }
     finally
     {
-      AlpmNativeList.Free(nativeList);
+      NativeListMarshal.Free(nativeList);
     }
   }
 
@@ -168,7 +168,7 @@ public sealed partial class AlpmSession
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(urls);
 
-    var nativeUrls = AlpmNativeList.BuildStringList(urls, out var buffers);
+    var nativeUrls = NativeListMarshal.BuildStringList(urls, out var buffers);
     _alpm_list_t* fetchedList = null;
     try
     {
@@ -180,7 +180,7 @@ public sealed partial class AlpmSession
         // returns an error while still populating the out parameter.
         if (fetchedList != null)
         {
-          AlpmNativeList.Free(fetchedList, &MemoryManagement.CFreeExtern);
+          NativeListMarshal.Free(fetchedList, &MemoryManagement.CFreeExtern);
         }
 
         fetchedUrls = null;
@@ -194,7 +194,7 @@ public sealed partial class AlpmSession
     }
     finally
     {
-      AlpmNativeList.FreeStringListBuffers(buffers, nativeUrls);
+      NativeListMarshal.FreeStringListBuffers(buffers, nativeUrls);
     }
   }
 
