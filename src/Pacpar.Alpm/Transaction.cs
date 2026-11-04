@@ -253,7 +253,7 @@ public sealed partial class Transaction : IDisposable
     var err = NativeMethods.alpm_trans_interrupt(_library.Handle);
     if (err != 0)
     {
-      throw NativeCall.Failure(_library.Handle, "interrupt transaction").ToException();
+      throw AlpmFailure.Of(_library.Handle, "interrupt transaction").ToException();
     }
   }
 
@@ -376,7 +376,7 @@ public sealed partial class Transaction : IDisposable
     //    ReleaseFailure without throwing (ADR 0008).
     // 2. Committed: Commit succeeded, so no exception is in flight to mask. A failed release
     //    indicates native state corruption (e.g., retained db.lck), so throw to fail fast.
-    var failure = NativeCall.Failure(_library.Handle, "release transaction");
+    var failure = AlpmFailure.Of(_library.Handle, "release transaction");
     GC.KeepAlive(_library);
     GC.KeepAlive(this);
 

@@ -41,7 +41,7 @@ public abstract unsafe partial class PackageBase
     }
 
     matches = false;
-    failure = NativeCall.Failure(rawErrno, "check md5 sum");
+    failure = AlpmFailure.Of(rawErrno, "check md5 sum");
     return false;
   }
 
@@ -71,7 +71,7 @@ public abstract unsafe partial class PackageBase
         return true;
       }
       mtree = null;
-      failure = NativeCall.Failure(rawErrno, "open package mtree");
+      failure = AlpmFailure.Of(rawErrno, "open package mtree");
       return false;
     }
 

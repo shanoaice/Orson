@@ -13,7 +13,7 @@ public sealed partial class Transaction
     if (err != 0)
     {
       transaction = null;
-      failure = NativeCall.Failure(alpmLibrary.Handle, "start transaction");
+      failure = AlpmFailure.Of(alpmLibrary.Handle, "start transaction");
       return false;
     }
 
@@ -53,7 +53,7 @@ public sealed partial class Transaction
     if (err != 0)
     {
       _completionState = CompletionState.Faulted;
-      failure = NativeCall.Failure(_library.Handle, "add package");
+      failure = AlpmFailure.Of(_library.Handle, "add package");
       return false;
     }
     failure = null;
@@ -77,7 +77,7 @@ public sealed partial class Transaction
     {
       _completionState = CompletionState.Faulted;
       view = null;
-      failure = NativeCall.Failure(_library.Handle, "add package");
+      failure = AlpmFailure.Of(_library.Handle, "add package");
       return false;
     }
 
@@ -100,7 +100,7 @@ public sealed partial class Transaction
     if (err != 0)
     {
       _completionState = CompletionState.Faulted;
-      failure = NativeCall.Failure(_library.Handle, "remove package");
+      failure = AlpmFailure.Of(_library.Handle, "remove package");
       return false;
     }
 
@@ -116,7 +116,7 @@ public sealed partial class Transaction
     if (err != 0)
     {
       _completionState = CompletionState.Faulted;
-      failure = NativeCall.Failure(_library.Handle, "compute system upgrade");
+      failure = AlpmFailure.Of(_library.Handle, "compute system upgrade");
       return false;
     }
     failure = null;

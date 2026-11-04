@@ -495,7 +495,7 @@ internal static class GcAnchorAudit
   /// <para>
   /// A call is treated as reaching native memory when it targets a binding entry point, or when any of its parameters
   /// is a pointer. The second half matters because the trap appeared through a helper (
-  /// <c>NativeCall.Failure(_alpm_handle_t*, string)</c>), not through a direct binding call - "no <c>NativeMethods.</c> call
+  /// <c>AlpmFailure.Of(_alpm_handle_t*, string)</c>), not through a direct binding call - "no <c>NativeMethods.</c> call
   /// in a throw" would have missed it. That overload is gone now; this rule keeps the shape from coming back.
   /// </para>
   /// </remarks>

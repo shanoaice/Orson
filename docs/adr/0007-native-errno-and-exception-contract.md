@@ -19,7 +19,7 @@ Therefore, errno must only be read under two strict conditions:
 
 1. **Return value signals failure**:
    The return value is inspected immediately.
-   The handle is passed to `NativeCall.Failure`, which reads errno in its first statement.
+   The handle is passed to `AlpmFailure.Of`, which reads errno in its first statement.
    No other native calls may run between the failing call and the errno read.
    If libalpm signals failure but sets no errno, the wrapper throws `AlpmNativeFailureException`.
 

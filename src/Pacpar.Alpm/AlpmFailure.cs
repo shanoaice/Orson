@@ -66,6 +66,20 @@ internal sealed class AlpmFailure
   }
 
   /// <summary>
+  /// The failure for a call that signalled failure through its return value, when the owner crosses the boundary as
+  /// a <see cref="SafeAlpmHandle" />.
+  /// </summary>
+  /// <remarks>
+  /// The marshaller refcounts the handle for the duration of the errno read, so the owner cannot be finalized
+  /// underneath it. No anchor is needed at the call site.
+  /// </remarks>
+  /// <param name="handle">The owning handle.</param>
+  /// <param name="operation">What failed, e.g. <c>"unregister database"</c>.</param>
+  /// <returns>A managed failure value.</returns>
+  internal static AlpmFailure Of(SafeAlpmHandle handle, string operation)
+    => Of((int)NativeMethods.alpm_errno(handle), operation);
+
+  /// <summary>
   /// The failure for a failed <c>alpm_trans_prepare</c>/<c>alpm_trans_commit</c>, from the errno and the list
   /// libalpm dumped into that call's output parameter.
   /// </summary>

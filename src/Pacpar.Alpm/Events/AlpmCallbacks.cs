@@ -344,7 +344,7 @@ public sealed class AlpmCallbacks
   {
     if (err == 0) return;
     GC.KeepAlive(this);
-    throw NativeCall.Failure(_handle, $"set {operation ?? "callback"}").ToException();
+    throw AlpmFailure.Of(_handle, $"set {operation ?? "callback"}").ToException();
   }
 
   /// <summary>

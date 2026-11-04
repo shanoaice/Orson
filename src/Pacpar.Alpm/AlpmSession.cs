@@ -95,7 +95,7 @@ public sealed partial class AlpmSession : IDisposable
       var rawErrno = (int)*initializeErrno;
       NativeMemory.Free(initializeErrno);
       handle = null;
-      failure = NativeCall.Failure(rawErrno, "initialize libalpm");
+      failure = AlpmFailure.Of(rawErrno, "initialize libalpm");
       return false;
     }
 
@@ -340,7 +340,7 @@ public sealed partial class AlpmSession : IDisposable
     var err = NativeMethods.alpm_unregister_all_syncdbs(Handle);
     if (err != 0)
     {
-      throw NativeCall.Failure(Handle, "unregister all sync databases").ToException();
+      throw AlpmFailure.Of(Handle, "unregister all sync databases").ToException();
     }
 
     _lifetime.InvalidateHandles("AlpmSession.UnregisterAllSyncDatabases()");
@@ -422,7 +422,7 @@ public sealed partial class AlpmSession : IDisposable
     var err = NativeMethods.alpm_logaction(Handle, prefixBuf.Ptr, messageBuf.Ptr);
     if (err != 0)
     {
-      throw NativeCall.Failure(Handle, "log action").ToException();
+      throw AlpmFailure.Of(Handle, "log action").ToException();
     }
   }
 

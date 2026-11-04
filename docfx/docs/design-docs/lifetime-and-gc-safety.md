@@ -161,7 +161,7 @@ the handle, not through a direct binding call. A second test feeds the rule a de
 so the rule cannot pass merely because the library contains no offending `throw`.
 
 The corresponding production rule is simple: read the errno at the failure site, then anchor, then
-throw a value that reads nothing. `NativeCall` offers only two overloads, and neither reads native
+throw a value that reads nothing. `AlpmFailure.Of` offers only two overloads, and neither reads native
 memory during construction.
 
 ## 7. Invariants for maintainers

@@ -611,6 +611,6 @@ public abstract unsafe partial class PackageBase
   [DoesNotReturn]
   private static void ThrowSignatureFailure(int rawErrno)
   {
-    throw NativeCall.Failure(rawErrno, "read package signature").ToException();
+    throw AlpmFailure.Of(rawErrno, "read package signature").ToException();
   }
 }

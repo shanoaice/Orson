@@ -45,7 +45,7 @@ public sealed unsafe class AlpmOptions
   {
     if (err == 0) return;
     GC.KeepAlive(this);
-    throw NativeCall.Failure(_handle, $"set {operation ?? "option"}").ToException();
+    throw AlpmFailure.Of(_handle, $"set {operation ?? "option"}").ToException();
   }
 
   private T Read<T>(delegate* managed<SafeAlpmHandle, T> reader)

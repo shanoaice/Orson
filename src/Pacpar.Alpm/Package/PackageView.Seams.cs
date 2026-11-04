@@ -16,7 +16,7 @@ public sealed unsafe partial class PackageView
       var handlePtr = dbPtr != null ? NativeMethods.alpm_db_get_handle(dbPtr) : null;
       var rawErrno = handlePtr != null ? (int)NativeMethods.alpm_errno(handlePtr) : 0;
       GC.KeepAlive(this);
-      failure = NativeCall.Failure(rawErrno, "set package install reason");
+      failure = AlpmFailure.Of(rawErrno, "set package install reason");
       return false;
     }
 

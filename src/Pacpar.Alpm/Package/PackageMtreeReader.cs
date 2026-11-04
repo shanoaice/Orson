@@ -87,6 +87,6 @@ internal sealed unsafe class PackageMtreeReader : IDisposable
   [DoesNotReturn]
   private static void ThrowMtreeReadFailure(int rawErrno)
   {
-    throw NativeCall.Failure(rawErrno, "read package mtree").ToException();
+    throw AlpmFailure.Of(rawErrno, "read package mtree").ToException();
   }
 }

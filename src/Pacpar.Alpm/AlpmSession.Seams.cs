@@ -45,7 +45,7 @@ public sealed partial class AlpmSession
     if (err != 0)
     {
       package = null;
-      failure = NativeCall.Failure(Handle, "load package");
+      failure = AlpmFailure.Of(Handle, "load package");
       return false;
     }
 
@@ -101,7 +101,7 @@ public sealed partial class AlpmSession
     if (dbPtr is null)
     {
       database = null;
-      failure = NativeCall.Failure(Handle, "register sync database");
+      failure = AlpmFailure.Of(Handle, "register sync database");
       return false;
     }
 
@@ -145,7 +145,7 @@ public sealed partial class AlpmSession
       if (ret < 0)
       {
         updated = false;
-        failure = NativeCall.Failure(Handle, "update databases");
+      failure = AlpmFailure.Of(Handle, "update databases");
         return false;
       }
 
@@ -184,7 +184,7 @@ public sealed partial class AlpmSession
         }
 
         fetchedUrls = null;
-        failure = NativeCall.Failure(Handle, "fetch package URLs");
+        failure = AlpmFailure.Of(Handle, "fetch package URLs");
         return false;
       }
 

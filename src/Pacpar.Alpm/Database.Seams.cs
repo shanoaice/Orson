@@ -26,7 +26,7 @@ public sealed unsafe partial class Database
         var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
         GC.KeepAlive(this);
         results = null;
-        failure = NativeCall.Failure(rawErrno, "search database");
+        failure = AlpmFailure.Of(rawErrno, "search database");
         return false;
       }
 
@@ -98,10 +98,10 @@ public sealed unsafe partial class Database
   /// guaranteed to come from that call. <c>alpm_db_get_pkgcache</c> and <c>alpm_db_get_groupcache</c> both do; the two
   /// server getters deliberately do not, which is why <see cref="Servers" /> and <see cref="CacheServers" /> cannot use this
   /// and must treat a null list as "none configured" whatever the handle's errno happens to say. Anything that reports
-  /// failure through its return value goes through <see cref="NativeCall" /> instead.
+  /// failure through its return value goes through <see cref="AlpmFailure.Of(SafeAlpmHandle, string)" /> instead.
   /// <para>
   /// An ok errno means the call succeeded, and here that includes "the cache is legitimately empty". It is not the
-  /// same reading as <see cref="NativeCall.Failure(int, string)" /> gives the same value: there, the return value already
+  /// same reading as <see cref="AlpmFailure.Of(int, string)" /> gives the same value: there, the return value already
   /// said the call failed, so a missing errno is a failure libalpm cannot describe and is thrown.
   /// </para>
   /// </remarks>
@@ -140,7 +140,7 @@ public sealed unsafe partial class Database
         var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
         GC.KeepAlive(this);
         updated = false;
-        failure = NativeCall.Failure(rawErrno, "update database");
+        failure = AlpmFailure.Of(rawErrno, "update database");
         return false;
       }
 
@@ -168,7 +168,7 @@ public sealed unsafe partial class Database
 
     var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
     GC.KeepAlive(this);
-    failure = NativeCall.Failure(rawErrno, "validate database");
+    failure = AlpmFailure.Of(rawErrno, "validate database");
     return false;
   }
 }

@@ -286,7 +286,7 @@ public sealed unsafe partial class Database
       {
         var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
         GC.KeepAlive(this);
-        throw NativeCall.Failure(rawErrno, "get database usage").ToException();
+        throw AlpmFailure.Of(rawErrno, "get database usage").ToException();
       }
 
       GC.KeepAlive(this);
@@ -300,7 +300,7 @@ public sealed unsafe partial class Database
       {
         var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
         GC.KeepAlive(this);
-        throw NativeCall.Failure(rawErrno, "set database usage").ToException();
+        throw AlpmFailure.Of(rawErrno, "set database usage").ToException();
       }
 
       GC.KeepAlive(this);
@@ -321,7 +321,7 @@ public sealed unsafe partial class Database
     {
       var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
       GC.KeepAlive(this);
-      throw NativeCall.Failure(rawErrno, "add server").ToException();
+      throw AlpmFailure.Of(rawErrno, "add server").ToException();
     }
 
     Lifetime.InvalidateFacet(LifetimeFacet.Servers, "Database.AddServer");
@@ -343,7 +343,7 @@ public sealed unsafe partial class Database
     {
       var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
       GC.KeepAlive(this);
-      throw NativeCall.Failure(rawErrno, "remove server").ToException();
+      throw AlpmFailure.Of(rawErrno, "remove server").ToException();
     }
 
     GC.KeepAlive(this);
@@ -370,7 +370,7 @@ public sealed unsafe partial class Database
       {
         var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
         GC.KeepAlive(this);
-        throw NativeCall.Failure(rawErrno, "set servers").ToException();
+        throw AlpmFailure.Of(rawErrno, "set servers").ToException();
       }
 
       Lifetime.InvalidateFacet(LifetimeFacet.Servers, "Database.SetServers");
@@ -396,7 +396,7 @@ public sealed unsafe partial class Database
     {
       var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
       GC.KeepAlive(this);
-      throw NativeCall.Failure(rawErrno, "add cache server").ToException();
+      throw AlpmFailure.Of(rawErrno, "add cache server").ToException();
     }
 
     Lifetime.InvalidateFacet(LifetimeFacet.CacheServers, "Database.AddCacheServer");
@@ -418,7 +418,7 @@ public sealed unsafe partial class Database
     {
       var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
       GC.KeepAlive(this);
-      throw NativeCall.Failure(rawErrno, "remove cache server").ToException();
+      throw AlpmFailure.Of(rawErrno, "remove cache server").ToException();
     }
 
     GC.KeepAlive(this);
@@ -445,7 +445,7 @@ public sealed unsafe partial class Database
       {
         var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
         GC.KeepAlive(this);
-        throw NativeCall.Failure(rawErrno, "set cache servers").ToException();
+        throw AlpmFailure.Of(rawErrno, "set cache servers").ToException();
       }
 
       Lifetime.InvalidateFacet(LifetimeFacet.CacheServers, "Database.SetCacheServers");
@@ -507,7 +507,7 @@ public sealed unsafe partial class Database
     {
       var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
       GC.KeepAlive(this);
-      throw NativeCall.Failure(rawErrno, "unregister database").ToException();
+      throw AlpmFailure.Of(rawErrno, "unregister database").ToException();
     }
 
     Lifetime.Invalidate("Database.Unregister()");
