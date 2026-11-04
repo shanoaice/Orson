@@ -8,6 +8,7 @@
     <PackageVersion Include="coverlet.MTP" Version="10.1.0" />
     <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />
     <PackageVersion Include="Microsoft.SourceLink.Gitea" Version="10.0.403" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
     <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.2" />
   </ItemGroup>
   <ItemGroup>
