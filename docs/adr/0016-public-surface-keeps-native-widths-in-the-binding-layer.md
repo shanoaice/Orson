@@ -1,12 +1,14 @@
 # The public surface keeps native widths inside the binding layer
 
 ---
-status: accepted
+status: accepted (amended)
 ---
 
-The public API uses `int` for item counts and `long` for byte sizes. It does not use `nuint` or
-`nint`, and it does not expose any type from `Orson.Alpm.Bindings`. `size_t` and `off_t` stay in
-the binding layer, next to the C signature they come from.
+**Amendment (2026-11-04):** `nint` and `nuint` are permitted on the public API surface when modeling native address-space, pointer-sized values, or native offsets. In modern .NET (.NET 7+), `nint` is fully CLS-compliant. While domain item counts continue to prefer `int` (matching `IReadOnlyCollection<T>.Count`) and byte sizes prefer `long`, native integer types are no longer categorically banned. Public API surface drift is tracked via `Microsoft.CodeAnalysis.PublicApiAnalyzers`.
+
+The public API uses `int` for item counts and `long` for byte sizes by convention. It does not
+leak types from `Orson.Alpm.Bindings`. `nint` and `nuint` are permitted where native pointer-sized
+semantics are genuinely required, but are not forced onto high-level domain counts or sizes.
 
 1. **Counts are `int`.** A count of packages, hooks or files takes the same type as
    `FileList.Count` and `AlpmList.Count`.
@@ -47,8 +49,8 @@ The public surface has eight native-width members, all of them in the event laye
 - The progress payload is a `readonly struct`. libalpm calls the progress callback once per file
   entry while it extracts or removes a package, so a class payload would add a heap object on the
   hottest path.
-- `PublicApiSurfaceTests` gains a guard that rejects `IntPtr` and `UIntPtr` anywhere in a public
-  member, including inside generic arguments such as a delegate type.
+- Public API additions are recorded in `PublicAPI.Unshipped.txt` and validated by
+  `Microsoft.CodeAnalysis.PublicApiAnalyzers`. The prior reflection guard `PublicApiSurfaceTests` was retired.
 - A new `size_t`-backed member arrives as `int` (a count) or `long` (a size). The binding keeps
   the native type.
 
