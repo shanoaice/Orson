@@ -71,6 +71,7 @@ public sealed unsafe partial class Database
   /// <summary>When this wrapper was created, so <see cref="ThrowIfInvalidated" /> can detect a bump.</summary>
   private LifetimeStamp _stamp;
 
+  /// <summary>Initializes a new instance of the <see cref="Database" /> class.</summary>
   /// <param name="backingStruct">The libalpm-owned database.</param>
   /// <param name="lifetime">The database's domain; all accessors and issued views guard on it.</param>
   /// <param name="onUnregistered">Optional callback invoked when the database is unregistered.</param>

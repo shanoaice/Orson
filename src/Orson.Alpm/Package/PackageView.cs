@@ -10,6 +10,7 @@ namespace Orson.Alpm;
 /// </remarks>
 public sealed unsafe partial class PackageView : Package
 {
+  /// <summary>Initializes a new instance of the <see cref="PackageView" /> class.</summary>
   /// <param name="backingStruct">The libalpm-owned package. Not dereferenced here.</param>
   /// <param name="lifetime">Domain of the context that owns the package memory, if any.</param>
   internal PackageView(_alpm_pkg_t* backingStruct, ChildLifetime? lifetime) : base(backingStruct)

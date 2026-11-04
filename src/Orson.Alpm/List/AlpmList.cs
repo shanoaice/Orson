@@ -205,6 +205,7 @@ internal sealed class AlpmOwnedList<T> : AlpmList<T>, IDisposable
   private readonly unsafe delegate* unmanaged[Cdecl]<void*, void> _innerFree;
   private bool _disposed;
 
+  /// <summary>Initializes a new instance of the <see cref="AlpmOwnedList{T}" /> class.</summary>
   /// <param name="list">Caller-owned list, or <c>null</c>.</param>
   /// <param name="factory">Converts one native list item into <typeparamref name="T" />.</param>
   /// <param name="innerFree">Required element destructor, or <c>null</c> when the elements are owned elsewhere.</param>

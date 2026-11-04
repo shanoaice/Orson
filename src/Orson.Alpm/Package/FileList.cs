@@ -19,6 +19,7 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
   private readonly _alpm_filelist_t* _backingStruct;
   private readonly LifetimeStamp? _lifetime;
 
+  /// <summary>Initializes a new instance of the <see cref="FileList" /> class.</summary>
   /// <param name="backingStruct">The package-owned file list.</param>
   /// <param name="lifetime">Domain of the package that owns the array; <c>null</c> disables the guard.</param>
   internal FileList(_alpm_filelist_t* backingStruct, Lifetime? lifetime)

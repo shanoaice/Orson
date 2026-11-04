@@ -14,6 +14,7 @@ namespace Orson.Alpm;
 /// </remarks>
 public sealed class AlpmStringList : AlpmList<string>
 {
+  /// <summary>Initializes a new instance of the <see cref="AlpmStringList" /> class.</summary>
   /// <param name="alpmList">The borrowed list of C strings. May be <c>null</c>.</param>
   /// <param name="lifetime">
   /// Token of the native context that owns the strings; guards traversal. <c>null</c> only for the

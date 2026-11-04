@@ -12,6 +12,7 @@ namespace Orson.Alpm;
 /// </remarks>
 public sealed class Group
 {
+  /// <summary>Initializes a new instance of the <see cref="Group" /> class.</summary>
   /// <param name="backingStruct">The libalpm-owned group; dereferenced eagerly.</param>
   /// <param name="lifetime">Token of the database owning the group and its member packages; forwarded to the members.</param>
   internal unsafe Group(_alpm_group_t* backingStruct, ChildLifetime? lifetime)
