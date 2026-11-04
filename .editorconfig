@@ -17,3 +17,7 @@ trim_trailing_whitespace = false
 [*.cs]
 # Allow namespaces to decouple from physical folder structure (folders organize files, namespaces organize public API)
 dotnet_diagnostic.IDE0130.severity = none
+
+[src/Orson.Alpm/Exceptions.cs]
+# Exceptions carry mandatory domain state (ADR 0007); standard parameterless constructors are invalid
+dotnet_diagnostic.RCS1194.severity = none
