@@ -24,10 +24,22 @@
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <Description>C# binding for libalpm, the library behind pacman.</Description>
     <PackageProjectUrl>https://codeberg.org/shanoaice/Orson/</PackageProjectUrl>
-    <RepositoryUrl>https://codeberg.org/shanoaice/Orson/</RepositoryUrl>
+    <RepositoryUrl>https://codeberg.org/shanoaice/Orson.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- Source Link configuration -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.Gitea" PrivateAssets="All" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- ADR 0006 keeps the binding layer internal to this assembly. In-repo tooling that has to
