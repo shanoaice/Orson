@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using Orson.Alpm.Bindings;
 
 namespace Orson.Alpm;
@@ -12,7 +12,6 @@ namespace Orson.Alpm;
 /// thing that creates one - every subclass is sealed.
 /// </para>
 /// </remarks>
-[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 public abstract class AlpmDownloadEvent
 {
   internal static unsafe AlpmDownloadEvent FromUnion(_alpm_download_event_type_t eventType, void* data)
@@ -28,6 +27,7 @@ public abstract class AlpmDownloadEvent
   }
 
   /// <summary>Download initialization event.</summary>
+  [PublicAPI]
   public sealed class Init : AlpmDownloadEvent
   {
     internal unsafe Init(_alpm_download_event_init_t* init)
@@ -40,6 +40,7 @@ public abstract class AlpmDownloadEvent
   }
 
   /// <summary>Download progress event.</summary>
+  [PublicAPI]
   public sealed class Progress : AlpmDownloadEvent
   {
     internal unsafe Progress(_alpm_download_event_progress_t* progress)
@@ -55,6 +56,7 @@ public abstract class AlpmDownloadEvent
   }
 
   /// <summary>Download retry event.</summary>
+  [PublicAPI]
   public sealed class Retry : AlpmDownloadEvent
   {
     internal unsafe Retry(_alpm_download_event_retry_t* retry)
@@ -67,6 +69,7 @@ public abstract class AlpmDownloadEvent
   }
 
   /// <summary>Download completion event.</summary>
+  [PublicAPI]
   public sealed class Completed : AlpmDownloadEvent
   {
     internal unsafe Completed(_alpm_download_event_completed_t* completed)

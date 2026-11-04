@@ -38,6 +38,7 @@
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
 
   <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.Gitea" PrivateAssets="All" />
   </ItemGroup>
 
