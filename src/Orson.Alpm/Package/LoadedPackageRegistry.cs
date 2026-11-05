@@ -47,7 +47,7 @@ internal sealed unsafe class LoadedPackageRegistry : IDisposable
 
     if (wasTracked && freeNative)
     {
-      NativeMethods.alpm_pkg_free(pkg);
+      _ = NativeMethods.alpm_pkg_free(pkg);
     }
   }
 
@@ -58,7 +58,7 @@ internal sealed unsafe class LoadedPackageRegistry : IDisposable
     {
       foreach (var ptr in _loadedPackages)
       {
-        NativeMethods.alpm_pkg_free((_alpm_pkg_t*)ptr);
+        _ = NativeMethods.alpm_pkg_free((_alpm_pkg_t*)ptr);
       }
 
       _loadedPackages.Clear();

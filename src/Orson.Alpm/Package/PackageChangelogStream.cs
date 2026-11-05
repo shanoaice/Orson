@@ -71,7 +71,7 @@ internal sealed unsafe class PackageChangelogStream : Stream
     {
       if (_fp != null)
       {
-        NativeMethods.alpm_pkg_changelog_close(_package.BackingStruct, _fp);
+        _ = NativeMethods.alpm_pkg_changelog_close(_package.BackingStruct, _fp);
         _fp = null;
       }
       _disposed = true;

@@ -413,7 +413,7 @@ public sealed partial class AlpmSession : IDisposable
     ArgumentNullException.ThrowIfNull(message);
 
     var messageWithNewline = message.EndsWith('\n') ? message : message + "\n";
-    var safeMessage = messageWithNewline.Replace("%", "%%");
+    var safeMessage = messageWithNewline.Replace("%", "%%", StringComparison.Ordinal);
     Span<byte> prefixScratch = stackalloc byte[64];
     Span<byte> messageScratch = stackalloc byte[256];
     using var prefixBuf = new Utf8Buffer(prefix, prefixScratch);

@@ -24,7 +24,7 @@ public sealed unsafe class ListOwnershipTests
     {
       var view = AlpmList<string>.Borrow(list, &TestStringFactory, null);
 
-      Assert.Equal(3, view.Count());
+      Assert.Equal(3, view.Count);
       Assert.Equal(["alpha", "beta", "gamma"], view.ToArray());
       Assert.Equal("beta", view.ElementAt(1));
     }

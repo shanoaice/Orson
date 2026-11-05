@@ -40,7 +40,7 @@ public sealed unsafe class LoadedPackage : Package, IDisposable
   /// </remarks>
   internal void ThrowIfNotOwned()
   {
-    if (!OwnsPackage) throw new ObjectDisposedException(GetType().FullName);
+    ObjectDisposedException.ThrowIf(!OwnsPackage, this);
   }
 
   /// <summary>

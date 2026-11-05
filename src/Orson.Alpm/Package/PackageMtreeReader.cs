@@ -79,7 +79,7 @@ internal sealed unsafe class PackageMtreeReader : IDisposable
     _current = null;
     if (_archive != null)
     {
-      NativeMethods.alpm_pkg_mtree_close(_package.BackingStruct, _archive);
+      _ = NativeMethods.alpm_pkg_mtree_close(_package.BackingStruct, _archive);
     }
     GC.KeepAlive(_package);
   }

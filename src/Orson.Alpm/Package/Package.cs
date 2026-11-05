@@ -77,7 +77,7 @@ public abstract unsafe partial class Package
     // The retirement flag wins: a disposed or handed-over wrapper reports ObjectDisposedException
     // even when its owning context is gone too; the token check covers contexts released while
     // this wrapper was still nominally usable.
-    if (Disposed) throw new ObjectDisposedException(GetType().FullName);
+    ObjectDisposedException.ThrowIf(Disposed, this);
     Lifetime?.ThrowIfStale();
   }
 
@@ -593,19 +593,26 @@ public abstract unsafe partial class Package
   /// <exception cref="AlpmLifetimeException">The package's session has already been released.</exception>
   public IReadOnlyList<MtreeEntry>? GetMtreeEntries()
   {
-    if (!TryGetMtree(out var mtree, out var failure))
+    PackageMtreeReader? mtree = null;
+    try
     {
-      throw failure.ToException();
-    }
-    if (mtree is null) return null;
+      if (!TryGetMtree(out mtree, out var failure))
+      {
+        throw failure.ToException();
+      }
+      if (mtree is null) return null;
 
-    using var reader = mtree;
-    var entries = new List<MtreeEntry>();
-    while (reader.MoveNext())
-    {
-      entries.Add(reader.Current);
+      var entries = new List<MtreeEntry>();
+      while (mtree.MoveNext())
+      {
+        entries.Add(mtree.Current);
+      }
+      return entries;
     }
-    return entries;
+    finally
+    {
+      mtree?.Dispose();
+    }
   }
 
   [DoesNotReturn]

@@ -16,14 +16,23 @@ public sealed partial class AlpmSession
     [NotNullWhen(true)] out AlpmSession? session,
     [NotNullWhen(false)] out AlpmFailure? failure)
   {
-    if (!TryInitializeHandle(root, dbpath, out var handle, out failure))
+    SafeAlpmHandle? handle = null;
+    try
     {
-      session = null;
-      return false;
-    }
+      if (!TryInitializeHandle(root, dbpath, out handle, out failure))
+      {
+        session = null;
+        return false;
+      }
 
-    session = new AlpmSession(handle);
-    return true;
+      session = new AlpmSession(handle);
+      handle = null;
+      return true;
+    }
+    finally
+    {
+      handle?.Dispose();
+    }
   }
 
   /// <summary>The failure-returning seam for <see cref="LoadPackage" />.</summary>
