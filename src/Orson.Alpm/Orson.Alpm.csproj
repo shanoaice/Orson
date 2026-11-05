@@ -28,6 +28,7 @@
     <RepositoryUrl>https://codeberg.org/shanoaice/Orson.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
 
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <!-- Source Link configuration -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -43,6 +44,10 @@
     <PackageReference Include="Microsoft.SourceLink.Gitea" PrivateAssets="All" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <!-- ADR 0006 keeps the binding layer internal to this assembly. In-repo tooling that has to
