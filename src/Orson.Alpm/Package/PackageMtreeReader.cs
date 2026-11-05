@@ -59,7 +59,7 @@ internal sealed unsafe class PackageMtreeReader : IDisposable
       // first statement of the failure branch, before another libalpm call can overwrite it.
       var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
       GC.KeepAlive(_package);
-      ThrowMtreeReadFailure(rawErrno);
+      throw AlpmFailure.Of(rawErrno, "read package mtree").ToException();
     }
 
     _current = MtreeEntry.FromNative(entry);
@@ -82,11 +82,5 @@ internal sealed unsafe class PackageMtreeReader : IDisposable
       _ = NativeMethods.alpm_pkg_mtree_close(_package.BackingStruct, _archive);
     }
     GC.KeepAlive(_package);
-  }
-
-  [DoesNotReturn]
-  private static void ThrowMtreeReadFailure(int rawErrno)
-  {
-    throw AlpmFailure.Of(rawErrno, "read package mtree").ToException();
   }
 }

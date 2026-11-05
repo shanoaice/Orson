@@ -481,7 +481,7 @@ public abstract unsafe partial class Package
         // it has to come after the last native read on this path.
         var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
         GC.KeepAlive(this);
-        ThrowSignatureFailure(rawErrno);
+        throw AlpmFailure.Of(rawErrno, "read package signature").ToException();
       }
       if (buffer != null)
       {
@@ -613,11 +613,5 @@ public abstract unsafe partial class Package
     {
       mtree?.Dispose();
     }
-  }
-
-  [DoesNotReturn]
-  private static void ThrowSignatureFailure(int rawErrno)
-  {
-    throw AlpmFailure.Of(rawErrno, "read package signature").ToException();
   }
 }
