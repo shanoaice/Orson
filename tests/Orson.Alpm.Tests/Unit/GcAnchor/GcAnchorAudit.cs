@@ -386,13 +386,15 @@ internal static class GcAnchorAudit
     for (var j = hazardIndex + 1; j < instructions.Count; j++)
     {
       var candidate = instructions[j];
-      if (candidate.MethodToken == 0) continue;
-      if (Resolve(module, candidate.MethodToken) != KeepAliveMethod) continue;
+      if (!IsKeepAlive(module, candidate)) continue;
       if (j == 0 || !IsLoadThis(instructions[j - 1])) continue;
       if (graph.PostDominates(hazard.Offset, candidate.Offset)) return j;
     }
     return -1;
   }
+
+  private static bool IsKeepAlive(Module module, IlInstruction ins) =>
+    ins.MethodToken != 0 && Resolve(module, ins.MethodToken) == KeepAliveMethod;
 
   private static MethodBase? Resolve(Module module, int token)
   {
@@ -530,7 +532,20 @@ internal static class GcAnchorAudit
 
             if (current.IsCall && CallReachesNativeMemory(module, current))
             {
-              offenders.Add($"{type.Name}.{method.Name}(IL_{current.Offset:x4})");
+              var isAnchored = false;
+              for (var k = j + 1; k < i; k++)
+              {
+                if (instructions[k].IsCall && IsKeepAlive(module, instructions[k]))
+                {
+                  isAnchored = true;
+                  break;
+                }
+              }
+
+              if (!isAnchored)
+              {
+                offenders.Add($"{type.Name}.{method.Name}(IL_{current.Offset:x4})");
+              }
             }
 
             need = need - push.Value + pop.Value;
