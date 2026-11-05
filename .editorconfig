@@ -18,6 +18,98 @@ trim_trailing_whitespace = false
 # Allow namespaces to decouple from physical folder structure (folders organize files, namespaces organize public API)
 dotnet_diagnostic.IDE0130.severity = none
 
+# --- Performance Rules (CA18xx) ---
+# Prefer const over static readonly for primitive/string constants (inlines values, eliminates runtime static initialization)
+dotnet_diagnostic.CA1802.severity = warning
+# Initialize reference type static fields inline to enable beforefieldinit JIT optimization
+dotnet_diagnostic.CA1810.severity = warning
+# Avoid uninstantiated internal classes
+dotnet_diagnostic.CA1812.severity = suggestion
+# Test for empty strings using string length rather than empty string literals
+dotnet_diagnostic.CA1820.severity = warning
+# Remove dead private fields that waste memory and indicate stale code
+dotnet_diagnostic.CA1823.severity = warning
+# Prevent multiple enumerations of IEnumerable sequences
+dotnet_diagnostic.CA1851.severity = warning
+# Use char overload rather than single-character string arguments to avoid string allocations
+dotnet_diagnostic.CA1867.severity = warning
+
+# --- Reliability & Lifetime Rules (CA20xx) ---
+# Ensure disposable objects are disposed before losing scope
+dotnet_diagnostic.CA2000.severity = warning
+# Prevent locking on objects with weak identity (this, typeof(T), strings) to prevent deadlocks
+dotnet_diagnostic.CA2002.severity = warning
+# Do not create tasks without passing an explicit TaskScheduler
+dotnet_diagnostic.CA2008.severity = warning
+# Prevent passing IDisposable instances into unawaited tasks (avoids use-after-free)
+dotnet_diagnostic.CA2025.severity = warning
+
+# --- Usage, Interop & Correctness Rules ---
+# Implement IEquatable<T> when overriding Object.Equals for type-safe, allocation-free comparison
+dotnet_diagnostic.CA1066.severity = warning
+# Specify StringComparison for clarity and culture-invariant ordinal operations
+dotnet_diagnostic.CA1307.severity = warning
+# Seal methods that satisfy private interfaces
+dotnet_diagnostic.CA2119.severity = warning
+# Ensure disposable fields are properly disposed
+dotnet_diagnostic.CA2213.severity = warning
+# Prevent virtual member calls from constructors
+dotnet_diagnostic.CA2214.severity = warning
+
+# --- ALPM Domain Architecture Adjustments ---
+# AlpmList<T> is named after libalpm's alpm_list_t and the domain glossary; renaming to AlpmListCollection violates domain model
+dotnet_diagnostic.CA1710.severity = none
+# TransactionFlags legitimately uses 'Flags' suffix per standard flag enum conventions
+dotnet_diagnostic.CA1711.severity = none
+# Event and question hierarchies model discriminated union variants nested in their parent types (AlpmEvent, AlpmQuestion, AlpmDownloadEvent)
+dotnet_diagnostic.CA1034.severity = none
+# Native-bound enums mirror libalpm unsigned C types (uint) and closed 1-based domain sets without artificial None=0 (ADR 0019)
+dotnet_diagnostic.CA1008.severity = none
+dotnet_diagnostic.CA1028.severity = none
+dotnet_diagnostic.CA1712.severity = none
+# ALPM URLs (mirrors, databases) contain template expansion variables ($repo, $arch) that are not valid RFC URIs until expanded
+dotnet_diagnostic.CA1054.severity = none
+dotnet_diagnostic.CA1056.severity = none
+# Roslyn dataflow analysis cannot trace mutations through unmanaged pointer-to-pointers (&retList, archive_entry**), causing false positives
+dotnet_diagnostic.CA1508.severity = suggestion
+
 [src/Orson.Alpm/Exceptions.cs]
 # Exceptions carry mandatory domain state (ADR 0007); standard parameterless constructors are invalid
 dotnet_diagnostic.RCS1194.severity = none
+dotnet_diagnostic.CA1032.severity = none
+
+[src/Orson.Alpm/AlpmFailure.cs]
+# Native out-of-memory (ALPM_ERR_MEMORY) is mapped directly to OutOfMemoryException per ADR 0001 Section 2
+dotnet_diagnostic.CA2201.severity = none
+
+[src/Orson.Alpm/Package/PackageVersion.cs]
+# Version equality is textual, not vercmp; PackageVersion intentionally does not declare relational operators (ADR 0015)
+dotnet_diagnostic.CA1036.severity = none
+
+[src/Orson.Alpm/Transaction.cs]
+# Dispose throws on teardown failure if committed, to prevent silent database lock leakage (ADR 0008 amendment)
+dotnet_diagnostic.CA1065.severity = none
+
+[src/Orson.Alpm/bindings/**]
+# Generated C# bindings (csbindgen), manual SafeHandle overloads, and raw P/Invokes follow C naming and platform loading
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA5392.severity = none
+dotnet_diagnostic.CA2101.severity = none
+
+[tests/**]
+# Test method names use underscores for readability (Method_Scenario_ExpectedBehavior)
+dotnet_diagnostic.CA1707.severity = none
+# Test assertions and audit helpers do not require explicit culture specifications
+dotnet_diagnostic.CA1304.severity = none
+dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.CA1307.severity = none
+# Tests intentionally exercise GC, lifetimes, and unfreed resource states
+dotnet_diagnostic.CA2000.severity = none
+# Unused fields or general types in test helpers
+dotnet_diagnostic.CA1823.severity = none
+dotnet_diagnostic.CA1859.severity = none
+[src/Orson.Benchmarks/**]
+# Benchmark method names use underscores for scenarios and parameterization
+dotnet_diagnostic.CA1707.severity = none
+# Benchmark classes manage lifetime via [GlobalCleanup] rather than IDisposable
+dotnet_diagnostic.CA1001.severity = none
