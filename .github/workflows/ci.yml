@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - '[0-9]+.*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build & Test (Arch Linux)
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+
+    env:
+      GenerateBindings: 'true'
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed git dotnet-sdk clang rust cargo
+          git config --global --add safe.directory '*'
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build solution (-c Release)
+        run: dotnet build Orson.slnx -c Release
+
+      - name: Verify bindings match current libalpm
+        run: |
+          git diff --exit-code src/Orson.Alpm/bindings/NativeMethods.libalpm.g.cs src/Orson.Alpm/libalpm-sys-cs/alpm.rs || {
+            echo "::error::Committed bindings drifted from upstream Arch Linux libalpm. Run scripts/generate-bindings-in-container.sh to update them."
+            exit 1
+          }
+
+      - name: Run tests (-c Release)
+        run: dotnet test --solution Orson.slnx -c Release --no-build --verbosity normal
