@@ -20,4 +20,4 @@ if [[ -z "$runtime" ]]; then
 fi
 
 "$runtime" build -f "$repo_root/containers/alpm-tests/Containerfile" -t "$image" "$repo_root"
-"$runtime" run --rm -v "$repo_root:/workspace:Z" -w /workspace "$image" dotnet test --project tests/Orson.Alpm.Tests/Orson.Alpm.Tests.csproj
+"$runtime" run --rm -v "$repo_root:/workspace:Z" -w /workspace "$image" dotnet test --project tests/Orson.Alpm.Tests/Orson.Alpm.Tests.csproj -c Release "$@"

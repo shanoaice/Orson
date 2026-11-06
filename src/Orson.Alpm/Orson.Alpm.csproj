@@ -66,9 +66,24 @@
   <Target Name="GenerateBindings"
           BeforeTargets="BeforeCompile"
           Condition="'$(GenerateBindings)' == 'true'">
-    <Message Importance="high" Text="Regenerating C# bindings via cargo build -p libalpm-sys-cs..." />
+    <PropertyGroup>
+      <_AlreadyInContainer Condition="'$(_AlreadyInContainer)' == '' and ('$(CI)' == 'true' or '$(ORSON_ALPM_TEST_ENV)' == 'container' or Exists('/.dockerenv') or Exists('/run/.containerenv'))">true</_AlreadyInContainer>
+      <_AlreadyInContainer Condition="'$(_AlreadyInContainer)' == ''">false</_AlreadyInContainer>
+    </PropertyGroup>
+
+    <Message Importance="high"
+             Condition="'$(_AlreadyInContainer)' == 'true'"
+             Text="Regenerating C# bindings directly via cargo build -p libalpm-sys-cs (already in container/CI)..." />
     <Exec Command="cargo build -p libalpm-sys-cs"
-          WorkingDirectory="$(MSBuildProjectDirectory)" />
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(_AlreadyInContainer)' == 'true'" />
+
+    <Message Importance="high"
+             Condition="'$(_AlreadyInContainer)' != 'true'"
+             Text="Regenerating C# bindings hermetically via scripts/generate-bindings-in-container.sh..." />
+    <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../../scripts/generate-bindings-in-container.sh&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(_AlreadyInContainer)' != 'true'" />
   </Target>
 
 </Project>
