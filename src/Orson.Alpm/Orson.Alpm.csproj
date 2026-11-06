@@ -19,7 +19,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <PackageId>Orson.Alpm</PackageId>
-    <Version>0.1.0-preview.1</Version>
+    <Version>0.2.0-preview.1</Version>
     <Authors>shanoaice</Authors>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <Description>C# binding for libalpm, the library behind pacman.</Description>
