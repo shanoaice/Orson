@@ -138,8 +138,6 @@ Orson.Alpm.AlpmOptions.DisableDownloadTimeout.get -> bool
 Orson.Alpm.AlpmOptions.DisableDownloadTimeout.set -> void
 Orson.Alpm.AlpmOptions.DisableSandboxFilesystem.get -> bool
 Orson.Alpm.AlpmOptions.DisableSandboxFilesystem.set -> void
-Orson.Alpm.AlpmOptions.DisableSandboxNetwork.get -> bool
-Orson.Alpm.AlpmOptions.DisableSandboxNetwork.set -> void
 Orson.Alpm.AlpmOptions.DisableSandboxSyscalls.get -> bool
 Orson.Alpm.AlpmOptions.DisableSandboxSyscalls.set -> void
 Orson.Alpm.AlpmOptions.GpgDirectory.get -> string?

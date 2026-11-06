@@ -289,12 +289,6 @@ internal static unsafe partial class NativeMethods
   [LibraryImport(__DllName, EntryPoint = "alpm_option_set_disable_sandbox_filesystem")]
   internal static partial int alpm_option_set_disable_sandbox_filesystem(SafeAlpmHandle handle, ushort disable_sandbox_filesystem);
 
-  [LibraryImport(__DllName, EntryPoint = "alpm_option_get_disable_sandbox_network")]
-  internal static partial int alpm_option_get_disable_sandbox_network(SafeAlpmHandle handle);
-
-  [LibraryImport(__DllName, EntryPoint = "alpm_option_set_disable_sandbox_network")]
-  internal static partial int alpm_option_set_disable_sandbox_network(SafeAlpmHandle handle, ushort disable_sandbox_network);
-
   [LibraryImport(__DllName, EntryPoint = "alpm_option_get_disable_sandbox_syscalls")]
   internal static partial int alpm_option_get_disable_sandbox_syscalls(SafeAlpmHandle handle);
 

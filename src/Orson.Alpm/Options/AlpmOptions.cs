@@ -261,13 +261,6 @@ public sealed unsafe class AlpmOptions
     set => WriteUShort(&NativeMethods.alpm_option_set_disable_sandbox_filesystem, (ushort)(value ? 1 : 0));
   }
 
-  /// <summary>Enables or disables the network portion of the sandbox.</summary>
-  public bool DisableSandboxNetwork
-  {
-    get => Read(&NativeMethods.alpm_option_get_disable_sandbox_network) != 0;
-    set => WriteUShort(&NativeMethods.alpm_option_set_disable_sandbox_network, (ushort)(value ? 1 : 0));
-  }
-
   /// <summary>Enables or disables the syscalls portion of the sandbox.</summary>
   public bool DisableSandboxSyscalls
   {

@@ -4,11 +4,9 @@ namespace Orson.Alpm.Tests.Unit.Options;
 
 /// <summary>Coverage ledger §4: the sandbox options.</summary>
 /// <remarks>
-/// Only the three component flags are wrapped. The aggregate C accessors (
+/// Component flags are wrapped (filesystem and syscalls). The aggregate C accessors (
 /// <c>alpm_option_get/set_disable_sandbox</c>) are declared in alpm.h but are <b>not exported</b> by the installed
-/// <c>libalpm.so.16</c>. The aggregate is also not a faithful sum of the three flags: libalpm computes it from the
-/// filesystem and syscalls flags only and ignores the network flag, so exposing it as a state enum would report a sandbox
-/// as fully disabled while networking is still enabled. Callers that need the state should read the three flags.
+/// <c>libalpm.so.16</c>. Callers that need the state should read the component flags.
 /// </remarks>
 public sealed class SandboxOptionTests
 {
@@ -19,7 +17,6 @@ public sealed class SandboxOptionTests
     var options = environment.AlpmSession.Options;
 
     Assert.False(options.DisableSandboxFilesystem);
-    Assert.False(options.DisableSandboxNetwork);
     Assert.False(options.DisableSandboxSyscalls);
   }
 
@@ -30,15 +27,13 @@ public sealed class SandboxOptionTests
     var options = environment.AlpmSession.Options;
 
     options.DisableSandboxFilesystem = true;
-    options.DisableSandboxNetwork = true;
     options.DisableSandboxSyscalls = true;
     Assert.True(options.DisableSandboxFilesystem);
-    Assert.True(options.DisableSandboxNetwork);
     Assert.True(options.DisableSandboxSyscalls);
 
     options.DisableSandboxFilesystem = false;
     Assert.False(options.DisableSandboxFilesystem);
-    Assert.True(options.DisableSandboxNetwork);
+    Assert.True(options.DisableSandboxSyscalls);
   }
 
   [Fact]

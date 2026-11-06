@@ -109,7 +109,7 @@ rediscover, so it is recorded next to the API it constrains.
 | `alpm_sync_get_new_version` | `PackageView.GetNewVersion` | done | Searches only the databases passed in, so the owner is always resolvable among them. |
 | `alpm_filelist_contains` | `FileList.Contains`, `FileList.FindFile` | done | Native binary search over a sorted list; returns a `PackageFile` snapshot. |
 | `alpm_option_get/set_disable_dl_timeout` | `AlpmOptions.DisableDownloadTimeout` | done | Native type is `unsigned short`. |
-| `alpm_option_get/set_disable_sandbox_filesystem`, `_network`, `_syscalls` | `AlpmOptions.DisableSandboxFilesystem`, `DisableSandboxNetwork`, `DisableSandboxSyscalls` | done | Only the three component flags are wrapped. libalpm's aggregate `alpm_option_get_disable_sandbox` counts filesystem and syscalls and ignores network; an aggregate built from all three would report a fully disabled sandbox while networking is enabled, so no aggregate is exported. |
+| `alpm_option_get/set_disable_sandbox_filesystem`, `_syscalls` | `AlpmOptions.DisableSandboxFilesystem`, `DisableSandboxSyscalls` | done | Component flags wrapped. libalpm's aggregate `alpm_option_get_disable_sandbox` is not exported by `libalpm.so.16`. |
 | `alpm_option_get/set_sandboxuser` | `AlpmOptions.SandboxUser` | done | Return 1 means `getpwnam` found no such user, not a malformed string. |
 | `alpm_pkg_mtree_open`, `alpm_pkg_mtree_next`, `alpm_pkg_mtree_close` | `PackageBase.GetMtreeEntries`, `TryGetMtree` (internal `PackageMtreeReader`) | done | Reads `<dbpath>/local/<pkg>/mtree`; returns `null` when absent or non-local. `GetMtreeEntries` materializes a detached list and closes the native archive reader before returning, so the handle never escapes. |
 
@@ -128,8 +128,9 @@ Priority follows pacman usage and whether a consumer can work around it.
 | `alpm_pkg_get_xdata` | `src/pacman/package.c` | Low | Extended package metadata. |
 | `alpm_compute_md5sum`, `alpm_compute_sha256sum` | `src/pacman/package.c`, `src/pacman/check.c` | Low | Use `System.Security.Cryptography`; MD5 is only needed for legacy checksums. |
 | `alpm_pkg_find` | `src/pacman/sync.c` | Low | Covered by LINQ. |
-| `alpm_option_get/set_disable_sandbox` | none | Low | The aggregate getter/setter. Adding it alongside `DisableSandboxNetwork` would make the two meanings collide; decide before adding. |
-| `alpm_option_get_physical_architectures`, `alpm_pkg_get_installed_db` | none | — | Not called by pacman. Assess with a concrete consumer need. |
+| `alpm_option_get/set_disable_sandbox` | none | Low | Aggregate getter/setter; not exported by `libalpm.so.16`. |
+| `alpm_option_get/set_disable_sandbox_network` | none | Low | Unmerged upstream pacman proposal (MR !368). |
+| `alpm_option_get_physical_architectures`, `alpm_pkg_get_installed_db` | none | — | CachyOS downstream fork only; not part of upstream libalpm. |
 
 ## 6. What pacman implements outside libalpm
 
