@@ -1,6 +1,6 @@
 <Project>
 
-  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -40,12 +40,12 @@
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
 
   <ItemGroup>
-    <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.SourceLink.Gitea" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="All"/>
+    <PackageReference Include="Microsoft.SourceLink.Gitea" PrivateAssets="All"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All"/>
   </ItemGroup>
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 
@@ -54,36 +54,38 @@
          reach the raw entry points (the test suite's binding-pairing audit, and the marshalling
          benchmarks that measure libalpm calls directly) is granted friend access explicitly; an
          external consumer is not. -->
-    <InternalsVisibleTo Include="Orson.Alpm.Tests" />
-    <InternalsVisibleTo Include="Orson.Benchmarks" />
-    <InternalsVisibleTo Include="Orson.Alpm.FSharp" />
+    <InternalsVisibleTo Include="Orson.Alpm.Tests"/>
+    <InternalsVisibleTo Include="Orson.Benchmarks"/>
+    <InternalsVisibleTo Include="Orson.Alpm.FSharp"/>
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="**\*.Seams.cs" DependentUpon="$([System.IO.Path]::GetFileNameWithoutExtension('%(Filename)')).cs" />
+    <Compile Update="**\*.Seams.cs" DependentUpon="$([System.IO.Path]::GetFileNameWithoutExtension('%(Filename)')).cs"/>
   </ItemGroup>
 
   <Target Name="GenerateBindings"
           BeforeTargets="BeforeCompile"
           Condition="'$(GenerateBindings)' == 'true'">
     <PropertyGroup>
-      <_AlreadyInContainer Condition="'$(_AlreadyInContainer)' == '' and ('$(CI)' == 'true' or '$(ORSON_ALPM_TEST_ENV)' == 'container' or Exists('/.dockerenv') or Exists('/run/.containerenv'))">true</_AlreadyInContainer>
+      <!-- Only an environment that explicitly declares the canonical Arch container may run cargo
+           directly. -->
+      <_AlreadyInContainer Condition="'$(_AlreadyInContainer)' == '' and '$(ORSON_ALPM_TEST_ENV)' == 'container'">true</_AlreadyInContainer>
       <_AlreadyInContainer Condition="'$(_AlreadyInContainer)' == ''">false</_AlreadyInContainer>
     </PropertyGroup>
 
     <Message Importance="high"
              Condition="'$(_AlreadyInContainer)' == 'true'"
-             Text="Regenerating C# bindings directly via cargo build -p libalpm-sys-cs (already in container/CI)..." />
+             Text="Regenerating C# bindings directly via cargo build -p libalpm-sys-cs (already in container/CI)..."/>
     <Exec Command="cargo build -p libalpm-sys-cs"
           WorkingDirectory="$(MSBuildProjectDirectory)"
-          Condition="'$(_AlreadyInContainer)' == 'true'" />
+          Condition="'$(_AlreadyInContainer)' == 'true'"/>
 
     <Message Importance="high"
              Condition="'$(_AlreadyInContainer)' != 'true'"
-             Text="Regenerating C# bindings hermetically via scripts/generate-bindings-in-container.sh..." />
+             Text="Regenerating C# bindings hermetically via scripts/generate-bindings-in-container.sh..."/>
     <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../../scripts/generate-bindings-in-container.sh&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
-          Condition="'$(_AlreadyInContainer)' != 'true'" />
+          Condition="'$(_AlreadyInContainer)' != 'true'"/>
   </Target>
 
 </Project>

@@ -11,6 +11,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap();
 
     println!("cargo:rerun-if-env-changed=ALPM_INCLUDE_DIR");
+    // These are build-script side effects in the source tree, not OUT_DIR outputs, so cargo does
+    // not track them. Without these directives a host-side regeneration that clobbers them leaves
+    // the container build script marked fresh, and the host-only symbols survive.
+    println!("cargo:rerun-if-changed=alpm.rs");
+    println!("cargo:rerun-if-changed=../bindings/NativeMethods.libalpm.g.cs");
     let mut include = lib
         .include_paths
         .iter()
