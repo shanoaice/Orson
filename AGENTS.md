@@ -39,7 +39,7 @@ When Rider MCP is absent, use standard `dotnet` CLI tools and SharpLens instead.
 
 ## Code Style
 
-- Never write tests for contract that should be enforced by compilers and conventions.
-- Write XML documentation (`///`) from the consumer's perspective. NEVER include agent investigation notes, design debates, test setups, or probe narratives (e.g., "tested against", "probed with", "(measured)").
+- NEVER write tests for contract that should be enforced by compilers and conventions.
+- Write XML documentation (`///`) from the consumer's perspective. ABSOLUTELY NEVER include agent investigation notes, design debates, test setups, or probe narratives.
 - When documenting non-obvious upstream behavior or quirks, state the facts, constraints, and counterexamples directly without referencing internal tests or benchmark measurements.
 - Logic is asset, code is actually debt. Reuse existing logic sensibly and fix the root cause instead of inventing workarounds. Use your discretion.
