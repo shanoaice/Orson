@@ -7,8 +7,9 @@ This project contains the C# test harness for `Orson.Alpm`.
 - `Unit/Callbacks/` — the callback thunks and registration, and the log `va_list` forwarding.
 - `Unit/Databases/` — `Database` behavior: search, update, servers, usage.
 - `Unit/Errors/` — errno classification, the `Try*` seam, and what a failed transaction reports.
+- `Unit/Extensions/` — optional downstream extensions: capability detection, supported and unsupported paths, and argument/lifetime guards.
 - `Unit/GcAnchor/` — the IL audit that every read of unmanaged memory names its anchor, plus the IL decoder.
-- `Unit/Interop/` — unmanaged interop pairing and buffer marshalling helpers.
+- `Unit/Interop/` — unmanaged interop pairing and buffer marshaling helpers.
 - `Unit/ObjectLifetime/` — the domains and stamps themselves, the sites that invalidate them, and the path a dropped session takes through the GC.
 - `Unit/Options/` — query and modification of libalpm options.
 - `Unit/Ownership/` — which side owns a package, a list or a transaction.
