@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  test-archlinux:
     name: Build & Test (Arch Linux)
     runs-on: ubuntu-latest
     container:
@@ -22,7 +22,7 @@ jobs:
 
     env:
       GenerateBindings: 'true'
-      ORSON_ALPM_TEST_ENV: container
+      ORSON_ALPM_BUILD_ENV: container
       DOTNET_NOLOGO: 'true'
       DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
 
@@ -31,7 +31,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm --needed git dotnet-sdk clang rust cargo
-          git config --global --add safe.directory '*'
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -45,6 +45,37 @@ jobs:
             echo "::error::Committed bindings drifted from upstream Arch Linux libalpm. Run scripts/generate-bindings-in-container.sh to update them."
             exit 1
           }
+
+      - name: Run tests (-c Release)
+        run: dotnet test --solution Orson.slnx -c Release --no-build --verbosity normal
+  test-cachyos:
+    name: Build & Test (CachyOS)
+    runs-on: ubuntu-latest
+    container:
+      image: cachyos/cachyos:latest
+
+    env:
+      GenerateBindings: 'false' # container in container is horrible, and we don't want to use CachyOS's modified symbol
+      ORSON_ALPM_BUILD_ENV: container
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed git dotnet-sdk
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build solution (-c Release)
+        run: dotnet build Orson.slnx -c Release
+
+      - name: Verify CachyOS Symbol Existence
+        run: |
+          nm -D /usr/lib/libalpm.so | grep alpm_option_get_physical_architectures
+          nm -D /usr/lib/libalpm.so | grep alpm_pkg_get_installed_db
 
       - name: Run tests (-c Release)
         run: dotnet test --solution Orson.slnx -c Release --no-build --verbosity normal

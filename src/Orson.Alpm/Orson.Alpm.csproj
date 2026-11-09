@@ -69,20 +69,20 @@
     <PropertyGroup>
       <!-- Only an environment that explicitly declares the canonical Arch container may run cargo
            directly. -->
-      <_AlreadyInContainer Condition="'$(_AlreadyInContainer)' == '' and '$(ORSON_ALPM_TEST_ENV)' == 'container'">true</_AlreadyInContainer>
+      <_AlreadyInContainer Condition="'$(_AlreadyInContainer)' == '' and '$(ORSON_ALPM_BUILD_ENV)' == 'container'">true</_AlreadyInContainer>
       <_AlreadyInContainer Condition="'$(_AlreadyInContainer)' == ''">false</_AlreadyInContainer>
     </PropertyGroup>
 
     <Message Importance="high"
              Condition="'$(_AlreadyInContainer)' == 'true'"
-             Text="Regenerating C# bindings directly via cargo build -p libalpm-sys-cs (already in container/CI)..."/>
+             Text="Regenerating C# bindings directly via cargo..."/>
     <Exec Command="cargo build -p libalpm-sys-cs"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           Condition="'$(_AlreadyInContainer)' == 'true'"/>
 
     <Message Importance="high"
              Condition="'$(_AlreadyInContainer)' != 'true'"
-             Text="Regenerating C# bindings hermetically via scripts/generate-bindings-in-container.sh..."/>
+             Text="Regenerating C# bindings hermetically via container..."/>
     <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../../scripts/generate-bindings-in-container.sh&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           Condition="'$(_AlreadyInContainer)' != 'true'"/>
