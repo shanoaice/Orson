@@ -12,17 +12,11 @@ namespace Orson.Alpm;
 /// </summary>
 public sealed unsafe class AlpmOptions
 {
-  private readonly SafeAlpmHandle _handle;
-
-  // The session's lifetime domain. The option collections are cached views over libalpm's handle state:
-  // they carry the lifetime domain so lists handed out by their enumerators inherit that domain,
-  // while the option wrapper and its collections remain valid until the session handle is disposed.
-  private readonly RootLifetime _lifetime;
+  internal SafeAlpmHandle Handle { get; }
 
   internal AlpmOptions(SafeAlpmHandle handle, RootLifetime lifetime)
   {
-    _handle = handle;
-    _lifetime = lifetime;
+    Handle = handle;
 
     Architectures = new Architectures(handle, lifetime);
     AssumeInstalled = new AssumeInstalled(handle, lifetime);
@@ -45,21 +39,21 @@ public sealed unsafe class AlpmOptions
   {
     if (err == 0) return;
     GC.KeepAlive(this);
-    throw AlpmFailure.Of(_handle, $"set {operation ?? "option"}").ToException();
+    throw AlpmFailure.Of(Handle, $"set {operation ?? "option"}").ToException();
   }
 
   private T Read<T>(delegate* managed<SafeAlpmHandle, T> reader)
   {
-    _handle.ThrowIfDisposed();
-    var val = reader(_handle);
+    Handle.ThrowIfDisposed();
+    var val = reader(Handle);
     GC.KeepAlive(this);
     return val;
   }
 
   private string? ReadString(delegate* managed<SafeAlpmHandle, byte*> reader)
   {
-    _handle.ThrowIfDisposed();
-    var val = NativeString.FromNative((nint)reader(_handle));
+    Handle.ThrowIfDisposed();
+    var val = NativeString.FromNative((nint)reader(Handle));
     GC.KeepAlive(this);
     return val;
   }
@@ -67,24 +61,24 @@ public sealed unsafe class AlpmOptions
   private void Write(delegate* managed<SafeAlpmHandle, int, int> writer, int value,
     [CallerMemberName] string? operation = null)
   {
-    _handle.ThrowIfDisposed();
-    ThrowIfError(writer(_handle, value), operation);
+    Handle.ThrowIfDisposed();
+    ThrowIfError(writer(Handle, value), operation);
     GC.KeepAlive(this);
   }
 
   private void WriteUInt(delegate* managed<SafeAlpmHandle, uint, int> writer, uint value,
     [CallerMemberName] string? operation = null)
   {
-    _handle.ThrowIfDisposed();
-    ThrowIfError(writer(_handle, value), operation);
+    Handle.ThrowIfDisposed();
+    ThrowIfError(writer(Handle, value), operation);
     GC.KeepAlive(this);
   }
 
   private void WriteUShort(delegate* managed<SafeAlpmHandle, ushort, int> writer, ushort value,
     [CallerMemberName] string? operation = null)
   {
-    _handle.ThrowIfDisposed();
-    ThrowIfError(writer(_handle, value), operation);
+    Handle.ThrowIfDisposed();
+    ThrowIfError(writer(Handle, value), operation);
     GC.KeepAlive(this);
   }
 
@@ -101,10 +95,10 @@ public sealed unsafe class AlpmOptions
     [CallerMemberName] string? operation = null)
   {
     ArgumentNullException.ThrowIfNull(value);
-    _handle.ThrowIfDisposed();
+    Handle.ThrowIfDisposed();
     Span<byte> scratch = stackalloc byte[256];
     using var buffer = new Utf8Buffer(value, scratch);
-    ThrowIfError(setter(_handle, buffer.Ptr), operation);
+    ThrowIfError(setter(Handle, buffer.Ptr), operation);
   }
 
   /// <summary>Gets the collection used to query and modify the CPU architectures accepted by the session.</summary>
@@ -274,17 +268,17 @@ public sealed unsafe class AlpmOptions
     get => ReadString(&NativeMethods.alpm_option_get_sandboxuser);
     set
     {
-      _handle.ThrowIfDisposed();
+      Handle.ThrowIfDisposed();
       if (value is null)
       {
-        ThrowIfError(NativeMethods.alpm_option_set_sandboxuser(_handle, null));
+        ThrowIfError(NativeMethods.alpm_option_set_sandboxuser(Handle, null));
         GC.KeepAlive(this);
         return;
       }
 
       Span<byte> scratch = stackalloc byte[64];
       using var buffer = new Utf8Buffer(value, scratch);
-      var err = NativeMethods.alpm_option_set_sandboxuser(_handle, buffer.Ptr);
+      var err = NativeMethods.alpm_option_set_sandboxuser(Handle, buffer.Ptr);
       if (err == 1)
       {
         throw new ArgumentException($"The user '{value}' is not known on this system.", nameof(value));
