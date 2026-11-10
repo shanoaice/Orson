@@ -545,3 +545,9 @@ static Orson.Alpm.AlpmSession.Version.get -> string!
 static Orson.Alpm.PackageVersion.operator !=(Orson.Alpm.PackageVersion? left, Orson.Alpm.PackageVersion? right) -> bool
 static Orson.Alpm.PackageVersion.operator ==(Orson.Alpm.PackageVersion? left, Orson.Alpm.PackageVersion? right) -> bool
 static Orson.Alpm.PackageView.FindSatisfier(System.Collections.Generic.IEnumerable<Orson.Alpm.PackageView!>! packages, string! dependency) -> Orson.Alpm.PackageView?
+Orson.Alpm.Extensions.CachyOs
+static Orson.Alpm.Extensions.CachyOs.GetInstalledDatabase(this Orson.Alpm.Package! package) -> string?
+static Orson.Alpm.Extensions.CachyOs.GetPhysicalArchitecture(this Orson.Alpm.AlpmOptions! options) -> System.Collections.Generic.IReadOnlyList<string!>!
+static Orson.Alpm.Extensions.CachyOs.IsCachyOsEnvironment.get -> bool
+static Orson.Alpm.Extensions.CachyOs.IsInstalledDatabaseSupported.get -> bool
+static Orson.Alpm.Extensions.CachyOs.IsPhysicalArchitectureSupported.get -> bool
