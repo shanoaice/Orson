@@ -15,4 +15,8 @@
     <Compile Include="Library.fs"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="ACTORS.md" />
+  </ItemGroup>
+
 </Project>

@@ -7,20 +7,20 @@ This document outlines the architectural decisions, design choices, and proposed
 ## 1. Core Philosophy & Architectural Goals
 
 1. **Functional-First Architecture**:
-   - Separate **specification (description)** from **execution (interpretation)**.
-   - Represent processes (transactions, queries, configurations) as pure, immutable data structures where possible.
-   - Use Discriminated Unions and `Result<'T, 'Error>` (Railway-Oriented Programming) for expected ALPM operation failures. Use `option` or empty collections for normal query misses, and exceptions for contract violations and runtime faults.
+    - Separate **specification (description)** from **execution (interpretation)**.
+    - Represent processes (transactions, queries, configurations) as pure, immutable data structures where possible.
+    - Use Discriminated Unions and `Result<'T, 'Error>` (Railway-Oriented Programming) for expected ALPM operation failures. Use `option` or empty collections for normal query misses, and exceptions for contract violations and runtime faults.
 
 2. **Zero-Overhead & High Performance**:
-   - `libalpm` queries (such as scanning package caches or file lists) can involve thousands of packages and hundreds of thousands of files.
-   - Prefer zero-copy borrowed **views** (`PackageView`) over eager copies (`PackageSnapshot`) for query pipelines.
-   - Preserve lazy streaming for expensive collections (e.g. file lists, changelogs).
+    - `libalpm` queries (such as scanning package caches or file lists) can involve thousands of packages and hundreds of thousands of files.
+    - Prefer zero-copy borrowed **views** (`PackageView`) over eager copies (`PackageSnapshot`) for query pipelines.
+    - Preserve lazy streaming for expensive collections (e.g. file lists, changelogs).
 
 3. **Safe Concurrency & Lifetime Encapsulation**:
-   - Encapsulate native resource lifetimes (`alpm_handle_t`, `alpm_trans_t`, `db.lck`) within deterministic scopes (bracket patterns) so that consumers cannot accidentally leak locks or invoke operations on dead pointers.
+    - Encapsulate native resource lifetimes (`alpm_handle_t`, `alpm_trans_t`, `db.lck`) within deterministic scopes (bracket patterns) so that consumers cannot accidentally leak locks or invoke operations on dead pointers.
 
 4. **Safety in Interactivity**:
-   - Critical operations (package replacement, conflict resolution, provider selection) must never be blindly defaulted or bypassed without explicit consumer intent.
+    - Critical operations (package replacement, conflict resolution, provider selection) must never be blindly defaulted or bypassed without explicit consumer intent.
 
 ---
 
@@ -73,10 +73,42 @@ type TransactionPlan = {
 }
 ```
 
+#### Target Resolution Semantics
+
+- `Sync(name, Some repo)`: lookup `name` in the specified `SyncDatabase` via exact package match (`alpm_db_get_pkg`), falling back to `alpm_find_satisifier` for virtual provisions.
+- `Sync(name, None)`: Searches across `session.GetSyncDatabases()` in registration order:
+    1. Checks for an exact package name match across sync databases.
+    2. If no exact match exists, checks for a package group (`alpm_db_get_group`) or resolves a virtual provision across sync DBs via `alpm_find_dbs_satisfier`.
+- Validation of duplicate or conflicting targets is delegated directly to `libalpm` during staging (`alpm_add_pkg` / `alpm_remove_pkg`) and `alpm_trans_prepare`, surfacing through `Result<PreparedTransaction, PrepareError>`.
+
 ### 2.2 The Phased Execution API
 
 ```fsharp
 /// Pure summary of an already-prepared transaction.
+/// Note: PackageViews in TransactionSummary are borrowed views scoped to the PreparedTransaction
+/// prior to Commit(). To retain summary data after the transaction scope exits (e.g. dry-runs),
+/// project or snapshot the items inside `withPrepared`.
+ type TransactionSummary = {
+     PackagesToInstall: PackageView list
+     PackagesToRemove: PackageView list
+     TotalDownloadSize: int64
+     TotalInstallSizeChange: int64
+ }
+
+/// Lightweight, lifetime-independent record of a committed package operation.
+/// Survives LocalDatabase cache invalidation after alpm_trans_commit without
+/// incurring the cost of copying full 30-field PackageSnapshots.
+type CommittedPackage = {
+    Name: string
+    Version: PackageVersion
+    InstalledSize: int64
+}
+
+/// Final outcome returned after alpm_trans_commit succeeds.
+type TransactionReport = {
+    Installed: CommittedPackage list
+    Removed: CommittedPackage list
+}
 type TransactionSummary = {
     PackagesToInstall: PackageView list
     PackagesToRemove: PackageView list
@@ -116,6 +148,7 @@ module Transaction =
 To bridge the gap between the immutable data model and human ergonomics, F# provides a **Plan Builder Computation Expression**. Rather than a monolithic monadic workflow (which would obscure inspectability and conflict with the strict native state machine), the CE serves as a **declarative syntactic lens** over `TransactionPlan`.
 
 #### Consumer Usage:
+
 ```fsharp
 let myPlan = plan {
     install "ripgrep"
@@ -124,86 +157,70 @@ let myPlan = plan {
     remove "nano"
     upgrade
     flag TransactionFlags.NoHooks
+    if includeExtras then
+        for pkg in ["fd"; "bat"] do
+            install pkg
+    yield! baseDevelPlan
 }
 ```
 
 #### Sample Builder Implementation:
+
 ```fsharp
 namespace Orson.Alpm.FSharp
 
 open Orson.Alpm
 
+[<Struct>]
+type PlanDirective =
+    | Action of PlanAction
+    | Flag of TransactionFlags
+
 type PlanState = {
-    Actions: PlanAction list
+    /// Stored in reverse (cons) order during accumulation; reversed once in Run.
+    RevActions: PlanAction list
     Flags: TransactionFlags
 }
 
 type PlanBuilder() =
-    // Monoid / builder primitives
-    member _.Yield(_) = 
-        { Actions = []; Flags = TransactionFlags.None }
-    
-    member _.Zero() = 
-        { Actions = []; Flags = TransactionFlags.None }
+    member _.Zero() : PlanState =
+        { RevActions = []; Flags = TransactionFlags.None }
 
-    member _.Combine(a: PlanState, b: PlanState) = 
-        { Actions = a.Actions @ b.Actions; Flags = a.Flags ||| b.Flags }
+    member _.Yield(directive: PlanDirective) : PlanState =
+        match directive with
+        | Action act -> { RevActions = [ act ]; Flags = TransactionFlags.None }
+        | Flag f -> { RevActions = []; Flags = f }
 
-    member _.Delay(f: unit -> PlanState) = f ()
+    member _.YieldFrom(subPlan: TransactionPlan) : PlanState =
+        { RevActions = List.rev subPlan.Actions; Flags = subPlan.Flags }
 
-    // Final compile step: validates invariants before producing the pure TransactionPlan
+    member _.Combine(a: PlanState, b: PlanState) : PlanState =
+        { RevActions = b.RevActions @ a.RevActions
+          Flags = a.Flags ||| b.Flags }
+
+    member _.Delay(f: unit -> PlanState) : PlanState = f ()
+
+    member this.For(items: seq<'T>, body: 'T -> PlanState) : PlanState =
+        items
+        |> Seq.fold (fun acc item -> this.Combine(acc, body item)) (this.Zero())
+
     member _.Run(state: PlanState) : TransactionPlan =
-        // Semantic validation: verify no conflicting actions in one plan
-        let installed = 
-            state.Actions 
-            |> List.choose (function Install (Sync (name, _)) -> Some name | _ -> None) 
-            |> Set.ofList
-        let removed = 
-            state.Actions 
-            |> List.choose (function Remove name -> Some name | _ -> None) 
-            |> Set.ofList
-        let overlap = Set.intersect installed removed
-        if not (Set.isEmpty overlap) then
-            invalidOp (sprintf "Plan cannot both install and remove the same package(s): %A" overlap)
-        
-        { Actions = List.rev state.Actions; Flags = state.Flags }
-
-    // Custom operations (DSL verbs)
-    [<CustomOperation("install")>]
-    member _.Install(state: PlanState, name: string) =
-        { state with Actions = Install (Sync (name, None)) :: state.Actions }
-
-    [<CustomOperation("installFrom")>]
-    member _.InstallFrom(state: PlanState, repository: string, name: string) =
-        { state with Actions = Install (Sync (name, Some repository)) :: state.Actions }
-
-    [<CustomOperation("installLocal")>]
-    member _.InstallLocal(state: PlanState, path: string) =
-        { state with Actions = Install (LocalFile (path, None)) :: state.Actions }
-
-    [<CustomOperation("installView")>]
-    member _.InstallView(state: PlanState, view: PackageView) =
-        { state with Actions = Install (View view) :: state.Actions }
-
-    [<CustomOperation("remove")>]
-    member _.Remove(state: PlanState, packageName: string) =
-        { state with Actions = Remove packageName :: state.Actions }
-
-    [<CustomOperation("upgrade")>]
-    member _.Upgrade(state: PlanState) =
-        { state with Actions = SysUpgrade (allowDowngrade = false) :: state.Actions }
-
-    [<CustomOperation("enableDowngrade")>]
-    member _.EnableDowngrade(state: PlanState) =
-        { state with Actions = SysUpgrade (allowDowngrade = true) :: state.Actions }
-
-    [<CustomOperation("flag")>]
-    member _.Flag(state: PlanState, flag: TransactionFlags) =
-        { state with Flags = state.Flags ||| flag }
+        { Actions = List.rev state.RevActions
+          Flags = state.Flags }
 
 [<AutoOpen>]
 module PlanDsl =
     let plan = PlanBuilder()
+
+    let install (name: string) = PlanDirective.Action(Install(Sync(name, None)))
+    let installFrom (repo: string) (name: string) = PlanDirective.Action(Install(Sync(name, Some repo)))
+    let installLocal (path: string) = PlanDirective.Action(Install(LocalFile(path, None)))
+    let installLocalWithSig (level: SigLevel) (path: string) = PlanDirective.Action(Install(LocalFile(path, Some level)))
+    let installView (view: PackageView) = PlanDirective.Action(Install(View view))
+    let remove (packageName: string) = PlanDirective.Action(Remove packageName)
+    let upgrade = PlanDirective.Action(SysUpgrade(allowDowngrade = false))
+    let enableDowngrade = PlanDirective.Action(SysUpgrade(allowDowngrade = true))
+    let flag (f: TransactionFlags) = PlanDirective.Flag f
 ```
 
 ---
@@ -216,23 +233,23 @@ ALPM questions are **not declarative configuration policies**. They are **runtim
 
 ### 3.1 Domain-Specific Question Dialogue Models
 
-Questions carry managed, snapshot-backed domain context (`PackageSnapshot`), preventing borrowed view invalidation:
+Questions carry zero-copy `PackageView` structs (valid for the entire duration of the synchronous prompt; callers wishing to persist question records after the transaction ends may call `.ToSnapshot()`):
 
 ```fsharp
 type ProviderChoice = {
-    Providers: PackageSnapshot list
-    Dependency: Depend
+    Providers: PackageView list
+    Dependency: Dependency
 }
 
 type ConflictChoice = {
-    Package1: PackageSnapshot
-    Package2: PackageSnapshot
-    Reason: Depend
+    Package1: PackageView
+    Package2: PackageView
+    Reason: Dependency
 }
 
 type ReplaceChoice = {
-    OldPackage: PackageSnapshot
-    NewPackage: PackageSnapshot
+    OldPackage: PackageView
+    NewPackage: PackageView
     Repository: string
 }
 ```
@@ -252,6 +269,9 @@ type IQuestionPrompter =
 
     /// Approve package replacement: true = replace, false = keep existing.
     abstract member ApproveReplacement: ReplaceChoice -> bool
+    
+    /// Skip packages with unresolvable dependencies from the transaction: true = skip and continue, false = abort.
+    abstract member SkipUnresolvable: packages: PackageView list -> bool
 
     /// Import unknown PGP key: true = import and trust key, false = reject.
     abstract member ImportKey: keyUid: string * fingerprint: string -> bool
@@ -268,6 +288,7 @@ type IQuestionPrompter =
 `libalpm` invokes question callbacks synchronously on the execution thread. Decoupling the prompter accommodates CLI, GUI, and headless automation cleanly:
 
 #### A. Terminal / CLI Console (Interactive stdin/stdout)
+
 ```fsharp
 type ConsolePrompter() =
     interface IQuestionPrompter with
@@ -298,10 +319,15 @@ type ConsolePrompter() =
         member _.InstallIgnored pkg =
             printf "%s is in IgnorePkg. Install anyway? [y/N]: " pkg.Name
             Console.ReadLine().Trim().Equals("y", System.StringComparison.OrdinalIgnoreCase)
+            
+        member _.SkipUnresolvable pkgs =
+            // TODO
 ```
 
 #### B. GUI / Desktop Applications (Modal Dispatch)
+
 ALPM executes on a background worker thread. When a question is asked, the prompter blocks the ALPM worker thread on a synchronization signal while displaying a modal dialog on the UI thread (Avalonia/Elmish):
+
 ```fsharp
 type GuiModalPrompter(uiDispatcher: IUiDispatcher) =
     interface IQuestionPrompter with
@@ -317,7 +343,9 @@ type GuiModalPrompter(uiDispatcher: IUiDispatcher) =
 ```
 
 #### C. Non-Interactive / Headless Automation (Pacman's `--noconfirm`)
+
 Automated environments explicitly supply a predetermined prompter:
+
 ```fsharp
 module QuestionPrompter =
     /// Mirrors pacman --noconfirm defaults (selects first provider, declines destructive conflicts).
@@ -336,33 +364,35 @@ module QuestionPrompter =
 ## 4. Performance & Lifetime Management: Views vs. Snapshots
 
 ### 4.1 The Core Dilemma
+
 - `Orson.Alpm.PackageView` is a direct view over `libalpm` memory. It is extremely fast (zero-copy), but invalid after transaction commits or handle disposal.
 - `Orson.Alpm.PackageSnapshot` copies all fields into managed objects. While safe, copying large collections (especially file lists `pkg.Files`) incurs a ~27x performance overhead compared to lazy scans.
 
 ### 4.2 The F# Design Choice: "Views by Default, Snapshot on Demand"
+
 1. **Views for Query and Processing Pipelines**:
-   - F# functions operate directly on `PackageView`.
-   - Collections like `Database.packages` return `seq<PackageView>`.
-   - File lists are exposed as lazy `seq<PackageFile>` rather than eagerly pre-allocated string arrays.
+    - F# functions operate directly on `PackageView`.
+    - Collections like `Database.packages` return `seq<PackageView>`.
+    - File lists are exposed as lazy `seq<PackageFile>` rather than eagerly pre-allocated string arrays.
 
 2. **Lifetimes Anchored to Session Brackets**:
-   - All `PackageView` instances are valid within the scope of an `Alpm.withSession` block:
-     ```fsharp
-     Alpm.withSession config (fun session ->
-         let localDb = Database.local session
-         let largePackages =
-             Database.packages localDb
-             |> Seq.filter (fun p -> p.InstalledSize > 100_000_000L)
-             |> Seq.map (fun p -> p.Name, p.InstalledSize)
-             |> Seq.toList
-         // largePackages consists of plain strings and ints, safe to return outside the session
-         largePackages
-     )
-     ```
+    - All `PackageView` instances are valid within the scope of an `Alpm.withSession` block:
+      ```fsharp
+      Alpm.withSession config (fun session ->
+          let localDb = Database.local session
+          let largePackages =
+              Database.packages localDb
+              |> Seq.filter (fun p -> p.InstalledSize > 100_000_000L)
+              |> Seq.map (fun p -> p.Name, p.InstalledSize)
+              |> Seq.toList
+          // largePackages consists of plain strings and ints, safe to return outside the session
+          largePackages
+      )
+      ```
 
 3. **Explicit Snapshot Boundary**:
-   - Provide `Package.snapshot: includeFiles: bool -> PackageView -> PackageSnapshot`.
-   - If a caller specifically needs to retain package objects across a transaction commit (which invalidates local database caches), they explicitly take a snapshot.
+    - Provide `Package.snapshot: includeFiles: bool -> PackageView -> PackageSnapshot`.
+    - If a caller specifically needs to retain package objects across a transaction commit (which invalidates local database caches), they explicitly take a snapshot.
 
 ---
 
@@ -373,9 +403,9 @@ Query functions are modeled as composable pipeline operations over databases:
 ```fsharp
 [<RequireQualifiedAccess>]
 module Database =
-    val local: AlpmSession -> Database
-    val sync: name: string -> AlpmSession -> Database option
-    val allSync: AlpmSession -> Database list
+    val local: AlpmSession -> LocalDatabase
+    val sync: name: string -> AlpmSession -> SyncDatabase option
+    val allSync: AlpmSession -> SyncDatabase list
 
     val find: name: string -> Database -> PackageView option
     val packages: Database -> seq<PackageView>
@@ -383,15 +413,16 @@ module Database =
 
 [<RequireQualifiedAccess>]
 module Package =
-    val name: PackageBase -> string
-    val version: PackageBase -> PackageVersion
-    val description: PackageBase -> string option
-    val size: PackageBase -> int64
-    val files: PackageBase -> seq<PackageFile>
-    val snapshot: includeFiles: bool -> PackageBase -> PackageSnapshot
+    val name: #IPackageMetadata -> string
+    val version: #IPackageMetadata -> PackageVersion
+    val description: #IPackageMetadata -> string option
+    val size: #IPackageMetadata -> int64
+    val files: #IPackageMetadata -> seq<PackageFile>
+    val snapshot: includeFiles: bool -> #IPackageMetadata -> PackageSnapshot
 ```
 
 ### Example: Searching and Filtering in F#
+
 ```fsharp
 let findInstalledOrphans (session: AlpmSession) =
     Database.local session
@@ -407,6 +438,7 @@ let findInstalledOrphans (session: AlpmSession) =
 ## 6. Event Processing & Progress Reporting
 
 `libalpm` emits several categories of notifications:
+
 1. **Lifecycle Events** (`alpm_event_t`): Low frequency (e.g. hook start/done, transaction start/done, package install start/done).
 2. **Progress Alerts** (`alpm_progress_t`): High frequency (percentage completion, items processed during download, conflicts check, integrity verify).
 3. **Log Messages** (`alpm_cb_log`): Diagnostics filtered by `LogLevel` (Error, Warning, Debug, Function).
@@ -414,17 +446,18 @@ let findInstalledOrphans (session: AlpmSession) =
 
 ### 6.1 Structural Choices & Trade-offs
 
-| Pattern | Mental Model | Pros | Cons |
-| :--- | :--- | :--- | :--- |
-| **Choice A: Synchronous Callback Record (Direct Sink)** | Record of function handlers passed to the session or plan | - Zero allocation & zero latency<br>- Direct terminal progress updates without thread-switching<br>- Unused callbacks register null natively | - Runs synchronously on ALPM worker thread; slow handlers block libalpm<br>- Less composable with functional streams |
-| **Choice B: Reactive / Observable Streams (`IObservable`)** | Stream of events via Rx or F# observables | - Highly composable (`filter`, `throttle`, `sample`)<br>- Clean separation of producer and consumer<br>- Great for GUIs (Avalonia/Elmish) | - High frequency progress ticks allocate event objects<br>- Thread marshaling needed to avoid flooding UI dispatchers |
-| **Choice C: Async Message Passing (`Channel` / `MailboxProcessor`)** | Bounded/unbounded async channel of a unified `TransactionEvent` DU | - Fully isolates ALPM from consumer crashes/delays<br>- Natural async consumption (`channel.Reader.ReadAllAsync()`) | - Adds task scheduling latency<br>- Queue pressure on high-frequency progress ticks unless conflated |
+| Pattern                                                              | Mental Model                                                       | Pros                                                                                                                                         | Cons                                                                                                                  |
+|:---------------------------------------------------------------------|:-------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------|
+| **Choice A: Synchronous Callback Record (Direct Sink)**              | Record of function handlers passed to the session or plan          | - Zero allocation & zero latency<br>- Direct terminal progress updates without thread-switching<br>- Unused callbacks register null natively | - Runs synchronously on ALPM worker thread; slow handlers block libalpm<br>- Less composable with functional streams  |
+| **Choice B: Reactive / Observable Streams (`IObservable`)**          | Stream of events via Rx or F# observables                          | - Highly composable (`filter`, `throttle`, `sample`)<br>- Clean separation of producer and consumer<br>- Great for GUIs (Avalonia/Elmish)    | - High frequency progress ticks allocate event objects<br>- Thread marshaling needed to avoid flooding UI dispatchers |
+| **Choice C: Async Message Passing (`Channel` / `MailboxProcessor`)** | Bounded/unbounded async channel of a unified `TransactionEvent` DU | - Fully isolates ALPM from consumer crashes/delays<br>- Natural async consumption (`channel.Reader.ReadAllAsync()`)                          | - Adds task scheduling latency<br>- Queue pressure on high-frequency progress ticks unless conflated                  |
 
 ### 6.2 Proposed Multi-Tiered Architecture
 
 We propose a **multi-tiered model** where Choice A serves as the zero-cost foundation, with built-in adapters for Choice B and C:
 
 ```fsharp
+[<Struct>]
 type ProgressInfo = {
     Type: ProgressType
     PackageName: string
@@ -432,6 +465,29 @@ type ProgressInfo = {
     Current: int
     Total: int
 }
+
+/// Low-frequency lifecycle event mapped from C# ref struct AlpmEvent at the callback boundary.
+/// Reference DU avoids non-overlapping CLR struct bloat across ~25 event variants;
+/// any embedded PackageView is stamped with the Database/Transaction lifetime, and transient strings are copied.
+type LifecycleEvent =
+    | CheckDepsStart
+    | CheckDepsDone
+    | PackageOperationStart of operation: PackageOperation
+    | PackageOperationDone of operation: PackageOperation
+    | HookStart of whenType: HookWhen
+    | HookDone of whenType: HookWhen
+    | HookRunStart of name: string * description: string * position: int * total: int
+    | HookRunDone of name: string * description: string * position: int * total: int
+    // ... other lifecycle cases ...
+
+/// Unified 4-case [<Struct>] DU for Channel<TransactionEvent> and IObservable<TransactionEvent>.
+/// High-frequency Progress and Download cases are inline structs (0 heap allocations per tick!).
+[<Struct>]
+type TransactionEvent =
+    | Lifecycle of event: LifecycleEvent
+    | Progress of progress: ProgressInfo
+    | Download of download: DownloadProgress
+    | Log of level: LogLevel * message: string
 
 type EventSink = {
     OnEvent: (AlpmEvent -> unit) option
@@ -457,24 +513,26 @@ module EventSink =
 ### 6.3 High-Performance Gadgets for Observables and Channels
 
 #### A. Taming `IObservable` GC Pressure
+
 1. **Value Records (`[<Struct>]`)**:
    Define `ProgressInfo` and event payloads as F# `[<Struct>]` records or Struct DUs. Because `IObserver<T>.OnNext(T value)` is generic, passing a struct avoids heap boxing entirely.
 2. **Source Conflation & Gating**:
    Filter high-frequency progress ticks *at the source* before publishing to the observable pipeline:
-   - Percentage change gate: only fire if `percent != lastPercent`.
-   - Time-delta throttle: only fire if elapsed time since last tick exceeds a threshold (e.g. 50ms via `Stopwatch.GetTimestamp()`).
-   This eliminates ~95% of event dispatches with zero loss in visual smoothness.
+    - Percentage change gate: only fire if `percent != lastPercent`.
+    - Time-delta throttle: only fire if elapsed time since last tick exceeds a threshold (e.g. 50ms via `Stopwatch.GetTimestamp()`).
+      This eliminates ~95% of event dispatches with zero loss in visual smoothness.
 3. **ArrayPool / Buffer Pooling**:
    For log messages or custom download byte chunks, leverage `ArrayPool<byte>.Shared` to avoid allocating intermediate arrays across native boundaries.
 
 #### B. Taming Async Channeling Downsides
+
 1. **The Backpressure Dilemma**:
-   - `libalpm` cannot be blocked on write: an asynchronous `WaitToWriteAsync()` would stall the native C thread.
-   - Using an unbounded channel risks unbounded memory growth during heavy downloads.
-   - Using a naive bounded channel with `DropOldest` risks dropping crucial lifecycle events (e.g., `HookDone` or `TransactionDone`).
+    - `libalpm` cannot be blocked on write: an asynchronous `WaitToWriteAsync()` would stall the native C thread.
+    - Using an unbounded channel risks unbounded memory growth during heavy downloads.
+    - Using a naive bounded channel with `DropOldest` risks dropping crucial lifecycle events (e.g., `HookDone` or `TransactionDone`).
 2. **Channel Splitting / Conflation Architecture**:
-   - **Critical Event Channel**: Unbounded channel dedicated strictly to low-frequency lifecycle events (`AlpmEvent`). Guaranteed delivery, near-zero memory footprint.
-   - **Progress Telemetry**: Handled via a bounded channel with `Capacity = 1` and `BoundedChannelFullMode.DropOldest` (or an atomic `Volatile.Write` state cell). The reader only ever reads the latest progress state.
+    - **Critical Event Channel**: Unbounded channel dedicated strictly to low-frequency lifecycle events (`AlpmEvent`). Guaranteed delivery, near-zero memory footprint.
+    - **Progress Telemetry**: Handled via a bounded channel with `Capacity = 1` and `BoundedChannelFullMode.DropOldest` (or an atomic `Volatile.Write` state cell). The reader only ever reads the latest progress state.
 3. **Lock-Free Ring Buffers**:
    Configure channels with `SingleWriter = true` and `SingleReader = true`. This instructs `System.Threading.Channels` to bypass general concurrent synchronization and use high-speed lock-free circular buffers without internal node allocations.
 
@@ -485,18 +543,20 @@ module EventSink =
 Building a concurrent pacman alternative with rich visuals and multi-threaded downloads introduces specific constraints and interface requirements.
 
 ### 7.1 The Thread-Affinity of `libalpm`
+
 - `libalpm` is **not thread-safe**. An `alpm_handle_t` and active transactions cannot be called concurrently from multiple OS threads.
 - It holds an exclusive filesystem lock (`/var/lib/pacman/db.lck`).
 - **Design Rule**: The F# library should treat `AlpmSession` and `PreparedTransaction` as thread-affined. A concurrent application should host the ALPM engine on a single dedicated worker thread / actor, while UI and networking run on independent threads.
 
 ### 7.2 Two Approaches to Concurrent Downloads
 
-| Model | Mechanism | Interface Requirements in F# |
-| :--- | :--- | :--- |
-| **Model A: Native Parallel Downloads** | Configures `AlpmOptions.ParallelDownloads = N`. `libalpm` uses its internal `libcurl` multi-handle during `trans.Commit()`. | Must multiplex `DownloadEvent` by `filename: string` so the UI can track concurrent transfer bars. |
+| Model                                                 | Mechanism                                                                                                                                                                            | Interface Requirements in F#                                                                                                |
+|:------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------|
+| **Model A: Native Parallel Downloads**                | Configures `AlpmOptions.ParallelDownloads = N`. `libalpm` uses its internal `libcurl` multi-handle during `trans.Commit()`.                                                          | Must multiplex `DownloadEvent` by `filename: string` so the UI can track concurrent transfer bars.                          |
 | **Model B: Custom Managed Multi-Threaded Downloader** | Bypasses `libcurl`. Downloads packages concurrently using .NET `HttpClient` (HTTP/2, HTTP/3, chunking, mirror racing) into pacman's cache directory before calling `trans.Commit()`. | Must expose URL resolution (`Database.servers`), target package filenames, and cache verification on `PreparedTransaction`. |
 
 ### 7.3 Supporting Custom Managed Downloader (Model B)
+
 When pre-downloading packages into the cache directory, `libalpm` skips downloading during `trans.Commit()` if the package file and valid signature already exist in `/var/cache/pacman/pkg`.
 
 To make this seamless, the F# interface exposes download targets on `PreparedTransaction`:
@@ -518,6 +578,7 @@ module Transaction =
 ```
 
 ### 7.4 Multi-Bar UI State Tracking
+
 During parallel downloads (whether via Model A or Model B), multiple files transfer simultaneously. Pacman manages this via `struct pacman_multibar_ui`.
 
 In F#, we can provide an immutable snapshot aggregator (`DownloadSessionState`) that folds download events into a clean state:
@@ -541,6 +602,7 @@ module DownloadTracker =
     val init: targets: DownloadTarget list -> DownloadSessionState
     val update: DownloadEvent -> DownloadSessionState -> DownloadSessionState
 ```
+
 This enables decoupled UI rendering loops (e.g., 30-60 FPS) to simply query `sessionState` without blocking or synchronizing with download worker threads.
 
 ---
@@ -551,20 +613,20 @@ The F# API strictly distinguishes three kinds of outcomes:
 
 1. **Expected Operational Outcomes (`Result<'T, 'Error>`)**:
    Belong in `Result<'T, 'Error>` (Railway-Oriented Programming). These represent anticipated domain outcomes resulting from interaction with external environmental state (the filesystem, package repositories, mirrors, native lockfiles, database headers, and cryptographic signatures). Correct code encountering real-world external conditions must handle these as normal business flow.
-   - *Examples*:
-     - Archive missing, corrupted, or unsupported architecture (`Package.load`).
-     - Unsatisfied dependencies, conflicting packages, or disk file collisions (`Transaction.prepare`, `Transaction.commit`, `Transaction.add`).
-     - Lockfile contention when another pacman instance holds `db.lck` (`Session.create`, `Transaction.prepare`).
-     - Network timeout or HTTP 404 during synchronization (`Database.update`, `Session.fetchPackageUrls`).
-     - Corrupted database cache or signature verification failure (`Database.packages`, `Database.validate`).
+    - *Examples*:
+        - Archive missing, corrupted, or unsupported architecture (`Package.load`).
+        - Unsatisfied dependencies, conflicting packages, or disk file collisions (`Transaction.prepare`, `Transaction.commit`, `Transaction.add`).
+        - Lockfile contention when another pacman instance holds `db.lck` (`Session.create`, `Transaction.prepare`).
+        - Network timeout or HTTP 404 during synchronization (`Database.update`, `Session.fetchPackageUrls`).
+        - Corrupted database cache or signature verification failure (`Database.packages`, `Database.validate`).
 
 2. **Non-Business Faults and Contract Violations (Exceptions)**:
    Must throw exceptions. These represent bugs, violated invariants, invalid state transitions, in-memory setup mistakes, or unrecoverable system failures that business logic cannot meaningfully branch on.
-   - *Contract & argument violations*: Passing `null`, empty paths, or invalid inputs throws `ArgumentNullException` or `ArgumentException` (`ALPM_ERR_WRONG_ARGS`).
-   - *In-memory configuration faults*: Setting scalar options, mutating option lists (`AlpmOptions`, `AlpmOptionList<T>`), configuring callback delegates (`AlpmCallbacks`), setting database usage (`Database.Usage`), or appending mirror URLs (`Database.AddServer`). In `libalpm`, these are simple in-memory linked-list or struct assignments; they do not touch I/O or network and fail only on invalid arguments or out-of-memory. They throw on invalid input.
-   - *State machine & lifecycle violations*: Invoking operations on disposed wrappers, reading stale borrowed views, calling commit before prepare, calling interrupt when idle, or modifying databases during an active transaction (`ObjectDisposedException`, `AlpmLifetimeException`, `InvalidOperationException`, `ALPM_ERR_TRANS_NOT_NULL`, `ALPM_ERR_TRANS_TYPE`).
-   - *Unrecoverable system failures*: Out of native memory (`ALPM_ERR_MEMORY`) maps to `OutOfMemoryException`.
-   - *Teardown failures*: Cleanup failures during `Dispose` follow ADR 0008 (recorded on `ReleaseFailure`).
+    - *Contract & argument violations*: Passing `null`, empty paths, or invalid inputs throws `ArgumentNullException` or `ArgumentException` (`ALPM_ERR_WRONG_ARGS`).
+    - *In-memory configuration faults*: Setting scalar options, mutating option lists (`AlpmOptions`, `AlpmOptionList<T>`), configuring callback delegates (`AlpmCallbacks`), setting database usage (`Database.Usage`), or appending mirror URLs (`Database.AddServer`). In `libalpm`, these are simple in-memory linked-list or struct assignments; they do not touch I/O or network and fail only on invalid arguments or out-of-memory. They throw on invalid input.
+    - *State machine & lifecycle violations*: Invoking operations on disposed wrappers, reading stale borrowed views, calling commit before prepare, calling interrupt when idle, or modifying databases during an active transaction (`ObjectDisposedException`, `AlpmLifetimeException`, `InvalidOperationException`, `ALPM_ERR_TRANS_NOT_NULL`, `ALPM_ERR_TRANS_TYPE`).
+    - *Unrecoverable system failures*: Out of native memory (`ALPM_ERR_MEMORY`) maps to `OutOfMemoryException`.
+    - *Teardown failures*: Cleanup failures during `Dispose` follow ADR 0008 (recorded on `ReleaseFailure`).
 
 3. **Normal Query Misses and Pure Calculations (Plain Values / `option`)**:
    A query finding no match (e.g. `Database.find` or resolving a dependency satisfier) is a valid query result returning `None` / empty collection, not an error. Pure in-memory calculations (e.g. `checkDependencies`, `checkConflicts`) return their computed collections directly without an error channel.
@@ -627,24 +689,24 @@ The C# exception factory consumes the same `AlpmFailure` values to construct the
 
 The bridge makes each native convention explicit. The following are all of the ROP-eligible groups exposed by C#; in-memory configuration, query lookups, and state-machine invariants do not use a result wrapper.
 
-| Operation group | Native signal | F# meaning | Bridge shape |
-| --- | --- | --- | --- |
-| create `AlpmSession` | initialization out-errno and null handle | `Result<AlpmSession, SessionError>` | `TryCreate(..., out value, out failure)` |
-| `LoadPackage` | return code plus handle errno | `Result<LoadedPackage, PackageError>` | `TryLoadPackage(..., out value, out failure)` |
-| `BeginTransaction` | return code plus handle errno (e.g. lock held) | `Result<Transaction, TransactionError>` | `TryBeginTransaction(..., out tx, out failure)` |
-| `FetchPackageUrls` | return code plus handle errno; null on error | `Result<IReadOnlyList<string>, NetworkError>` | `TryFetchPackageUrls(..., out fetchedUrls, out failure)` |
-| `CheckMd5Sum` | return code plus handle errno; mismatch is a boolean answer | `Result<bool, PackageError>` | `TryCheckMd5Sum(out matches, out failure)` |
-| `GetMtreeEntries` | archive pointer plus handle errno | `Result<IReadOnlyList<MtreeEntry>?, PackageError>` | `TryGetMtree(out mtree, out failure)` |
-| `PackageView.SetReason` | return code plus handle errno (disk write) | `Result<unit, PackageError>` | `TrySetReason(..., out failure)` |
-| sync database registration | pointer/return code plus handle errno | `Result<Database, DatabaseError>` | `TryRegisterSyncDatabase(..., out value, out failure)` |
-| package/group caches | null plus ok errno means empty; null plus errno means failure | `Result<seq<_>, QueryError>` | `TryLoadPackageCache` / `TryLoadGroupCache` |
-| `Database.Search` | null plus errno on failure; empty list on miss | `Result<IReadOnlyList<PackageView>, QueryError>` | `TrySearch(..., out results, out failure)` |
-| `Database.Update`, `UpdateDatabases` | return code plus handle errno; boolean indicates if updated | `Result<bool, DatabaseError>` | `TryUpdate(..., out updated, out failure)`, `TryUpdateDatabases(..., out updated, out failure)` |
-| `Database.Validate` | validity answer plus errno when invalid | `Result<unit, DatabaseError>` | `TryValidate(out failure)` |
-| transaction `AddPackage` / `RemovePackage` / `SystemUpgrade` | return code plus handle errno | `Result<unit, TransactionError>` | `TryAddPackage` / `TryRemovePackage` / `TrySystemUpgrade` |
-| transaction `Prepare` / `Commit` | return code plus handle errno and failure list payload | `Result<_, TransactionError>` with typed payload | `TryPrepare(out failure)` / `TryCommit(out failure)` |
+| Operation group                                              | Native signal                                                 | F# meaning                                         | Bridge shape                                                                                    |
+|--------------------------------------------------------------|---------------------------------------------------------------|----------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| create `AlpmSession`                                         | initialization out-errno and null handle                      | `Result<AlpmSession, SessionError>`                | `TryCreate(..., out value, out failure)`                                                        |
+| `LoadPackage`                                                | return code plus handle errno                                 | `Result<LoadedPackage, PackageError>`              | `TryLoadPackage(..., out value, out failure)`                                                   |
+| `BeginTransaction`                                           | return code plus handle errno (e.g. lock held)                | `Result<Transaction, TransactionError>`            | `TryBeginTransaction(..., out tx, out failure)`                                                 |
+| `FetchPackageUrls`                                           | return code plus handle errno; null on error                  | `Result<IReadOnlyList<string>, NetworkError>`      | `TryFetchPackageUrls(..., out fetchedUrls, out failure)`                                        |
+| `CheckMd5Sum`                                                | return code plus handle errno; mismatch is a boolean answer   | `Result<bool, PackageError>`                       | `TryCheckMd5Sum(out matches, out failure)`                                                      |
+| `GetMtreeEntries`                                            | archive pointer plus handle errno                             | `Result<IReadOnlyList<MtreeEntry>?, PackageError>` | `TryGetMtree(out mtree, out failure)`                                                           |
+| `PackageView.SetReason`                                      | return code plus handle errno (disk write)                    | `Result<unit, PackageError>`                       | `TrySetReason(..., out failure)`                                                                |
+| sync database registration                                   | pointer/return code plus handle errno                         | `Result<Database, DatabaseError>`                  | `TryRegisterSyncDatabase(..., out value, out failure)`                                          |
+| `Database.Search`                                            | null plus errno on failure; empty list on miss                | `Result<IReadOnlyList<PackageView>, QueryError>`   | `TrySearch(..., out results, out failure)`                                                      |
+| `Database.Update`, `UpdateDatabases`                         | return code plus handle errno; boolean indicates if updated   | `Result<bool, DatabaseError>`                      | `TryUpdate(..., out updated, out failure)`, `TryUpdateDatabases(..., out updated, out failure)` |
+| `Database.Validate`                                          | validity answer plus errno when invalid                       | `Result<unit, DatabaseError>`                      | `TryValidate(out failure)`                                                                      |
+| transaction `AddPackage` / `RemovePackage` / `SystemUpgrade` | return code plus handle errno                                 | `Result<unit, TransactionError>`                   | `TryAddPackage` / `TryRemovePackage` / `TrySystemUpgrade`                                       |
+| transaction `Prepare` / `Commit`                             | return code plus handle errno and failure list payload        | `Result<_, TransactionError>` with typed payload   | `TryPrepare(out failure)` / `TryCommit(out failure)`                                            |
 
 **Non-ROP Groups:**
+
 - **Lookups and Queries (`option` / plain collection)**: `GetPackage`, `GetGroup`, `ResolveDependency`, and `FindSatisfier` return `option` (query miss is `None`). `CheckDependencies` and `CheckConflicts` are pure in-memory calculations returning collections directly.
 - **In-Memory Configuration (Exceptions on invalid arguments / OOM)**: `AlpmOptions`, `AlpmOptionList<T>`, `AlpmCallbacks`, `Database.Usage`, `Database.AddServer`, `SetServers`. These do not perform I/O and only fail on programmer errors or memory exhaustion.
 - **Lifecycle & State Machine Invariants (Exceptions on invalid state)**: `Unlock`, `Interrupt`, `Unregister`.
@@ -657,3 +719,8 @@ The bridge makes each native convention explicit. The following are all of the R
 4. Move transaction payload consumption out of `AlpmTransactionException` into the core failure builder. Preserve the existing managed payload properties and destructor regression tests through the facade.
 5. Add the F# interop translation for all ROP-eligible groups in one module, then expose operation-specific error unions above it. Keep query misses in `option`/empty collections.
 6. Add F# tests for `Result`/`option` boundaries and C# tests proving that every facade and core pair reports the same failure. Run host tests with `dotnet test tests/Orson.Alpm.Tests/Orson.Alpm.Tests.csproj`; no filter is needed, because the suite is hermetic.
+
+### 9.5 C# Fluent Builder Interop
+Because `Orson.Alpm.FSharp` compiles to standard .NET IL, we can expose a C#-idiomatic fluent builder (`TransactionPlanBuilder` and `AlpmSessionDeclarativeExtensions`) in a `namespace Orson.Alpm.Declarative` module inside `Orson.Alpm.FSharp`.
+- Methods on `TransactionPlanBuilder` use standard C# signatures (optional/nullable parameters instead of `FSharpOption`, `IReadOnlyList<T>` instead of `FSharpList<T>`, and `Func<PreparedTransaction, bool>` instead of `FSharpFunc`) while constructing the exact same underlying `TransactionPlan` and delegating to `Transaction.withPrepared`.
+- This keeps `Orson.Alpm` strictly focused as the low-level binding while allowing both F# (`plan { ... }`) and C# (`new TransactionPlanBuilder()...`) to share one declarative execution engine written in F#.
