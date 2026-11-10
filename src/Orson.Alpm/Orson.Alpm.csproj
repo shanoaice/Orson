@@ -74,8 +74,7 @@
       <!-- Only an environment that explicitly declares the canonical Arch container may run cargo
            directly. -->
       <_AlreadyInContainer
-        Condition="'$(_AlreadyInContainer)' == '' and '$(ORSON_ALPM_BUILD_ENV)' == 'container'">true
-      </_AlreadyInContainer>
+        Condition="'$(_AlreadyInContainer)' == '' and '$(ORSON_ALPM_BUILD_ENV)' == 'container'">true</_AlreadyInContainer>
       <_AlreadyInContainer Condition="'$(_AlreadyInContainer)' == ''">false</_AlreadyInContainer>
     </PropertyGroup>
 
