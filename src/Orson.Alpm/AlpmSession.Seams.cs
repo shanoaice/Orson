@@ -154,7 +154,7 @@ public sealed partial class AlpmSession
       if (ret < 0)
       {
         updated = false;
-      failure = AlpmFailure.Of(Handle, "update databases");
+        failure = AlpmFailure.Of(Handle, "update databases");
         return false;
       }
 

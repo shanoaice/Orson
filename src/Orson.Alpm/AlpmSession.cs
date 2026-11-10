@@ -52,7 +52,7 @@ public sealed partial class AlpmSession : IDisposable
     _lifetime = RootLifetime.Create(this, "the ALPM handle");
     _handle.OwnDomain(_lifetime);
     Options = new AlpmOptions(_handle, _lifetime);
-    Callbacks = new AlpmCallbacks(_handle, _lifetime);
+    Callbacks = new AlpmCallbacks(this, _handle, _lifetime);
   }
 
   private static SafeAlpmHandle InitializeOrThrow(string root, string dbpath)
@@ -177,6 +177,9 @@ public sealed partial class AlpmSession : IDisposable
   /// this handle in one step.
   /// </summary>
   internal RootLifetime RootLifetime => _lifetime;
+
+  /// <summary>The lifetime domain for the local database.</summary>
+  internal ChildLifetime LocalDatabaseLifetime => _localDatabaseLifetime ??= _lifetime.CreateChild("the local database");
 
   /// <summary>The safe handle that owns this instance's libalpm context.</summary>
   /// <remarks>

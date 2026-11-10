@@ -96,7 +96,7 @@ public enum FetchResult
 /// <description>Leaving <see cref="FetchHandler" /> unset allows libalpm to use its internal libcurl-based downloader.</description>
 /// </item>
 /// <item>
-/// <description>Leaving <see cref="QuestionHandler" /> unset lets libalpm proceed with its built-in default answers.</description>
+/// <description>Leaving question hooks unset lets libalpm proceed with its built-in default answers.</description>
 /// </item>
 /// <item>
 /// <description>
@@ -114,7 +114,7 @@ public enum FetchResult
 /// This library never chooses which thread handlers runs on, and they block libalpm for as long as they run.
 /// </para>
 /// <para>
-/// <see cref="QuestionHandler" /> is even stricter. libalpm reads the answer as soon as the callback returns, so a
+/// Question hooks are even stricter. libalpm reads the answer as soon as the callback returns, so a
 /// question must be answered inline, before returning. Answering from a continuation, a task, or another thread leaves
 /// libalpm reading the default value instead of your intended one.
 /// </para>
@@ -126,6 +126,36 @@ public enum FetchResult
 /// </remarks>
 public sealed class AlpmCallbacks
 {
+  /// <summary>Handler delegate for <see cref="InstallIgnorePackageQuestion" />.</summary>
+  /// <param name="question">The question payload.</param>
+  public delegate void InstallIgnorePackageHandler(ref InstallIgnorePackageQuestion question);
+
+  /// <summary>Handler delegate for <see cref="ReplacePackageQuestion" />.</summary>
+  /// <param name="question">The question payload.</param>
+  public delegate void ReplacePackageHandler(ref ReplacePackageQuestion question);
+
+  /// <summary>Handler delegate for <see cref="PackageConflictQuestion" />.</summary>
+  /// <param name="question">The question payload.</param>
+  public delegate void PackageConflictHandler(ref PackageConflictQuestion question);
+
+  /// <summary>Handler delegate for <see cref="CorruptedPackageQuestion" />.</summary>
+  /// <param name="question">The question payload.</param>
+  public delegate void CorruptedPackageHandler(ref CorruptedPackageQuestion question);
+
+  /// <summary>Handler delegate for <see cref="RemoveUnresolvablePackagesQuestion" />.</summary>
+  /// <param name="question">The question payload.</param>
+  public delegate void RemoveUnresolvablePackagesHandler(ref RemoveUnresolvablePackagesQuestion question);
+
+  /// <summary>Handler delegate for <see cref="SelectProviderQuestion" />.</summary>
+  /// <param name="question">The question payload.</param>
+  public delegate void SelectProviderHandler(ref SelectProviderQuestion question);
+
+  /// <summary>Handler delegate for <see cref="ImportKeyQuestion" />.</summary>
+  /// <param name="question">The question payload.</param>
+  public delegate void ImportKeyHandler(ref ImportKeyQuestion question);
+
+  private readonly AlpmSession _session;
+
   // The ALPM context, guarded behind a SafeHandle so it is not disposed while
   // callbacks are still active.
   private readonly SafeAlpmHandle _handle;
@@ -210,23 +240,108 @@ public sealed class AlpmCallbacks
       var success = WeakGCHandle<AlpmCallbacks>.FromIntPtr((nint)ctx).TryGetTarget(out var callback);
       if (!success || callback == null) return;
       callback._invokeDepth++;
-      var questionLifetime = callback._rootLifetime.CreateChild("AlpmCallbacks.QuestionAgent");
       try
       {
-        var question = AlpmQuestion.FromUnion(questionT, questionLifetime);
-        SafeInvoke(
-          () => callback.QuestionHandler?.Invoke(question), callback.HandlerException);
+        callback.DispatchQuestion(questionT);
       }
       finally
       {
         callback._invokeDepth--;
-        questionLifetime.Invalidate("Question callback frame ended. Answers must be provided synchronously.");
       }
     }
     catch
     {
       // This catch is to guard against a race condition where the callback is disposed while the native code is still
       // calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
+    }
+  }
+
+  private unsafe void DispatchQuestion(_alpm_question_t* questionT)
+  {
+    try
+    {
+      switch (questionT->type_)
+      {
+        case _alpm_question_type_t.ALPM_QUESTION_INSTALL_IGNOREPKG:
+          if (OnInstallIgnorePackage is { } installIgnoreHandler)
+          {
+            var lifetime = ResolvePackageLifetime(questionT->install_ignorepkg.pkg);
+            var question = new InstallIgnorePackageQuestion(questionT, lifetime);
+            installIgnoreHandler(ref question);
+          }
+
+          break;
+
+        case _alpm_question_type_t.ALPM_QUESTION_REPLACE_PKG:
+          if (OnReplacePackage is { } replaceHandler)
+          {
+            var oldPackageLifetime = ResolvePackageLifetime(questionT->replace.oldpkg);
+            var newPackageLifetime = ResolvePackageLifetime(questionT->replace.newpkg);
+            var question = new ReplacePackageQuestion(questionT, oldPackageLifetime, newPackageLifetime);
+            replaceHandler(ref question);
+          }
+
+          break;
+
+        case _alpm_question_type_t.ALPM_QUESTION_CONFLICT_PKG:
+          if (OnPackageConflict is { } conflictHandler)
+          {
+            var conflict = questionT->conflict.conflict;
+            var package1Lifetime =
+              ResolvePackageLifetime(conflict != null ? conflict->package1 : null);
+            var package2Lifetime =
+              ResolvePackageLifetime(conflict != null ? conflict->package2 : null);
+            var question = new PackageConflictQuestion(questionT, package1Lifetime, package2Lifetime);
+            conflictHandler(ref question);
+          }
+
+          break;
+
+        case _alpm_question_type_t.ALPM_QUESTION_CORRUPTED_PKG:
+          if (OnCorruptedPackage is { } corruptedHandler)
+          {
+            var question = new CorruptedPackageQuestion(questionT);
+            corruptedHandler(ref question);
+          }
+
+          break;
+
+        case _alpm_question_type_t.ALPM_QUESTION_REMOVE_PKGS:
+          if (OnRemoveUnresolvablePackages is { } removeUnresolvablePackagesHandler)
+          {
+            var packageViews = ResolvePackageViews(questionT->remove_pkgs.packages);
+            var question = new RemoveUnresolvablePackagesQuestion(questionT, packageViews);
+            removeUnresolvablePackagesHandler(ref question);
+          }
+
+          break;
+
+        case _alpm_question_type_t.ALPM_QUESTION_SELECT_PROVIDER:
+          if (OnSelectProvider is { } selectProviderHandler)
+          {
+            var providerViews = ResolvePackageViews(questionT->select_provider.providers);
+            var question = new SelectProviderQuestion(questionT, providerViews);
+            selectProviderHandler(ref question);
+          }
+
+          break;
+
+        case _alpm_question_type_t.ALPM_QUESTION_IMPORT_KEY:
+          if (OnImportKey is { } importKeyHandler)
+          {
+            var question = new ImportKeyQuestion(questionT);
+            importKeyHandler(ref question);
+          }
+
+          break;
+
+        default:
+          throw new NotImplementedException($"Unhandled question type: {questionT->type_}");
+      }
+    }
+    catch (Exception ex)
+    {
+      NotifyHandlerException(HandlerException, ex);
     }
   }
 
@@ -321,12 +436,67 @@ public sealed class AlpmCallbacks
     }
   }
 
-  internal AlpmCallbacks(SafeAlpmHandle alpmHandle, RootLifetime lifetime)
+  internal unsafe AlpmCallbacks(AlpmSession session, SafeAlpmHandle alpmHandle, RootLifetime lifetime)
   {
+    _session = session;
     _handle = alpmHandle;
     _rootLifetime = lifetime;
     _stamp = lifetime.Capture();
     _ctxHandle = new WeakGCHandle<AlpmCallbacks>(this);
+
+    var ctx = (void*)WeakGCHandle<AlpmCallbacks>.ToIntPtr(_ctxHandle);
+    ThrowIfError(NativeMethods.alpm_option_set_questioncb(_handle, &QuestionAgent, ctx));
+  }
+
+  /// <summary>
+  /// Resolves the lifetime domain for an unmanaged package pointer.
+  /// </summary>
+  /// <param name="package">The unmanaged package pointer to resolve.</param>
+  /// <returns>The lifetime domain that owns the package.</returns>
+  private unsafe ChildLifetime ResolvePackageLifetime(_alpm_pkg_t* package)
+  {
+    if (package == null)
+    {
+      return _session.CurrentTransaction?.Lifetime
+             ?? _rootLifetime.GetLifetimeTokenForHandle(package, "a package");
+    }
+
+    var packageDatabase = NativeMethods.alpm_pkg_get_db(package);
+    if (packageDatabase == null)
+    {
+      return _session.CurrentTransaction?.Lifetime
+             ?? _rootLifetime.GetLifetimeTokenForHandle(package, "a file-loaded package");
+    }
+
+    if (packageDatabase == NativeMethods.alpm_get_localdb(_handle))
+    {
+      return _session.LocalDatabaseLifetime;
+    }
+
+    var dbName = NativeString.FromNative((nint)NativeMethods.alpm_db_get_name(packageDatabase));
+    var target = string.IsNullOrEmpty(dbName) ? "a sync database" : $"the sync database {dbName}";
+    return _rootLifetime.GetLifetimeTokenForHandle(packageDatabase, target);
+  }
+
+  /// <summary>
+  /// Resolves an unmanaged list of package pointers into borrowed <see cref="PackageView" /> instances.
+  /// </summary>
+  private unsafe List<PackageView> ResolvePackageViews(_alpm_list_t* packages)
+  {
+    List<PackageView> results = [];
+    while (packages != null)
+    {
+      var package = (_alpm_pkg_t*)packages->data;
+      if (package != null)
+      {
+        var lifetime = ResolvePackageLifetime(package);
+        results.Add(new PackageView(package, lifetime));
+      }
+
+      packages = packages->next;
+    }
+
+    return results;
   }
 
   private void ConfigureGuard()
@@ -394,25 +564,94 @@ public sealed class AlpmCallbacks
   }
 
   /// <summary>
-  /// Receives interactive prompts from libalpm. Setting a non-null delegate registers the native question callback;
-  /// setting <see langword="null" /> leaves libalpm to use its pre-seeded default answers.
+  /// Receives prompts when attempting to install a package marked in IgnorePkg.
   /// </summary>
-  public unsafe Action<AlpmQuestion>? QuestionHandler
+  public InstallIgnorePackageHandler? OnInstallIgnorePackage
   {
     get;
     set
     {
       ConfigureGuard();
-      if (value == null)
-      {
-        ThrowIfError(NativeMethods.alpm_option_set_questioncb(_handle, null, null));
-        field = null;
-        return;
-      }
-
       field = value;
-      var ctx = (void*)WeakGCHandle<AlpmCallbacks>.ToIntPtr(_ctxHandle);
-      ThrowIfError(NativeMethods.alpm_option_set_questioncb(_handle, &QuestionAgent, ctx));
+    }
+  }
+
+  /// <summary>
+  /// Receives prompts when an existing package is to be replaced by another package.
+  /// </summary>
+  public ReplacePackageHandler? OnReplacePackage
+  {
+    get;
+    set
+    {
+      ConfigureGuard();
+      field = value;
+    }
+  }
+
+  /// <summary>
+  /// Receives prompts when two packages conflict during transaction preparation.
+  /// </summary>
+  public PackageConflictHandler? OnPackageConflict
+  {
+    get;
+    set
+    {
+      ConfigureGuard();
+      field = value;
+    }
+  }
+
+  /// <summary>
+  /// Receives prompts when a downloaded package file is found to be corrupted.
+  /// </summary>
+  public CorruptedPackageHandler? OnCorruptedPackage
+  {
+    get;
+    set
+    {
+      ConfigureGuard();
+      field = value;
+    }
+  }
+
+  /// <summary>
+  /// Receives prompts when unresolvable dependencies occur in a transaction (libalpm's <c>ALPM_QUESTION_REMOVE_PKGS</c>),
+  /// asking whether to remove those packages from the transaction.
+  /// </summary>
+  public RemoveUnresolvablePackagesHandler? OnRemoveUnresolvablePackages
+  {
+    get;
+    set
+    {
+      ConfigureGuard();
+      field = value;
+    }
+  }
+
+  /// <summary>
+  /// Receives prompts when multiple providers satisfy a dependency and a selection is required.
+  /// </summary>
+  public SelectProviderHandler? OnSelectProvider
+  {
+    get;
+    set
+    {
+      ConfigureGuard();
+      field = value;
+    }
+  }
+
+  /// <summary>
+  /// Receives prompts when an unknown PGP key needs to be imported into the keyring.
+  /// </summary>
+  public ImportKeyHandler? OnImportKey
+  {
+    get;
+    set
+    {
+      ConfigureGuard();
+      field = value;
     }
   }
 
@@ -498,7 +737,7 @@ public sealed class AlpmCallbacks
 
   /// <summary>
   /// Optional observer for exceptions thrown by the user handlers ( <see cref="EventHandler" />,
-  /// <see cref="FetchHandler" />, <see cref="QuestionHandler" />, <see cref="DownloadHandler" />,
+  /// <see cref="FetchHandler" />, <see cref="OnInstallIgnorePackage" />, <see cref="DownloadHandler" />,
   /// <see cref="ProgressHandler" />, <see cref="LogHandler" />).
   /// </summary>
   /// <remarks>

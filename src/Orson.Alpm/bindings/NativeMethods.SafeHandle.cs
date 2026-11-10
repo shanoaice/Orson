@@ -60,6 +60,9 @@ internal static unsafe partial class NativeMethods
   [LibraryImport(__DllName, EntryPoint = "alpm_option_get_questioncb")]
   internal static partial delegate* unmanaged[Cdecl]<void*, _alpm_question_t*, void> alpm_option_get_questioncb(SafeAlpmHandle handle);
 
+  [LibraryImport(__DllName, EntryPoint = "alpm_option_get_questioncb_ctx")]
+  internal static partial void* alpm_option_get_questioncb_ctx(SafeAlpmHandle handle);
+
   [LibraryImport(__DllName, EntryPoint = "alpm_option_set_questioncb")]
   internal static partial int alpm_option_set_questioncb(SafeAlpmHandle handle, delegate* unmanaged[Cdecl]<void*, _alpm_question_t*, void> cb, void* ctx);
 

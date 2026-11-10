@@ -84,6 +84,7 @@ internal abstract class Lifetime
   internal abstract bool IsAlive { get; }
 
   /// <summary>Creates a child domain: a resource this session can release on its own.</summary>
+  /// <param name="target">Human-readable description of the resource, used in exception messages when invalidated.</param>
   internal virtual ChildLifetime CreateChild(string target)
     => throw new InvalidOperationException(
       $"'{Target}' is not a root domain; the lifetime hierarchy is exactly two levels deep.");
@@ -138,6 +139,7 @@ internal sealed class RootLifetime : Lifetime
   private protected override LifetimeStamp CreateStamp() => new(this, this);
 
   /// <summary>Creates a child domain: a resource this session can release on its own.</summary>
+  /// <param name="target">Human-readable description of the resource, used in exception messages when invalidated.</param>
   internal override ChildLifetime CreateChild(string target) => new(_owner, target, this);
 
   // ---- Handle Registry (native pointer deduplication) ----
@@ -146,6 +148,8 @@ internal sealed class RootLifetime : Lifetime
   /// The domain for <paramref name="handle" />, created as a child of this one on first use, so every wrapper for
   /// the same native pointer shares one domain and one invalidation retires them all.
   /// </summary>
+  /// <param name="handle">The native pointer or handle to look up or register.</param>
+  /// <param name="target">Human-readable description of the resource, used in exception messages when invalidated.</param>
   /// <remarks>Must run on the session's thread; see the note on the registry field.</remarks>
   internal unsafe ChildLifetime GetLifetimeTokenForHandle(void* handle, string target)
   {

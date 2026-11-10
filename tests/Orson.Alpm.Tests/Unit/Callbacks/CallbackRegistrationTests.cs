@@ -6,7 +6,7 @@ namespace Orson.Alpm.Tests.Unit.Callbacks;
 public sealed class CallbackRegistrationTests
 {
   [Fact]
-  public unsafe void InitialHandle_HasNoCallbacksRegistered()
+  public unsafe void InitialHandle_RegisterOnlyQuestionCallback()
   {
     using var env = new IsolatedAlpmEnvironment();
     var handle = env.AlpmSession.Handle;
@@ -16,10 +16,11 @@ public sealed class CallbackRegistrationTests
     // ReSharper disable ConditionIsAlwaysTrueOrFalse
     Assert.True(NativeMethods.alpm_option_get_eventcb(handle) == null, "eventcb should not be registered initially");
     Assert.True(NativeMethods.alpm_option_get_fetchcb(handle) == null, "fetchcb should not be registered initially");
-    Assert.True(NativeMethods.alpm_option_get_questioncb(handle) == null, "questioncb should not be registered initially");
     Assert.True(NativeMethods.alpm_option_get_progresscb(handle) == null, "progresscb should not be registered initially");
     Assert.True(NativeMethods.alpm_option_get_dlcb(handle) == null, "dlcb should not be registered initially");
     Assert.True(NativeMethods.alpm_option_get_logcb(handle) == null, "logcb should not be registered initially");
+
+    Assert.False(NativeMethods.alpm_option_get_questioncb(handle) == null, "questioncb should be registered initially");
     // ReSharper restore ConditionIsAlwaysTrueOrFalse
 #pragma warning restore xUnit2024
   }
@@ -46,12 +47,6 @@ public sealed class CallbackRegistrationTests
     Assert.True(NativeMethods.alpm_option_get_fetchcb(handle) != null);
     cb.FetchHandler = null;
     Assert.True(NativeMethods.alpm_option_get_fetchcb(handle) == null);
-
-    Assert.True(NativeMethods.alpm_option_get_questioncb(handle) == null);
-    cb.QuestionHandler = _ => { };
-    Assert.True(NativeMethods.alpm_option_get_questioncb(handle) != null);
-    cb.QuestionHandler = null;
-    Assert.True(NativeMethods.alpm_option_get_questioncb(handle) == null);
 
     Assert.True(NativeMethods.alpm_option_get_progresscb(handle) == null);
     cb.ProgressHandler = _ => { };
@@ -101,7 +96,6 @@ public sealed class CallbackRegistrationTests
 
     Assert.Throws<ObjectDisposedException>(() => callback.EventHandler = _ => { });
     Assert.Throws<ObjectDisposedException>(() => callback.FetchHandler = (_, _, _) => FetchResult.Success);
-    Assert.Throws<ObjectDisposedException>(() => callback.QuestionHandler = _ => { });
     Assert.Throws<ObjectDisposedException>(() => callback.DownloadHandler = (_, _) => { });
     Assert.Throws<ObjectDisposedException>(() => callback.ProgressHandler = _ => { });
     Assert.Throws<ObjectDisposedException>(() => callback.LogHandler = (_, _) => { });
@@ -119,7 +113,6 @@ public sealed class CallbackRegistrationTests
 
     Assert.Throws<AlpmLifetimeException>(() => callback.EventHandler = _ => { });
     Assert.Throws<AlpmLifetimeException>(() => callback.FetchHandler = (_, _, _) => FetchResult.Success);
-    Assert.Throws<AlpmLifetimeException>(() => callback.QuestionHandler = _ => { });
     Assert.Throws<AlpmLifetimeException>(() => callback.DownloadHandler = (_, _) => { });
     Assert.Throws<AlpmLifetimeException>(() => callback.ProgressHandler = _ => { });
     Assert.Throws<AlpmLifetimeException>(() => callback.LogHandler = (_, _) => { });

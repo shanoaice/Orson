@@ -1,6 +1,6 @@
 <Project>
 
-  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -37,18 +37,18 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
 
   <ItemGroup>
-    <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="All"/>
     <PackageReference Include="Microsoft.SourceLink.GitHub">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All"/>
   </ItemGroup>
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 
@@ -57,19 +57,19 @@
          reach the raw entry points (the test suite's binding-pairing audit, and the marshalling
          benchmarks that measure libalpm calls directly) is granted friend access explicitly; an
          external consumer is not. -->
-    <InternalsVisibleTo Include="Orson.Alpm.Tests" />
-    <InternalsVisibleTo Include="Orson.Benchmarks" />
-    <InternalsVisibleTo Include="Orson.Alpm.FSharp" />
+    <InternalsVisibleTo Include="Orson.Alpm.Tests"/>
+    <InternalsVisibleTo Include="Orson.Benchmarks"/>
+    <InternalsVisibleTo Include="Orson.Alpm.FSharp"/>
   </ItemGroup>
 
   <ItemGroup>
     <Compile Update="**\*.Seams.cs"
-      DependentUpon="$([System.IO.Path]::GetFileNameWithoutExtension('%(Filename)')).cs" />
+             DependentUpon="$([System.IO.Path]::GetFileNameWithoutExtension('%(Filename)')).cs"/>
   </ItemGroup>
 
   <Target Name="GenerateBindings"
-    BeforeTargets="BeforeCompile"
-    Condition="'$(GenerateBindings)' == 'true'">
+          BeforeTargets="BeforeCompile"
+          Condition="'$(GenerateBindings)' == 'true'">
     <PropertyGroup>
       <!-- Only an environment that explicitly declares the canonical Arch container may run cargo
            directly. -->
@@ -79,21 +79,21 @@
     </PropertyGroup>
 
     <Message Importance="high"
-      Condition="'$(_AlreadyInContainer)' == 'true'"
-      Text="Regenerating C# bindings directly via cargo..." />
+             Condition="'$(_AlreadyInContainer)' == 'true'"
+             Text="Regenerating C# bindings directly via cargo..."/>
     <Exec Command="cargo build -p libalpm-sys-cs"
-      WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="'$(_AlreadyInContainer)' == 'true'"
-      ConsoleToMSBuild="true" />
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(_AlreadyInContainer)' == 'true'"
+          ConsoleToMSBuild="true"/>
 
     <Message Importance="high"
-      Condition="'$(_AlreadyInContainer)' != 'true'"
-      Text="Regenerating C# bindings hermetically via container..." />
+             Condition="'$(_AlreadyInContainer)' != 'true'"
+             Text="Regenerating C# bindings hermetically via container..."/>
     <Exec
       Command="bash &quot;$(MSBuildProjectDirectory)/../../scripts/generate-bindings-in-container.sh&quot;"
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="'$(_AlreadyInContainer)' != 'true'"
-      ConsoleToMSBuild="true" />
+      ConsoleToMSBuild="true"/>
   </Target>
 
 </Project>

@@ -1,1 +1,121 @@
 #nullable enable
+Orson.Alpm.AlpmCallbacks.CorruptedPackageHandler
+Orson.Alpm.AlpmCallbacks.ImportKeyHandler
+Orson.Alpm.AlpmCallbacks.InstallIgnorePackageHandler
+Orson.Alpm.AlpmCallbacks.OnCorruptedPackage.get -> Orson.Alpm.AlpmCallbacks.CorruptedPackageHandler?
+Orson.Alpm.AlpmCallbacks.OnCorruptedPackage.set -> void
+Orson.Alpm.AlpmCallbacks.OnImportKey.get -> Orson.Alpm.AlpmCallbacks.ImportKeyHandler?
+Orson.Alpm.AlpmCallbacks.OnImportKey.set -> void
+Orson.Alpm.AlpmCallbacks.OnInstallIgnorePackage.get -> Orson.Alpm.AlpmCallbacks.InstallIgnorePackageHandler?
+Orson.Alpm.AlpmCallbacks.OnInstallIgnorePackage.set -> void
+Orson.Alpm.AlpmCallbacks.OnPackageConflict.get -> Orson.Alpm.AlpmCallbacks.PackageConflictHandler?
+Orson.Alpm.AlpmCallbacks.OnPackageConflict.set -> void
+Orson.Alpm.AlpmCallbacks.OnRemoveUnresolvablePackages.get -> Orson.Alpm.AlpmCallbacks.RemoveUnresolvablePackagesHandler?
+Orson.Alpm.AlpmCallbacks.OnRemoveUnresolvablePackages.set -> void
+Orson.Alpm.AlpmCallbacks.OnReplacePackage.get -> Orson.Alpm.AlpmCallbacks.ReplacePackageHandler?
+Orson.Alpm.AlpmCallbacks.OnReplacePackage.set -> void
+Orson.Alpm.AlpmCallbacks.OnSelectProvider.get -> Orson.Alpm.AlpmCallbacks.SelectProviderHandler?
+Orson.Alpm.AlpmCallbacks.OnSelectProvider.set -> void
+Orson.Alpm.AlpmCallbacks.PackageConflictHandler
+Orson.Alpm.AlpmCallbacks.RemoveUnresolvablePackagesHandler
+Orson.Alpm.AlpmCallbacks.ReplacePackageHandler
+Orson.Alpm.AlpmCallbacks.SelectProviderHandler
+Orson.Alpm.CorruptedPackageQuestion
+Orson.Alpm.CorruptedPackageQuestion.CorruptedPackageQuestion() -> void
+Orson.Alpm.CorruptedPackageQuestion.FilePath.get -> string?
+Orson.Alpm.CorruptedPackageQuestion.Reason.get -> string?
+Orson.Alpm.CorruptedPackageQuestion.ReasonCode.get -> uint
+Orson.Alpm.CorruptedPackageQuestion.Remove.get -> bool
+Orson.Alpm.CorruptedPackageQuestion.Remove.set -> void
+Orson.Alpm.ImportKeyQuestion
+Orson.Alpm.ImportKeyQuestion.Fingerprint.get -> string?
+Orson.Alpm.ImportKeyQuestion.Import.get -> bool
+Orson.Alpm.ImportKeyQuestion.Import.set -> void
+Orson.Alpm.ImportKeyQuestion.ImportKeyQuestion() -> void
+Orson.Alpm.ImportKeyQuestion.Uid.get -> string?
+Orson.Alpm.InstallIgnorePackageQuestion
+Orson.Alpm.InstallIgnorePackageQuestion.Install.get -> bool
+Orson.Alpm.InstallIgnorePackageQuestion.Install.set -> void
+Orson.Alpm.InstallIgnorePackageQuestion.InstallIgnorePackageQuestion() -> void
+Orson.Alpm.InstallIgnorePackageQuestion.Package.get -> Orson.Alpm.PackageView!
+Orson.Alpm.InstallIgnorePackageQuestion.PackageName.get -> string?
+Orson.Alpm.InstallIgnorePackageQuestion.PackageVersion.get -> string?
+Orson.Alpm.PackageConflictQuestion
+Orson.Alpm.PackageConflictQuestion.ConflictDescription.get -> string?
+Orson.Alpm.PackageConflictQuestion.ConflictName.get -> string?
+Orson.Alpm.PackageConflictQuestion.ConflictVersion.get -> string?
+Orson.Alpm.PackageConflictQuestion.Package1.get -> Orson.Alpm.PackageView!
+Orson.Alpm.PackageConflictQuestion.Package1Name.get -> string?
+Orson.Alpm.PackageConflictQuestion.Package1Version.get -> string?
+Orson.Alpm.PackageConflictQuestion.Package2.get -> Orson.Alpm.PackageView!
+Orson.Alpm.PackageConflictQuestion.Package2Name.get -> string?
+Orson.Alpm.PackageConflictQuestion.Package2Version.get -> string?
+Orson.Alpm.PackageConflictQuestion.PackageConflictQuestion() -> void
+Orson.Alpm.PackageConflictQuestion.Remove.get -> bool
+Orson.Alpm.PackageConflictQuestion.Remove.set -> void
+Orson.Alpm.RemoveUnresolvablePackagesQuestion
+Orson.Alpm.RemoveUnresolvablePackagesQuestion.Packages.get -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView!>!
+Orson.Alpm.RemoveUnresolvablePackagesQuestion.RemoveUnresolvablePackagesQuestion() -> void
+Orson.Alpm.RemoveUnresolvablePackagesQuestion.Skip.get -> bool
+Orson.Alpm.RemoveUnresolvablePackagesQuestion.Skip.set -> void
+Orson.Alpm.ReplacePackageQuestion
+Orson.Alpm.ReplacePackageQuestion.NewPackage.get -> Orson.Alpm.PackageView!
+Orson.Alpm.ReplacePackageQuestion.NewPackageDatabase.get -> string?
+Orson.Alpm.ReplacePackageQuestion.NewPackageName.get -> string?
+Orson.Alpm.ReplacePackageQuestion.NewPackageVersion.get -> string?
+Orson.Alpm.ReplacePackageQuestion.OldPackage.get -> Orson.Alpm.PackageView!
+Orson.Alpm.ReplacePackageQuestion.OldPackageName.get -> string?
+Orson.Alpm.ReplacePackageQuestion.OldPackageVersion.get -> string?
+Orson.Alpm.ReplacePackageQuestion.Replace.get -> bool
+Orson.Alpm.ReplacePackageQuestion.Replace.set -> void
+Orson.Alpm.ReplacePackageQuestion.ReplacePackageQuestion() -> void
+Orson.Alpm.SelectProviderQuestion
+Orson.Alpm.SelectProviderQuestion.DependencyDescription.get -> string?
+Orson.Alpm.SelectProviderQuestion.DependencyName.get -> string?
+Orson.Alpm.SelectProviderQuestion.DependencyVersion.get -> string?
+Orson.Alpm.SelectProviderQuestion.Providers.get -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView!>!
+Orson.Alpm.SelectProviderQuestion.SelectProviderQuestion() -> void
+Orson.Alpm.SelectProviderQuestion.UseIndex.get -> int
+Orson.Alpm.SelectProviderQuestion.UseIndex.set -> void
+*REMOVED*Orson.Alpm.AlpmCallbacks.QuestionHandler.get -> System.Action<Orson.Alpm.AlpmQuestion!>?
+*REMOVED*Orson.Alpm.AlpmCallbacks.QuestionHandler.set -> void
+*REMOVED*Orson.Alpm.AlpmQuestion
+*REMOVED*Orson.Alpm.AlpmQuestion.CorruptedPackage
+*REMOVED*Orson.Alpm.AlpmQuestion.CorruptedPackage.FilePath.get -> string!
+*REMOVED*Orson.Alpm.AlpmQuestion.CorruptedPackage.Reason.get -> string!
+*REMOVED*Orson.Alpm.AlpmQuestion.CorruptedPackage.Remove.get -> bool
+*REMOVED*Orson.Alpm.AlpmQuestion.CorruptedPackage.Remove.set -> void
+*REMOVED*Orson.Alpm.AlpmQuestion.ImportKey
+*REMOVED*Orson.Alpm.AlpmQuestion.ImportKey.Fingerprint.get -> string!
+*REMOVED*Orson.Alpm.AlpmQuestion.ImportKey.Import.get -> bool
+*REMOVED*Orson.Alpm.AlpmQuestion.ImportKey.Import.set -> void
+*REMOVED*Orson.Alpm.AlpmQuestion.ImportKey.Uid.get -> string!
+*REMOVED*Orson.Alpm.AlpmQuestion.InstallIgnoredPackage
+*REMOVED*Orson.Alpm.AlpmQuestion.InstallIgnoredPackage.Install.get -> bool
+*REMOVED*Orson.Alpm.AlpmQuestion.InstallIgnoredPackage.Install.set -> void
+*REMOVED*Orson.Alpm.AlpmQuestion.InstallIgnoredPackage.Package.get -> Orson.Alpm.PackageView!
+*REMOVED*Orson.Alpm.AlpmQuestion.PackageConflict
+*REMOVED*Orson.Alpm.AlpmQuestion.PackageConflict.Description.get -> string!
+*REMOVED*Orson.Alpm.AlpmQuestion.PackageConflict.Name.get -> string!
+*REMOVED*Orson.Alpm.AlpmQuestion.PackageConflict.Package1.get -> Orson.Alpm.PackageView!
+*REMOVED*Orson.Alpm.AlpmQuestion.PackageConflict.Package2.get -> Orson.Alpm.PackageView!
+*REMOVED*Orson.Alpm.AlpmQuestion.PackageConflict.Remove.get -> bool
+*REMOVED*Orson.Alpm.AlpmQuestion.PackageConflict.Remove.set -> void
+*REMOVED*Orson.Alpm.AlpmQuestion.PackageConflict.Version.get -> string!
+*REMOVED*Orson.Alpm.AlpmQuestion.RemovePackages
+*REMOVED*Orson.Alpm.AlpmQuestion.RemovePackages.Packages.get -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView!>!
+*REMOVED*Orson.Alpm.AlpmQuestion.RemovePackages.Skip.get -> bool
+*REMOVED*Orson.Alpm.AlpmQuestion.RemovePackages.Skip.set -> void
+*REMOVED*Orson.Alpm.AlpmQuestion.ReplacePackage
+*REMOVED*Orson.Alpm.AlpmQuestion.ReplacePackage.NewDatabase.get -> string!
+*REMOVED*Orson.Alpm.AlpmQuestion.ReplacePackage.NewPackage.get -> Orson.Alpm.PackageView!
+*REMOVED*Orson.Alpm.AlpmQuestion.ReplacePackage.OldPackage.get -> Orson.Alpm.PackageView!
+*REMOVED*Orson.Alpm.AlpmQuestion.ReplacePackage.Replace.get -> bool
+*REMOVED*Orson.Alpm.AlpmQuestion.ReplacePackage.Replace.set -> void
+*REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider
+*REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider.Description.get -> string!
+*REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider.Name.get -> string!
+*REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider.Providers.get -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView!>!
+*REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider.UseIndex.get -> int
+*REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider.UseIndex.set -> void
+*REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider.Version.get -> string!
