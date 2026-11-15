@@ -146,9 +146,7 @@ public sealed partial class AlpmSession : IDisposable
 
   /// <summary>The transaction currently initialized on this handle, or <c>null</c> when there is none.</summary>
   /// <remarks>
-  /// libalpm allows one transaction per handle at a time, and <see cref="BeginTransaction" /> hands this one back instead of
-  /// initializing a second (it refuses the join when the requested flags differ). The property is cleared when the
-  /// transaction is disposed.
+  /// libalpm allows one transaction per handle at a time. The property is cleared when the transaction is disposed.
   /// <para>
   /// <see cref="Dispose()" /> releases this transaction before releasing the handle: an initialized transaction holds
   /// the database lock, and <c>alpm_release</c> refuses to run while one exists (<c>ALPM_ERR_TRANS_NOT_NULL</c>, freeing
@@ -270,9 +268,7 @@ public sealed partial class AlpmSession : IDisposable
   /// native one being refused.
   /// </remarks>
   /// <exception cref="InvalidOperationException">
-  /// A transaction is already active and was initialized with different flags.
-  /// The flags decide whether the transaction locks the database, writes to the filesystem and runs hooks, so a request for
-  /// one mode must not be answered with a transaction configured for another.
+  /// A transaction is already active on this session. Dispose the active transaction before starting another.
   /// </exception>
   public Transaction BeginTransaction(TransactionFlags flags = default)
   {

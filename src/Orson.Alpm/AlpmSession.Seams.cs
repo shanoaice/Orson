@@ -75,16 +75,9 @@ public sealed partial class AlpmSession
 
     if (CurrentTransaction is { } active)
     {
-      if (active.Flags != flags)
-      {
-        throw new InvalidOperationException(
-          $"A transaction with flags {active.Flags} is already active on this handle; dispose it " +
-          $"before starting one with flags {flags}.");
-      }
-
-      transaction = active;
-      failure = null;
-      return true;
+      throw new InvalidOperationException(
+        $"A transaction is already active on this session (flags: {active.Flags}). " +
+        "Dispose the active transaction before starting another.");
     }
 
     if (!Transaction.TryCreate(this, flags, out transaction, out failure))

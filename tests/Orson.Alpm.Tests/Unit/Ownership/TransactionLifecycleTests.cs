@@ -4,10 +4,8 @@ using Orson.Alpm.Tests.Fixtures;
 namespace Orson.Alpm.Tests.Unit.Ownership;
 
 /// <summary>
-/// The handle's one-transaction-at-a-time contract as the wrapper presents it: an active transaction is joined
-/// rather than refused, but only when it was initialized with the flags the caller asks for. The flags decide whether the
-/// transaction locks the database, writes to the filesystem and runs hooks and scriptlets, so answering a request for one
-/// mode with a transaction configured for another would make the caller commit something it never asked for.
+/// The handle's one-transaction-at-a-time contract as the wrapper presents it: libalpm allows one active transaction per handle.
+/// Attempting to start a second transaction while one is active throws <see cref="InvalidOperationException" />.
 /// </summary>
 public sealed class TransactionLifecycleTests
 {
@@ -16,16 +14,15 @@ public sealed class TransactionLifecycleTests
   private const TransactionFlags Lockless = TransactionFlags.NoLock;
 
   [Fact]
-  public void BeginTransaction_JoinsTheActiveTransaction_WhenTheFlagsMatch()
+  public void BeginTransaction_ThrowsInvalidOperationException_WhenTransactionIsAlreadyActive()
   {
     using var environment = new IsolatedAlpmEnvironment();
     var alpm = environment.AlpmSession;
 
-    var first = alpm.BeginTransaction(Lockless);
-    var second = alpm.BeginTransaction(Lockless);
+    using var first = alpm.BeginTransaction(Lockless);
+    var exception = Assert.Throws<InvalidOperationException>(() => alpm.BeginTransaction(Lockless));
 
-    Assert.Same(first, second);
-    Assert.Equal(Lockless, second.Flags);
+    Assert.Contains("already active", exception.Message);
   }
 
   [Fact]
