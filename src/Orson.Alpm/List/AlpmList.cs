@@ -70,6 +70,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
   {
     private readonly AlpmList<T> _list;
     private _alpm_list_t* _current;
+    private T? _currentItem;
     private bool _started;
     private bool _disposed;
 
@@ -77,6 +78,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
     {
       _list = list;
       _current = null;
+      _currentItem = default;
       _started = false;
       _disposed = false;
     }
@@ -94,36 +96,14 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       return _current is null ? null : _current->next;
     }
 
-    /// <summary>Reads the current node's data pointer. Validation comes first, for the same reason as <see cref="Advance" />.</summary>
-    /// <returns>
-    /// <see langword="false" /> when there is no current node. A <see langword="true" /> result with a null data
-    /// pointer is legitimate - a libalpm list may carry null payloads - so the two cases must not be collapsed into one.
-    /// </returns>
-    private bool TryGetCurrentData(out void* data)
-    {
-      _list.Lifetime?.ThrowIfStale();
-      if (_current is null)
-      {
-        data = null;
-        return false;
-      }
-
-      data = _current->data;
-      return true;
-    }
-
     /// <summary>Gets the element in the collection at the current position of the enumerator.</summary>
     public T Current
     {
       get
       {
         if (_disposed) throw new ObjectDisposedException(GetType().FullName);
-        if (!_started) throw new InvalidOperationException();
-        // The guard runs inside TryGetCurrentData, before the only dereference of _current here.
-        if (!TryGetCurrentData(out var data)) throw new InvalidOperationException();
-        var item = _list.Factory(data, _list.Lifetime?.Domain);
-        GC.KeepAlive(_list);
-        return item;
+        if (!_started || _current is null) throw new InvalidOperationException();
+        return _currentItem!;
       }
     }
 
@@ -136,7 +116,15 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
       // Advance(), which validates before it follows the stored node pointer.
       _current = _started ? Advance() : _list.ValidatedNative();
       _started = true;
-      return _current != null; // comparing the pointer value needs no validation
+      if (_current is null)
+      {
+        _currentItem = default;
+        return false;
+      }
+
+      _currentItem = _list.Factory(_current->data, _list.Lifetime?.Domain);
+      GC.KeepAlive(_list);
+      return true;
     }
 
     /// <summary>Sets the enumerator to its initial position, which is before the first element in the collection.</summary>
@@ -144,6 +132,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
     {
       if (_disposed) throw new ObjectDisposedException(GetType().FullName);
       _current = null;
+      _currentItem = default;
       _started = false;
     }
 
@@ -151,6 +140,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
     public void Dispose()
     {
       _disposed = true;
+      _currentItem = default;
     }
 
     object IEnumerator.Current => Current!;

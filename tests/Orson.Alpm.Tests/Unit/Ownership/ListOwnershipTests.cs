@@ -45,6 +45,27 @@ public sealed unsafe class ListOwnershipTests
   }
 
   [Fact]
+  public void Enumerator_Current_ReturnsCachedItemWithoutReinvokingFactory()
+  {
+    var list = BuildStringList("alpha");
+    try
+    {
+      var view = AlpmList<string>.Borrow(list, &TestStringFactory, null);
+      using var enumerator = view.GetEnumerator();
+      Assert.True(enumerator.MoveNext());
+
+      var first = enumerator.Current;
+      var second = enumerator.Current;
+
+      Assert.Same(first, second);
+    }
+    finally
+    {
+      FreeNativeStringList(list);
+    }
+  }
+
+  [Fact]
   public void BuildStringList_NullElement_ThrowsAndFreesEarlierBuffers()
     => Assert.Throws<ArgumentException>(() =>
       NativeListMarshal.BuildStringList(["alpha", null!], out _));
