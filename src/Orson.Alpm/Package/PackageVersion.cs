@@ -1,83 +1,253 @@
+using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 using Orson.Alpm.Bindings;
 
 namespace Orson.Alpm;
 
-/// <summary>A package version (<c>alpm_pkg_get_version</c>), ordered by libalpm's own <c>alpm_pkg_vercmp</c>.</summary>
-/// <remarks>
-/// A managed snapshot: the version text is copied on construction, so a value taken from
-/// <see cref="Package.Version" /> stays valid after the package that produced it is disposed.
-/// <para>
-/// The type has value semantics. <see cref="Equals(PackageVersion)" /> and the <c>==</c> operator compare the copied
-/// text, so two instances that report the same text are interchangeable - which matters because every read of
-/// <see cref="Package.Version" /> builds a new instance.
-/// </para>
-/// <para>
-/// That equality is a different relation from <see cref="CompareTo(PackageVersion)" /> returning 0, and the two
-/// cannot be made to agree. <c>alpm_pkg_vercmp</c> skips the package release when either side omits it, and compares
-/// numeric segments numerically. For example, <c>"1.0"</c> compares equal to both <c>"1.0-1"</c> and <c>"1.0-2"</c>, while
-/// <c>"1.0-1"</c> and <c>"1.0-2"</c> do not compare equal to each other. Because this comparison is not transitive, it
-/// cannot satisfy the requirements of equality or hash codes. <see cref="Equals(PackageVersion)" /> compares the version
-/// text, whereas <see cref="CompareTo(PackageVersion)" /> provides version ordering.
-/// </para>
-/// </remarks>
-public sealed class PackageVersion : IComparable<PackageVersion>, IEquatable<PackageVersion>
+[InlineArray(InlineCapacity)]
+internal struct InlineVersionBuffer
 {
-  private readonly string _value;
+  internal const int InlineCapacity = 31;
 
-  internal unsafe PackageVersion(byte* version)
+  [SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration"),
+   SuppressMessage("Roslynator", "RCS1169:Make field read-only")]
+  private byte _element0;
+}
+
+/// <summary>
+/// A package version (<c>alpm_pkg_get_version</c>), ordered by libalpm's own <c>alpm_pkg_vercmp</c>.
+/// </summary>
+/// <remarks>
+/// Versions with UTF-8 byte lengths up to 30 bytes are stored inline without heap allocation. Longer versions
+/// fall back to a heap-allocated buffer.
+/// </remarks>
+public readonly struct PackageVersion : IComparable, IComparable<PackageVersion>, IEquatable<PackageVersion>,
+  IUtf8SpanFormattable, ISpanFormattable
+{
+  private const byte HeapSentinel = 0xFF;
+
+  private readonly byte _length;
+  private readonly InlineVersionBuffer _inline;
+  private readonly byte[]? _heap;
+
+  internal unsafe PackageVersion(byte* nativeVersion)
   {
-    _value = NativeString.FromNative((nint)version) ?? string.Empty;
+    if (nativeVersion == null || *nativeVersion == 0)
+    {
+      _length = 0;
+      _inline = default;
+      _heap = null;
+      return;
+    }
+
+    var span = MemoryMarshal.CreateReadOnlySpanFromNullTerminated(nativeVersion);
+    var len = span.Length;
+
+    if (len < InlineVersionBuffer.InlineCapacity)
+    {
+      _length = (byte)len;
+      _heap = null;
+      _inline = default;
+      var dest = MemoryMarshal.CreateSpan(ref _inline[0], InlineVersionBuffer.InlineCapacity);
+      span.CopyTo(dest);
+      dest[len] = 0; // null-terminated for alpm_pkg_vercmp
+    }
+    else
+    {
+      _length = HeapSentinel;
+      var buffer = new byte[len + 1];
+      span.CopyTo(buffer);
+      buffer[len] = 0; // null-terminated for alpm_pkg_vercmp
+      _heap = buffer;
+      _inline = default;
+    }
+  }
+
+  /// <summary>Initializes a new instance of <see cref="PackageVersion" /> from a UTF-8 byte span.</summary>
+  public PackageVersion(ReadOnlySpan<byte> utf8Version)
+  {
+    if (utf8Version.IsEmpty)
+    {
+      _length = 0;
+      _inline = default;
+      _heap = null;
+      return;
+    }
+
+    var len = utf8Version.Length;
+    if (len < InlineVersionBuffer.InlineCapacity)
+    {
+      _length = (byte)len;
+      _heap = null;
+      _inline = default;
+      var dest = MemoryMarshal.CreateSpan(ref _inline[0], InlineVersionBuffer.InlineCapacity);
+      utf8Version.CopyTo(dest);
+      dest[len] = 0;
+    }
+    else
+    {
+      _length = HeapSentinel;
+      var buffer = new byte[len + 1];
+      utf8Version.CopyTo(buffer);
+      buffer[len] = 0;
+      _heap = buffer;
+      _inline = default;
+    }
+  }
+
+  /// <summary>Initializes a new instance of <see cref="PackageVersion" /> from a managed string.</summary>
+  public PackageVersion(string version)
+  {
+    ArgumentNullException.ThrowIfNull(version);
+    if (version.Length == 0)
+    {
+      _length = 0;
+      _inline = default;
+      _heap = null;
+      return;
+    }
+
+    var maxByteCount = Encoding.UTF8.GetByteCount(version);
+    if (maxByteCount < InlineVersionBuffer.InlineCapacity)
+    {
+      _inline = default;
+      _heap = null;
+      var dest = MemoryMarshal.CreateSpan(ref _inline[0], InlineVersionBuffer.InlineCapacity);
+      var written = Encoding.UTF8.GetBytes(version, dest);
+      _length = (byte)written;
+      dest[written] = 0;
+    }
+    else
+    {
+      _length = HeapSentinel;
+      var buffer = new byte[maxByteCount + 1];
+      var written = Encoding.UTF8.GetBytes(version, buffer);
+      buffer[written] = 0;
+      _heap = buffer;
+      _inline = default;
+    }
+  }
+
+  /// <summary>Gets the raw UTF-8 bytes of this version without the trailing null terminator.</summary>
+  public ReadOnlySpan<byte> Utf8Span
+  {
+    get
+    {
+      return _length switch
+      {
+        0 => default,
+        HeapSentinel => _heap is not null ? _heap.AsSpan(0, _heap.Length - 1) : default,
+        _ => MemoryMarshal.CreateReadOnlySpan(in _inline[0], _length)
+      };
+    }
+  }
+
+  private static ReadOnlySpan<byte> EmptyNullTerminated => "\0"u8;
+
+  private ReadOnlySpan<byte> NullTerminatedSpan
+  {
+    get
+    {
+      return _length switch
+      {
+        0 => EmptyNullTerminated,
+        HeapSentinel => _heap is not null ? _heap.AsSpan() : EmptyNullTerminated,
+        _ => MemoryMarshal.CreateReadOnlySpan(in _inline[0], _length + 1)
+      };
+    }
   }
 
   /// <summary>
   /// Orders this version against <paramref name="other" /> the way <c>alpm_pkg_vercmp</c> does: negative when this
   /// one is older, positive when it is newer, and 0 when libalpm reports them as the same version.
   /// </summary>
-  /// <remarks>
-  /// A <see langword="null" /> <paramref name="other" /> sorts before every version. The result is an ordering, not
-  /// an equality test: see the type remarks for why 0 here is looser than <see cref="Equals(PackageVersion)" />.
-  /// </remarks>
-  public unsafe int CompareTo(PackageVersion? other)
+  public unsafe int CompareTo(PackageVersion other)
   {
-    if (other == null) return 1;
+    var s1 = NullTerminatedSpan;
+    var s2 = other.NullTerminatedSpan;
 
-    // Versions are short (64 bytes covers realistic epoch/pkgver/pkgrel strings), so both
-    // operands marshal onto stack scratch and the comparison never touches the native heap.
-    Span<byte> leftScratch = stackalloc byte[64];
-    Span<byte> rightScratch = stackalloc byte[64];
-    using var left = new Utf8Buffer(_value, leftScratch);
-    using var right = new Utf8Buffer(other._value, rightScratch);
-    return NativeMethods.alpm_pkg_vercmp(left.Ptr, right.Ptr);
+    switch (s1.Length)
+    {
+      case <= 1 when s2.Length <= 1:
+        return 0;
+      case <= 1:
+        return -1;
+    }
+
+    if (s2.Length <= 1) return 1;
+
+    fixed (byte* p1 = s1, p2 = s2)
+    {
+      return NativeMethods.alpm_pkg_vercmp(p1, p2);
+    }
+  }
+
+  /// <inheritdoc />
+  public int CompareTo(object? obj)
+  {
+    return obj switch
+    {
+      null => 1,
+      PackageVersion other => CompareTo(other),
+      _ => throw new ArgumentException("Object must be of type PackageVersion.", nameof(obj))
+    };
   }
 
   /// <summary>Whether <paramref name="other" /> carries the same version text as this instance.</summary>
-  /// <remarks>
-  /// The comparison is ordinal on the copied text and never calls into libalpm. See the type remarks for why it
-  /// does not follow <see cref="CompareTo(PackageVersion)" />.
-  /// </remarks>
-  public bool Equals(PackageVersion? other) =>
-    other is not null && string.Equals(_value, other._value, StringComparison.Ordinal);
+  public bool Equals(PackageVersion other) => Utf8Span.SequenceEqual(other.Utf8Span);
 
-  /// <summary>
-  /// Whether <paramref name="obj" /> is a <see cref="PackageVersion" /> carrying the same version text as this
-  /// instance.
-  /// </summary>
-  public override bool Equals(object? obj) => Equals(obj as PackageVersion);
+  /// <inheritdoc />
+  public override bool Equals(object? obj) => obj is PackageVersion other && Equals(other);
 
-  /// <summary>The ordinal hash of the version text, consistent with <see cref="Equals(PackageVersion)" />.</summary>
-  public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(_value);
+  /// <inheritdoc />
+  public override int GetHashCode()
+  {
+    var hash = new HashCode();
+    hash.AddBytes(Utf8Span);
+    return hash.ToHashCode();
+  }
 
-  /// <summary>Whether the two operands carry the same version text, or are both <see langword="null" />.</summary>
-  /// <remarks>
-  /// Two reads of <see cref="Package.Version" /> never produce the same instance, so the operator compares text
-  /// rather than object identity.
-  /// </remarks>
-  public static bool operator ==(PackageVersion? left, PackageVersion? right) =>
-    left is null ? right is null : left.Equals(right);
+  /// <summary>Whether the two operands carry the same version text.</summary>
+  public static bool operator ==(PackageVersion left, PackageVersion right) => left.Equals(right);
 
-  /// <summary>Whether the two operands carry different version text, or one of them is <see langword="null" />.</summary>
-  public static bool operator !=(PackageVersion? left, PackageVersion? right) => !(left == right);
+  /// <summary>Whether the two operands carry different version text.</summary>
+  public static bool operator !=(PackageVersion left, PackageVersion right) => !left.Equals(right);
 
-  /// <summary>The version text, exactly as libalpm reported it.</summary>
-  public override string ToString() => _value;
+  /// <inheritdoc />
+  public override string ToString() => Utf8Span.IsEmpty ? string.Empty : Encoding.UTF8.GetString(Utf8Span);
+
+  /// <inheritdoc />
+  public bool TryFormat(Span<byte> utf8Destination, out int bytesWritten, ReadOnlySpan<char> format,
+    IFormatProvider? provider)
+  {
+    var span = Utf8Span;
+    if (span.TryCopyTo(utf8Destination))
+    {
+      bytesWritten = span.Length;
+      return true;
+    }
+
+    bytesWritten = 0;
+    return false;
+  }
+
+  /// <inheritdoc />
+  public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format,
+    IFormatProvider? provider)
+  {
+    var span = Utf8Span;
+    if (span.IsEmpty)
+    {
+      charsWritten = 0;
+      return true;
+    }
+
+    var status = System.Text.Unicode.Utf8.ToUtf16(span, destination, out _, out charsWritten);
+    return status == OperationStatus.Done;
+  }
+
+  string IFormattable.ToString(string? format, IFormatProvider? formatProvider) => ToString();
 }

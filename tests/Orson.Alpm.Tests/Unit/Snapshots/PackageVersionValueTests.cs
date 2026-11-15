@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Orson.Alpm.Tests.Unit.Snapshots;
 
@@ -37,8 +38,6 @@ public sealed unsafe class PackageVersionValueTests
     var left = Version("1.2.3-4");
     var right = Version("1.2.3-4");
 
-    Assert.False(ReferenceEquals(left, right), "the precondition: two reads are two instances");
-
     Assert.True(left.Equals(right));
     Assert.True(left.Equals((object)right));
     Assert.True(left == right);
@@ -69,14 +68,14 @@ public sealed unsafe class PackageVersionValueTests
     // ReSharper disable once SuspiciousTypeConversion.Global
     Assert.False(version.Equals("1.0-1"));
     // Intentionally testing overloaded operator == and != against null
-#pragma warning disable xUnit2024
+#pragma warning disable xUnit2024, CS8073
     // ReSharper disable ConditionIsAlwaysTrueOrFalse
     Assert.False(version == null);
     Assert.False(null == version);
     Assert.True(version != null);
     Assert.True(null != version);
     // ReSharper restore ConditionIsAlwaysTrueOrFalse
-#pragma warning restore xUnit2024
+#pragma warning restore xUnit2024, CS8073
 
     PackageVersion? leftNull = null;
     PackageVersion? rightNull = null;
@@ -141,4 +140,81 @@ public sealed unsafe class PackageVersionValueTests
 
     Assert.Equal(["0.9-9", "1.0-1", "1.0-2"], versions.Select(version => version.ToString()));
   }
+
+  [Fact]
+  public void SmallBufferOptimization_InlineAndHeapFallback()
+  {
+    // <= 30 bytes uses inline buffer
+    var inlineVersion = new PackageVersion("1.2.3-1");
+    Assert.Equal("1.2.3-1", inlineVersion.ToString());
+    Assert.True(inlineVersion.Utf8Span.SequenceEqual("1.2.3-1"u8));
+
+    // > 30 bytes uses heap fallback
+    const string longVersion = "1.2.3.4.5.6.7.8.9.10.11.12.13.14.15-1";
+    Assert.True(Encoding.UTF8.GetByteCount(longVersion) > 30);
+    var heapVersion = new PackageVersion(longVersion);
+    Assert.Equal(longVersion, heapVersion.ToString());
+    Assert.True(heapVersion.Utf8Span.SequenceEqual(Encoding.UTF8.GetBytes(longVersion)));
+
+    // > 255 bytes uses heap fallback and is not limited by a byte length field
+    var hugeVersionString = new string('1', 300) + "-1";
+    var hugeVersion = new PackageVersion(hugeVersionString);
+    Assert.Equal(hugeVersionString, hugeVersion.ToString());
+    Assert.Equal(302, hugeVersion.Utf8Span.Length);
+    Assert.True(hugeVersion.Utf8Span.SequenceEqual(Encoding.UTF8.GetBytes(hugeVersionString)));
+  }
+
+  [Fact]
+  public void Comparisons_AcrossInlineAndHeap()
+  {
+    var v1 = new PackageVersion("1.0.0-1");
+    var v2 = new PackageVersion("1.0.0-2");
+    Assert.True(v1.CompareTo(v2) < 0);
+    Assert.True(v2.CompareTo(v1) > 0);
+
+    var longOlder = new PackageVersion("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0-1");
+    var longNewer = new PackageVersion("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0-2");
+    Assert.True(longOlder.CompareTo(longNewer) < 0);
+    Assert.True(longNewer.CompareTo(longOlder) > 0);
+
+    Assert.True(v1.CompareTo(longOlder) != 0 || v1.Equals(longOlder) == false);
+  }
+
+  [Fact]
+  public void TryFormat_CharAndUtf8Span()
+  {
+    var version = new PackageVersion("2.4.6-1");
+
+    // ISpanFormattable (chars)
+    Span<char> charBuf = stackalloc char[16];
+    Assert.True(version.TryFormat(charBuf, out var charsWritten, default, null));
+    Assert.Equal("2.4.6-1", charBuf[..charsWritten].ToString());
+
+    Span<char> tooSmallChar = stackalloc char[3];
+    Assert.False(version.TryFormat(tooSmallChar, out _, default, null));
+
+    // IUtf8SpanFormattable (bytes)
+    Span<byte> byteBuf = stackalloc byte[16];
+    Assert.True(version.TryFormat(byteBuf, out var bytesWritten, default, null));
+    Assert.True(byteBuf[..bytesWritten].SequenceEqual("2.4.6-1"u8));
+
+    Span<byte> tooSmallByte = stackalloc byte[3];
+    Assert.False(version.TryFormat(tooSmallByte, out _, default, null));
+  }
+
+  [Fact]
+  public void Constructors_FromSpanAndEmpty()
+  {
+    var fromSpan = new PackageVersion("1.0"u8);
+    Assert.Equal("1.0", fromSpan.ToString());
+
+    var empty = new PackageVersion("");
+    Assert.Equal(string.Empty, empty.ToString());
+    Assert.True(empty.Utf8Span.IsEmpty);
+
+    var defaultVersion = default(PackageVersion);
+    Assert.Equal(string.Empty, defaultVersion.ToString());
+    Assert.True(defaultVersion.Utf8Span.IsEmpty);
+  }
 }
+

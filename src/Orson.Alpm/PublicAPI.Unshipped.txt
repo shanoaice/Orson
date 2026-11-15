@@ -37,33 +37,36 @@ Orson.Alpm.InstallIgnorePackageQuestion
 Orson.Alpm.InstallIgnorePackageQuestion.Install.get -> bool
 Orson.Alpm.InstallIgnorePackageQuestion.Install.set -> void
 Orson.Alpm.InstallIgnorePackageQuestion.InstallIgnorePackageQuestion() -> void
-Orson.Alpm.InstallIgnorePackageQuestion.Package.get -> Orson.Alpm.PackageView!
 Orson.Alpm.InstallIgnorePackageQuestion.PackageName.get -> string?
 Orson.Alpm.InstallIgnorePackageQuestion.PackageVersion.get -> string?
 Orson.Alpm.PackageConflictQuestion
 Orson.Alpm.PackageConflictQuestion.ConflictDescription.get -> string?
 Orson.Alpm.PackageConflictQuestion.ConflictName.get -> string?
 Orson.Alpm.PackageConflictQuestion.ConflictVersion.get -> string?
-Orson.Alpm.PackageConflictQuestion.Package1.get -> Orson.Alpm.PackageView!
 Orson.Alpm.PackageConflictQuestion.Package1Name.get -> string?
 Orson.Alpm.PackageConflictQuestion.Package1Version.get -> string?
-Orson.Alpm.PackageConflictQuestion.Package2.get -> Orson.Alpm.PackageView!
 Orson.Alpm.PackageConflictQuestion.Package2Name.get -> string?
 Orson.Alpm.PackageConflictQuestion.Package2Version.get -> string?
 Orson.Alpm.PackageConflictQuestion.PackageConflictQuestion() -> void
 Orson.Alpm.PackageConflictQuestion.Remove.get -> bool
 Orson.Alpm.PackageConflictQuestion.Remove.set -> void
+Orson.Alpm.PackageVersion.CompareTo(object? obj) -> int
+Orson.Alpm.PackageVersion.CompareTo(Orson.Alpm.PackageVersion other) -> int
+Orson.Alpm.PackageVersion.Equals(Orson.Alpm.PackageVersion other) -> bool
+Orson.Alpm.PackageVersion.PackageVersion() -> void
+Orson.Alpm.PackageVersion.PackageVersion(string! version) -> void
+Orson.Alpm.PackageVersion.PackageVersion(System.ReadOnlySpan<byte> utf8Version) -> void
+Orson.Alpm.PackageVersion.TryFormat(System.Span<byte> utf8Destination, out int bytesWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider) -> bool
+Orson.Alpm.PackageVersion.TryFormat(System.Span<char> destination, out int charsWritten, System.ReadOnlySpan<char> format, System.IFormatProvider? provider) -> bool
+Orson.Alpm.PackageVersion.Utf8Span.get -> System.ReadOnlySpan<byte>
 Orson.Alpm.RemoveUnresolvablePackagesQuestion
-Orson.Alpm.RemoveUnresolvablePackagesQuestion.Packages.get -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView!>!
 Orson.Alpm.RemoveUnresolvablePackagesQuestion.RemoveUnresolvablePackagesQuestion() -> void
 Orson.Alpm.RemoveUnresolvablePackagesQuestion.Skip.get -> bool
 Orson.Alpm.RemoveUnresolvablePackagesQuestion.Skip.set -> void
 Orson.Alpm.ReplacePackageQuestion
-Orson.Alpm.ReplacePackageQuestion.NewPackage.get -> Orson.Alpm.PackageView!
 Orson.Alpm.ReplacePackageQuestion.NewPackageDatabase.get -> string?
 Orson.Alpm.ReplacePackageQuestion.NewPackageName.get -> string?
 Orson.Alpm.ReplacePackageQuestion.NewPackageVersion.get -> string?
-Orson.Alpm.ReplacePackageQuestion.OldPackage.get -> Orson.Alpm.PackageView!
 Orson.Alpm.ReplacePackageQuestion.OldPackageName.get -> string?
 Orson.Alpm.ReplacePackageQuestion.OldPackageVersion.get -> string?
 Orson.Alpm.ReplacePackageQuestion.Replace.get -> bool
@@ -73,7 +76,6 @@ Orson.Alpm.SelectProviderQuestion
 Orson.Alpm.SelectProviderQuestion.DependencyDescription.get -> string?
 Orson.Alpm.SelectProviderQuestion.DependencyName.get -> string?
 Orson.Alpm.SelectProviderQuestion.DependencyVersion.get -> string?
-Orson.Alpm.SelectProviderQuestion.Providers.get -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView!>!
 Orson.Alpm.SelectProviderQuestion.SelectProviderQuestion() -> void
 Orson.Alpm.SelectProviderQuestion.UseIndex.get -> int
 Orson.Alpm.SelectProviderQuestion.UseIndex.set -> void
@@ -121,3 +123,6 @@ Orson.Alpm.SelectProviderQuestion.UseIndex.set -> void
 *REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider.Version.get -> string!
 *REMOVED*Orson.Alpm.AlpmSession.AlpmSession(string! root, string! dbpath) -> void
 static Orson.Alpm.AlpmSession.Acquire(string! root, string! dbpath) -> Orson.Alpm.AlpmSession!
+static Orson.Alpm.PackageVersion.operator !=(Orson.Alpm.PackageVersion left, Orson.Alpm.PackageVersion right) -> bool
+static Orson.Alpm.PackageVersion.operator ==(Orson.Alpm.PackageVersion left, Orson.Alpm.PackageVersion right) -> bool
+
