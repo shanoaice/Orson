@@ -1,4 +1,5 @@
 using Orson.Alpm.Bindings;
+using Orson.Alpm.Interop;
 
 namespace Orson.Alpm;
 
@@ -69,7 +70,7 @@ internal sealed unsafe class AssumeInstalled(SafeAlpmHandle handle, Lifetime lif
 
   private protected override void Release(byte* item, bool owned)
   {
-    if (owned) Dependency.FreeNative((_alpm_depend_t*)item);
+    if (owned) UnmanagedDestructors.DependFree((_alpm_depend_t*)item);
   }
 
   private protected override AlpmList<Dependency> View(_alpm_list_t* list) => Dependency.ListFactory(list, Lifetime);

@@ -50,4 +50,14 @@ internal static partial class UnmanagedDestructors
   {
     NativeMethods.alpm_fileconflict_free((_alpm_fileconflict_t*)ptr);
   }
+
+  /// <summary>Releases an unmanaged <c>alpm_depend_t</c> struct allocated by managed code.</summary>
+  internal static unsafe void DependFree(_alpm_depend_t* native)
+  {
+    if (native == null) return;
+    if (native->name != null) NativeMemory.Free(native->name);
+    if (native->version != null) NativeMemory.Free(native->version);
+    if (native->desc != null) NativeMemory.Free(native->desc);
+    NativeMemory.Free(native);
+  }
 }

@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Orson.Alpm.Bindings;
+using Orson.Alpm.Interop;
 
 namespace Orson.Alpm;
 
@@ -92,7 +93,7 @@ public sealed unsafe class Dependency
   /// Materialises a native <c>alpm_depend_t</c> carrying this snapshot for native calls that accept a dependency
   /// pointer.
   /// </summary>
-  /// <remarks>The caller owns the returned pointer and must release it using <see cref="FreeNative" />.</remarks>
+  /// <remarks>The caller owns the returned pointer and must release it using <see cref="UnmanagedDestructors.DependFree" />.</remarks>
   internal _alpm_depend_t* ToNative()
   {
     var native = (_alpm_depend_t*)NativeMemory.Alloc((nuint)sizeof(_alpm_depend_t));
@@ -102,17 +103,6 @@ public sealed unsafe class Dependency
     native->name_hash = default;
     native->mod_ = (_alpm_depmod_t)(uint)Depmod;
     return native;
-  }
-
-  /// <summary>Releases a struct produced by <see cref="ToNative" />.</summary>
-  internal static void FreeNative(_alpm_depend_t* native)
-  {
-    if (native == null) return;
-
-    if (native->name != null) NativeMemory.Free(native->name);
-    if (native->version != null) NativeMemory.Free(native->version);
-    if (native->desc != null) NativeMemory.Free(native->desc);
-    NativeMemory.Free(native);
   }
 }
 

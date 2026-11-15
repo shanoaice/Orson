@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Orson.Alpm.Bindings;
+using Orson.Alpm.Interop;
 using Orson.Alpm.Tests.Fixtures;
 
 namespace Orson.Alpm.Tests.Unit.Options;
@@ -67,7 +68,7 @@ public sealed unsafe class AssumeInstalledOptionTests : IDisposable
     }
     finally
     {
-      Dependency.FreeNative(native);
+      UnmanagedDestructors.DependFree(native);
     }
   }
 
