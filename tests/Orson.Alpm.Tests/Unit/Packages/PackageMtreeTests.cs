@@ -26,7 +26,7 @@ public sealed class PackageMtreeTests : IDisposable
     _environment.Install(name, mtree: mtreeContent);
 
     _environment.ReopenSession();
-    var pkg = _environment.AlpmSession.GetLocalDatabase().GetPackage(name)!;
+    var pkg = _environment.AlpmSession.GetLocalDatabase().GetPackage(name)!.Value;
 
     var entries = pkg.GetMtreeEntries();
     Assert.NotNull(entries);
@@ -132,7 +132,7 @@ public sealed class PackageMtreeTests : IDisposable
       """;
     _environment.Install("orson-mtree-detached", mtree: mtreeContent);
     _environment.ReopenSession();
-    var pkg = _environment.AlpmSession.GetLocalDatabase().GetPackage("orson-mtree-detached")!;
+    var pkg = _environment.AlpmSession.GetLocalDatabase().GetPackage("orson-mtree-detached")!.Value;
     var entries = pkg.GetMtreeEntries()!;
     Assert.NotNull(entries);
     _environment.ReopenSession();

@@ -47,7 +47,10 @@ public sealed partial class Transaction
   internal unsafe bool TryAddPackage(PackageView pkg, [NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
-    ArgumentNullException.ThrowIfNull(pkg);
+    if (pkg == default)
+    {
+      throw new ArgumentException("The package view is uninitialized.", nameof(pkg));
+    }
 
     var err = NativeMethods.alpm_add_pkg(_session.Handle, pkg.BackingStruct);
     if (err != 0)
@@ -62,7 +65,7 @@ public sealed partial class Transaction
 
   /// <summary>The failure-returning seam for <see cref="AddPackage(LoadedPackage)" />.</summary>
   internal unsafe bool TryAddPackage(LoadedPackage pkg,
-    [NotNullWhen(true)] out PackageView? view,
+    out PackageView view,
     [NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
@@ -76,7 +79,7 @@ public sealed partial class Transaction
     if (err != 0)
     {
       _completionState = CompletionState.Faulted;
-      view = null;
+      view = default;
       failure = AlpmFailure.Of(_session.Handle, "add package");
       return false;
     }
@@ -94,7 +97,10 @@ public sealed partial class Transaction
   internal unsafe bool TryRemovePackage(PackageView pkg, [NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
-    ArgumentNullException.ThrowIfNull(pkg);
+    if (pkg == default)
+    {
+      throw new ArgumentException("The package view is uninitialized.", nameof(pkg));
+    }
 
     var err = NativeMethods.alpm_remove_pkg(_session.Handle, pkg.BackingStruct);
     if (err != 0)

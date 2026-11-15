@@ -23,10 +23,12 @@ public unsafe ref struct InstallIgnorePackageQuestion
   /// </summary>
   public string? PackageVersion { get; }
 
+  private PackageView? _package;
+
   /// <summary>
   /// The <see cref="PackageView"/> of the package being installed.
   /// </summary>
-  public PackageView Package => field ??= new PackageView(_raw->install_ignorepkg.pkg, _packageLifetime);
+  public PackageView Package => _package ??= new PackageView(_raw->install_ignorepkg.pkg, _packageLifetime);
 
   /// <summary>
   /// The answer of whether to install this package.
@@ -87,11 +89,14 @@ public unsafe ref struct ReplacePackageQuestion
   /// </remarks>
   public string? NewPackageDatabase { get; }
 
+  private PackageView? _oldPackage;
+  private PackageView? _newPackage;
+
   /// <summary>The existing package to be replaced as a borrowed view.</summary>
-  public PackageView OldPackage => field ??= new PackageView(_raw->replace.oldpkg, _oldPackageLifetime);
+  public PackageView OldPackage => _oldPackage ??= new PackageView(_raw->replace.oldpkg, _oldPackageLifetime);
 
   /// <summary>The replacement package as a borrowed view.</summary>
-  public PackageView NewPackage => field ??= new PackageView(_raw->replace.newpkg, _newPackageLifetime);
+  public PackageView NewPackage => _newPackage ??= new PackageView(_raw->replace.newpkg, _newPackageLifetime);
 
   /// <summary>Gets or sets whether the package should be replaced.</summary>
   public readonly bool Replace
@@ -157,11 +162,14 @@ public unsafe ref struct PackageConflictQuestion
   /// <summary>The description of the conflict reason.</summary>
   public string? ConflictDescription { get; }
 
+  private PackageView? _package1;
+  private PackageView? _package2;
+
   /// <summary>The first conflicting package as a borrowed view.</summary>
-  public PackageView Package1 => field ??= new PackageView(_raw->conflict.conflict->package1, _package1Lifetime);
+  public PackageView Package1 => _package1 ??= new PackageView(_raw->conflict.conflict->package1, _package1Lifetime);
 
   /// <summary>The second conflicting package as a borrowed view.</summary>
-  public PackageView Package2 => field ??= new PackageView(_raw->conflict.conflict->package2, _package2Lifetime);
+  public PackageView Package2 => _package2 ??= new PackageView(_raw->conflict.conflict->package2, _package2Lifetime);
 
   /// <summary>Gets or sets whether the conflicting package should be removed.</summary>
   public readonly bool Remove

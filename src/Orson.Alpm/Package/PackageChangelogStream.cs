@@ -11,11 +11,11 @@ namespace Orson.Alpm;
 /// </remarks>
 internal sealed unsafe class PackageChangelogStream : Stream
 {
-  private readonly Package _package;
+  private readonly PackageView _package;
   private void* _fp;
   private bool _disposed;
 
-  internal PackageChangelogStream(Package package, void* fp)
+  internal PackageChangelogStream(PackageView package, void* fp)
   {
     _package = package;
     _fp = fp;
@@ -56,7 +56,7 @@ internal sealed unsafe class PackageChangelogStream : Stream
     fixed (byte* ptr = buffer)
     {
       var readBytes = NativeMethods.alpm_pkg_changelog_read(ptr, (nuint)buffer.Length, _package.BackingStruct, _fp);
-      GC.KeepAlive(_package);
+      GC.KeepAlive(_package.LifetimeDomain);
       return (int)readBytes;
     }
   }
@@ -72,6 +72,7 @@ internal sealed unsafe class PackageChangelogStream : Stream
       if (_fp != null)
       {
         _ = NativeMethods.alpm_pkg_changelog_close(_package.BackingStruct, _fp);
+        GC.KeepAlive(_package.LifetimeDomain);
         _fp = null;
       }
       _disposed = true;

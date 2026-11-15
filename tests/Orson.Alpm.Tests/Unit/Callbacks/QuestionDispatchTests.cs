@@ -239,7 +239,7 @@ public sealed unsafe class QuestionDispatchTests : IDisposable
     QuestionCb(QuestionCtx, &native);
 
     Assert.NotNull(observedPackage);
-    Assert.Equal("orson-dispatch-fallback-pkg", observedPackage.Name);
+    Assert.Equal("orson-dispatch-fallback-pkg", observedPackage.Value.Name);
   }
 
   [Fact]
@@ -261,12 +261,12 @@ public sealed unsafe class QuestionDispatchTests : IDisposable
     QuestionCb(QuestionCtx, &native);
 
     Assert.NotNull(observedPackage);
-    Assert.Equal("orson-dispatch-tx-pkg", observedPackage.Name);
+    Assert.Equal("orson-dispatch-tx-pkg", observedPackage.Value.Name);
 
     // Disposing transaction invalidates its lifetime domain; accessing the package view now throws
     tx.Dispose();
 
-    Assert.Throws<AlpmLifetimeException>(() => observedPackage.Name);
+    Assert.Throws<AlpmLifetimeException>(() => observedPackage.Value.Name);
   }
 
   // =========================================================================

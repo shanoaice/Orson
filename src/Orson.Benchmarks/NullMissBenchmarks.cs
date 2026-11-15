@@ -22,7 +22,7 @@ public class NullMissBenchmarks
   private const int Reads = 50_000;
 
   private AlpmSession _alpm = null!;
-  private PackageView _pkg = null!;
+  private PackageView _pkg;
 
   [GlobalSetup]
   public void Setup()

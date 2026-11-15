@@ -148,8 +148,9 @@ public sealed class PackageTransferTests : IDisposable
       installer.Commit();
     }
 
-    var installed = _environment.AlpmSession.GetLocalDatabase().GetPackage("orson-installed");
-    Assert.NotNull(installed);
+    var installedOpt = _environment.AlpmSession.GetLocalDatabase().GetPackage("orson-installed");
+    Assert.NotNull(installedOpt);
+    var installed = installedOpt.Value;
 
     using var transaction = _environment.AlpmSession.BeginTransaction();
 

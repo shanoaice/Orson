@@ -127,9 +127,7 @@ public sealed unsafe class QuestionStructTests : IDisposable
     Assert.False(question.Replace);
 
     // 2. Verify lazy PackageView properties
-    Assert.NotNull(question.OldPackage);
     Assert.Equal("orson-payload-oldpkg", question.OldPackage.Name);
-    Assert.NotNull(question.NewPackage);
     Assert.Equal("orson-payload-newpkg", question.NewPackage.Name);
 
     // 3. When native answer field is set, managed property reflects it
@@ -236,12 +234,8 @@ public sealed unsafe class QuestionStructTests : IDisposable
       Assert.Equal("libconflict", question.ConflictName);
       Assert.Equal(">=1.0.0", question.ConflictVersion);
       Assert.Equal("conflicts with provided feature", question.ConflictDescription);
-      Assert.False(question.Remove);
-
-      Assert.NotNull(question.Package1);
       Assert.Equal("orson-payload-pkg1", question.Package1.Name);
       Assert.Contains(question.Package1.Files, file => file.Name == "usr/bin/probe");
-      Assert.NotNull(question.Package2);
       Assert.Equal("orson-payload-pkg2", question.Package2.Name);
       Assert.Contains(question.Package2.Files, file => file.Name == "usr/bin/probe");
 

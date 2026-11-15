@@ -38,7 +38,7 @@ public enum PackageOperation : uint
 /// <remarks>
 /// Event payloads carrying package views are borrowed references valid only for the duration of the callback execution
 /// frame. Callers wishing to retain package data after the callback returns must call
-/// <see cref="Package.ToSnapshot" /> to create an independent managed snapshot.
+/// <see cref="PackageView.ToSnapshot" /> to create an independent managed snapshot.
 /// <para>
 /// The set of subclasses is closed: it mirrors <c>_alpm_event_type_t</c>, and <c>FromUnion</c> is the only thing
 /// that creates one - every subclass is sealed, so the union cannot grow a member libalpm does not have.
@@ -169,8 +169,8 @@ public abstract class AlpmEvent
     {
       var newpkg = native->package_operation.newpkg;
       var oldpkg = native->package_operation.oldpkg;
-      NewPackage = newpkg == null ? null : new PackageView(newpkg, lifetime);
-      OldPackage = oldpkg == null ? null : new PackageView(oldpkg, lifetime);
+      NewPackage = newpkg == null || lifetime == null ? null : new PackageView(newpkg, lifetime);
+      OldPackage = oldpkg == null || lifetime == null ? null : new PackageView(oldpkg, lifetime);
       Operation = (PackageOperation)(uint)native->package_operation.operation;
     }
 
@@ -191,8 +191,8 @@ public abstract class AlpmEvent
     {
       var newpkg = native->package_operation.newpkg;
       var oldpkg = native->package_operation.oldpkg;
-      NewPackage = newpkg == null ? null : new PackageView(newpkg, lifetime);
-      OldPackage = oldpkg == null ? null : new PackageView(oldpkg, lifetime);
+      NewPackage = newpkg == null || lifetime == null ? null : new PackageView(newpkg, lifetime);
+      OldPackage = oldpkg == null || lifetime == null ? null : new PackageView(oldpkg, lifetime);
       Operation = (PackageOperation)(uint)native->package_operation.operation;
     }
 
@@ -287,6 +287,7 @@ public abstract class AlpmEvent
   {
     internal unsafe OptionalDependencyRemoval(_alpm_event_t* native, ChildLifetime? lifetime)
     {
+      ArgumentNullException.ThrowIfNull(lifetime);
       OptionalDependency = new Dependency(native->optdep_removal.optdep);
       Package = new PackageView(native->optdep_removal.pkg, lifetime);
     }
@@ -347,8 +348,8 @@ public abstract class AlpmEvent
       var oldpkg = native->pacnew_created.oldpkg;
       var newpkg = native->pacnew_created.newpkg;
       FromNoUpgrade = native->pacnew_created.from_noupgrade != 0;
-      OldPackage = oldpkg == null ? null : new PackageView(oldpkg, lifetime);
-      NewPackage = newpkg == null ? null : new PackageView(newpkg, lifetime);
+      OldPackage = oldpkg == null || lifetime == null ? null : new PackageView(oldpkg, lifetime);
+      NewPackage = newpkg == null || lifetime == null ? null : new PackageView(newpkg, lifetime);
       File = NativeString.FromNative((nint)native->pacnew_created.file) ?? "";
     }
 
@@ -369,7 +370,7 @@ public abstract class AlpmEvent
     internal unsafe PacsaveCreated(_alpm_event_t* native, ChildLifetime? lifetime)
     {
       var oldpkg = native->pacsave_created.oldpkg;
-      OldPackage = oldpkg == null ? null : new PackageView(oldpkg, lifetime);
+      OldPackage = oldpkg == null || lifetime == null ? null : new PackageView(oldpkg, lifetime);
       File = NativeString.FromNative((nint)native->pacsave_created.file) ?? "";
     }
 

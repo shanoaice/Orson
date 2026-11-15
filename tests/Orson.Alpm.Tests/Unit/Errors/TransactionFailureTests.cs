@@ -183,14 +183,14 @@ public sealed unsafe class TransactionFailureTests : IDisposable
     // First add succeeds; transaction takes ownership.
     var ok1 = transaction.TryAddPackage(pkg1, out var view1, out var failure1);
     Assert.True(ok1);
-    Assert.NotNull(view1);
+    Assert.Equal("orson-dup-target", view1.Name);
     Assert.Null(failure1);
     Assert.False(pkg1.OwnsPackage);
 
     // Second add fails with DuplicateTarget.
     var ok2 = transaction.TryAddPackage(pkg2, out var view2, out var failure2);
     Assert.False(ok2);
-    Assert.Null(view2);
+    Assert.Equal(default, view2);
     Assert.NotNull(failure2);
     Assert.Equal(AlpmFailureCode.DuplicateTarget, failure2.Code);
 

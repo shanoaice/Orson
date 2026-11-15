@@ -20,17 +20,16 @@
 AlpmSession.TryInitializeHandle | 2 | SafeAlpmHandle ownership | The raw handle returned by alpm_initialize is passed straight into new SafeAlpmHandle(ownsHandle: true); every managed call marshals through that SafeHandle, and SafeAlpmHandle.ReleaseHandle ends the native handle with alpm_release as a critical finalizer. Covers both the alpm_initialize call and the new SafeAlpmHandle construction.
 
 AlpmCallbacks.ResolvePackageLifetime | 1 | delegated to caller | alpm_pkg_get_db is called during a synchronous question callback where the native handle and transaction/database are live on the native call stack. Resolves the unmanaged package pointer to the corresponding ChildLifetime.
-AlpmCallbacks.ResolvePackageViews | 1 | token-carrying construction | Constructs PackageView instances for provider packages using the ChildLifetime resolved by ResolvePackageLifetime.
 
-InstallIgnorePackageQuestion | 3 | delegated to caller and token-carrying construction | Constructed during the question callback with a non-null ChildLifetime; the constructor copies package name and version out eagerly, and get_Package constructs a PackageView anchored to that lifetime token.
+InstallIgnorePackageQuestion | 2 | delegated to caller and token-carrying construction | Constructed during the question callback with a non-null ChildLifetime; the constructor copies package name and version out eagerly, and get_Package constructs a PackageView anchored to that lifetime token.
 
-ReplacePackageQuestion | 7 | delegated to caller and token-carrying construction | Constructed during the question callback with non-null ChildLifetime tokens; the constructor copies old/new package names, versions, and new database name out eagerly, and get_OldPackage / get_NewPackage construct PackageViews anchored to those lifetime tokens.
+ReplacePackageQuestion | 5 | delegated to caller and token-carrying construction | Constructed during the question callback with non-null ChildLifetime tokens; the constructor copies old/new package names, versions, and new database name out eagerly, and get_OldPackage / get_NewPackage construct PackageViews anchored to those lifetime tokens.
 
-PackageConflictQuestion | 6 | delegated to caller and token-carrying construction | Constructed during the question callback with non-null ChildLifetime tokens; the constructor copies package names, versions, and conflict reasons out eagerly from libalpm's conflict struct, and get_Package1 / get_Package2 construct PackageViews anchored to those lifetime tokens.
+PackageConflictQuestion | 4 | delegated to caller and token-carrying construction | Constructed during the question callback with non-null ChildLifetime tokens; the constructor copies package names, versions, and conflict reasons out eagerly from libalpm's conflict struct, and get_Package1 / get_Package2 construct PackageViews anchored to those lifetime tokens.
 
 AlpmDownloadEvent | 4 | delegated to caller | FromUnion receives the download-event union by parameter and copies it out eagerly. Its only caller is AlpmCallbacks.DownloadAgent, which runs inside the libalpm download callback whose frame already keeps the handle owner alive.
 
-AlpmEvent | 23 | delegated to caller | FromUnion receives the event union by parameter and copies it out eagerly. Its only caller is AlpmCallbacks.EventAgent, which runs inside the libalpm call that owns the union. The PackageView values it builds are handed the callback's token so they stay readable exactly as long as the handle lives.
+AlpmEvent | 16 | delegated to caller | FromUnion receives the event union by parameter and copies it out eagerly. Its only caller is AlpmCallbacks.EventAgent, which runs inside the libalpm call that owns the union. The PackageView values it builds are handed the callback's token so they stay readable exactly as long as the handle lives.
 
 AlpmList`1 | 4 | receiver anchoring not modelled | ToArray reads the list through the Native accessor after Lifetime?.ThrowIfStale(), and Enumerator.Current anchors the owning view with GC.KeepAlive(_list). The validator only recognises GC.KeepAlive(this), so an anchor on a field of this is invisible to it. The view owns no handle itself; the memory belongs to the list the caller borrowed it from.
 
@@ -41,7 +40,7 @@ BackupEntry | 1 | delegated to caller | Factory(void*, Lifetime?) receives the e
 
 Conflict | 4 | delegated to caller | Factory(void*, Lifetime?) receives the conflict entry as a parameter and snapshots its names eagerly. The payload belongs to the caller's failure list and nothing is retained.
 
-Database | 12 | token-carrying construction and delegated Factory | Factory(void*, Lifetime?) delegates its pointer parameter to the call site. Its accessors either call GC.KeepAlive(this) or leave this live across the call, and Database.Lifetime is a non-nullable child of the handle's root token, so a live Database always roots the handle that owns backingStruct. The values it builds are handed that token, which is why the constructed-view sites read as Token ownership rather than Strong.
+Database | 11 | token-carrying construction and delegated Factory | Factory(void*, Lifetime?) delegates its pointer parameter to the call site. Its accessors either call GC.KeepAlive(this) or leave this live across the call, and Database.Lifetime is a non-nullable child of the handle's root token, so a live Database always roots the handle that owns backingStruct. The values it builds are handed that token, which is why the constructed-view sites read as Token ownership rather than Strong.
 
 MissingDependency | 1 | delegated to caller | Factory(void*, Lifetime?) receives the entry as a parameter and copies the target and causing package names out eagerly. Nothing is retained beyond the strings.
 
@@ -51,17 +50,14 @@ FileConflict | 1 | delegated to caller | Factory(void*, Lifetime?) receives the 
 
 FileList | 4 | KeepAlive proven but the token is nullable | get_Item calls GC.KeepAlive(this) before returning the materialised PackageFile. The file array is owned by the package and FileList.Lifetime is that package's token; the field is declared Lifetime? because a detached list disables the guard, not because a live list can lack an owner.
 
-Group | 5 | delegated Factory plus a parameter-owned call | Factory(void*, Lifetime?) receives the group pointer as a parameter and copies the name and package list out. FindPackages anchors the dbs parameter - its Lifetime is read after the native call, which keeps dbs may-live across it - and only incidentally calls GC.KeepAlive(this) on a Group that owns no native memory.
+Group | 4 | delegated Factory plus a parameter-owned call | Factory(void*, Lifetime?) receives the group pointer as a parameter and copies the name and package list out. FindPackages anchors the dbs parameter - its Lifetime is read after the native call, which keeps dbs may-live across it - and only incidentally calls GC.KeepAlive(this) on a Group that owns no native memory.
 
 LoadedPackage | 1 | owns the handle it is handed | The constructor takes the native pointer and its child lifetime token from Alpm.LoadPackage, which registers the pointer in the session registry for cleanup. The base constructor receives the pointer, and LoadedPackage.Dispose / Disown manage its lifecycle without a finalizer.
-
-Package | 48 | KeepAlive and receiver liveness proven but the token is nullable | Every accessor either calls GC.KeepAlive(this) or keeps this live across the native call, and Lifetime is a child token of the database, transaction or handle that owns BackingStruct, so a live package view always roots the memory it reads. The field is declared Lifetime? because the base constructor cannot set it (LoadedPackage creates its root token in its own constructor body) and because a snapshot taken when a callback's weak lifetime reference has already been collected is deliberately left unguarded rather than made to throw. The package views issued by Database, Transaction and Alpm always carry a non-null token.
 
 PackageFile | 1 | delegated to caller | Factory(void*, Lifetime?) receives the file entry as a parameter. PackageFile is an eager snapshot struct that copies mode, size and name out and retains no pointer.
 
 PackageVersion.CompareTo | 1 | owns no native memory | The type holds only a managed string. CompareTo marshals both operands into Utf8Buffer instances for the duration of alpm_pkg_vercmp, so no finalizer of this type could free what this call reads.
-PackageView | 10 | delegated to caller | Factory(void*, Lifetime?) receives the package pointer as a parameter. The constructor only stores the pointer and the token; it dereferences nothing, so the caller's view keeps both alive.
-Transaction | 1 | token-carrying construction | AddPackage builds PackageView from the transaction's own non-nullable Lifetime, which is a child of the handle's root token. The view therefore roots the handle that owns the package memory for as long as the caller holds the view.
+PackageView | 7 | delegated to caller | Factory(void*, Lifetime?) receives the package pointer as a parameter. The constructor only stores the pointer and the token; it dereferences nothing, so the caller's view keeps both alive.
 
 LoadedPackageRegistry.Unregister | 1 | delegated to caller | the native pointer is a method parameter: the anchoring obligation belongs to the call site
 LoadedPackageRegistry.Dispose | 1 | receiver on stack | The registry holds the raw pointers and disposes them in a sweep when the owning AlpmSession is disposed before releasing the native handle.
@@ -70,10 +66,10 @@ AlpmSession.get_Version | 1 | static library call | alpm_version takes no handle
 
 AlpmSession.get_Capabilities | 1 | static library call | alpm_capabilities takes no handle and returns a bitmask of compile-time capabilities.
 
-AlpmSession.ResolveDependency | 2 | token-carrying construction and database lookup | alpm_pkg_get_db and alpm_db_get_name resolve the owning database from the caller's databases, and the constructed PackageView receives that database's child lifetime token.
+AlpmSession.ResolveDependency | 1 | token-carrying construction and database lookup | alpm_pkg_get_db and alpm_db_get_name resolve the owning database from the caller's databases, and the constructed PackageView receives that database's child lifetime token.
 
-PackageChangelogStream | 2 | receiver on stack | PackageChangelogStream holds the owning Package instance, which roots the database or handle lifetime token for the package across changelog read and close operations.
+PackageChangelogStream | 2 | receiver on stack | PackageChangelogStream holds the owning PackageView instance, which roots the database or handle lifetime token for the package across changelog read and close operations.
 
 MtreeEntry | 9 | delegated to caller | FromNative takes a borrowed pointer to an archive_entry and copies path, mode, size, mtime, uid, gid, symlink and digest out eagerly into a managed record.
 
-PackageMtreeReader | 3 | receiver on stack | PackageMtreeReader holds the owning Package instance, which roots the database or handle lifetime token for the package across mtree read and close operations.
+PackageMtreeReader | 3 | receiver on stack | PackageMtreeReader holds the owning PackageView instance, which roots the database or handle lifetime token for the package across mtree read and close operations.

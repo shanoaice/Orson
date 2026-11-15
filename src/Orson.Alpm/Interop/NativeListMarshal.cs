@@ -33,9 +33,9 @@ internal static class NativeListMarshal
     {
       foreach (var pkg in packages)
       {
-        if (pkg is null)
+        if (pkg == default)
         {
-          throw new ArgumentException("The collection contains a null package.", nameof(packages));
+          throw new ArgumentException("The collection contains an uninitialized package view.", nameof(packages));
         }
 
         list = NativeMethods.alpm_list_add(list, pkg.BackingStruct);
@@ -81,6 +81,7 @@ internal static class NativeListMarshal
     _alpm_list_t* list = null;
     try
     {
+      // ReSharper disable once LoopCanBeConvertedToQuery
       foreach (var ptr in pointers)
       {
         list = NativeMethods.alpm_list_add(list, (void*)ptr);
@@ -127,6 +128,7 @@ internal static class NativeListMarshal
   {
     if (allocatedBuffers != null)
     {
+      // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
       foreach (var buf in allocatedBuffers)
       {
         if (buf != 0) NativeMemory.Free((void*)buf);

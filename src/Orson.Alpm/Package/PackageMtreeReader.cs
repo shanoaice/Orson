@@ -6,7 +6,7 @@ namespace Orson.Alpm;
 /// <summary>An internal forward-only reader over an installed package's mtree entries ( <c>.MTREE</c>).</summary>
 /// <remarks>
 /// <para>
-/// The reader is single-use and is owned by <see cref="Package.GetMtreeEntries" />, which materializes the
+/// The reader is single-use and is owned by <see cref="PackageView.GetMtreeEntries" />, which materializes the
 /// entries into a managed list and disposes the reader before returning. It is not part of the public API.
 /// </para>
 /// <para>
@@ -18,12 +18,12 @@ namespace Orson.Alpm;
 /// </remarks>
 internal sealed unsafe class PackageMtreeReader : IDisposable
 {
-  private readonly Package _package;
+  private readonly PackageView _package;
   private readonly archive* _archive;
   private MtreeEntry? _current;
   private bool _disposed;
 
-  internal PackageMtreeReader(Package package, archive* archive)
+  internal PackageMtreeReader(PackageView package, archive* archive)
   {
     _package = package;
     _archive = archive;
@@ -33,12 +33,6 @@ internal sealed unsafe class PackageMtreeReader : IDisposable
   internal MtreeEntry Current => _current ?? throw new InvalidOperationException("Enumeration has not started or has already completed.");
 
   /// <summary>Advances the reader to the next entry in the mtree stream.</summary>
-  /// <returns><c>true</c> if the reader successfully advanced to the next entry; <c>false</c> if the end was reached.</returns>
-  /// <exception cref="AlpmNativeFailureException">
-  /// libalpm reported a read failure without setting an error code, e.g. a
-  /// malformed entry.
-  /// </exception>
-  /// <exception cref="AlpmException">The read failed with an <c>ALPM_ERR_*</c> code.</exception>
   internal bool MoveNext()
   {
     if (_disposed || _archive == null) return false;
@@ -54,24 +48,17 @@ internal sealed unsafe class PackageMtreeReader : IDisposable
 
     if (ret < 0 || entry == null)
     {
-      // alpm_pkg_mtree_next returns -1 without setting pm_errno when an entry fails to
-      // read, so this throws AlpmNativeFailureException. The errno is read here, as the
-      // first statement of the failure branch, before another libalpm call can overwrite it.
       var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-      GC.KeepAlive(_package);
+      GC.KeepAlive(_package.LifetimeDomain);
       throw AlpmFailure.Of(rawErrno, "read package mtree").ToException();
     }
 
     _current = MtreeEntry.FromNative(entry);
-    GC.KeepAlive(_package);
+    GC.KeepAlive(_package.LifetimeDomain);
     return true;
   }
 
   /// <summary>Closes the native archive reader and releases unmanaged resources.</summary>
-  /// <exception cref="AlpmLifetimeException">
-  /// The session that owns the package has already ended. The native archive reader
-  /// then leaks.
-  /// </exception>
   public void Dispose()
   {
     if (_disposed) return;
@@ -81,6 +68,6 @@ internal sealed unsafe class PackageMtreeReader : IDisposable
     {
       _ = NativeMethods.alpm_pkg_mtree_close(_package.BackingStruct, _archive);
     }
-    GC.KeepAlive(_package);
+    GC.KeepAlive(_package.LifetimeDomain);
   }
 }

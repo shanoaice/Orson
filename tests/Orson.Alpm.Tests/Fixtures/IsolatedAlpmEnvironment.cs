@@ -72,7 +72,7 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
 
     var installed = AlpmSession.GetLocalDatabase().GetPackage(spec.Name);
     Assert.NotNull(installed);
-    return installed;
+    return installed.Value;
   }
 
   internal void ReopenSession()

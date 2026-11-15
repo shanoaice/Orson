@@ -64,14 +64,14 @@ public class QuestionPayloadLifetimeCostBenchmarks
   private const int PayloadSize = 4;
 
   private static readonly FieldInfo BackingStructField =
-    typeof(Package).GetField("BackingStruct", BindingFlags.Instance | BindingFlags.NonPublic)!;
+    typeof(PackageView).GetField("_rawPackage", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
   [DllImport("libalpm", EntryPoint = "alpm_pkg_get_db", CallingConvention = CallingConvention.Cdecl)]
   private static extern nint AlpmPkgGetDb(nint pkg);
 
   private AlpmSession _alpm = null!;
   private PackageView[] _payload = null!;
-  private PackageView _largest = null!;
+  private PackageView _largest;
   private nint[] _packagePointers = null!;
   private nint _largestPointer;
   private Token _rootToken = null!;
@@ -124,7 +124,7 @@ public class QuestionPayloadLifetimeCostBenchmarks
   /// <summary>Resolution (a), one package: native owner lookup plus the registry hit.</summary>
   private Token ResolveOwnerToken(nint package) => _registry[AlpmPkgGetDb(package)];
 
-  private static unsafe nint PointerOf(Package package)
+  private static unsafe nint PointerOf(PackageView package)
     => (nint)Pointer.Unbox(BackingStructField.GetValue(package)!)!;
 
   // ---- Per package -------------------------------------------------------------------------

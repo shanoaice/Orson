@@ -60,12 +60,25 @@ public static class CachyOs
   /// <exception cref="AlpmLifetimeException">The lifetime domain that owns the package has been invalidated.</exception>
   /// <exception cref="PlatformNotSupportedException">The installed libalpm does not export <c>alpm_pkg_get_installed_db</c>.</exception>
   [PublicAPI]
-  public static unsafe string? GetInstalledDatabase(this Package package)
+  public static unsafe string? GetInstalledDatabase(this PackageView package)
   {
-    ArgumentNullException.ThrowIfNull(package);
+    if (package == default)
+    {
+      throw new ArgumentException("The package view is uninitialized.", nameof(package));
+    }
     var ptr = CachyOsMethods.alpm_pkg_get_installed_db(package.BackingStruct);
     var result = NativeString.FromNative((nint)ptr);
-    GC.KeepAlive(package);
+    GC.KeepAlive(package.LifetimeDomain);
     return result;
+  }
+
+  /// <summary>
+  /// Gets the name of the sync database from which this installed package originated.
+  /// </summary>
+  [PublicAPI]
+  public static unsafe string? GetInstalledDatabase(this LoadedPackage package)
+  {
+    ArgumentNullException.ThrowIfNull(package);
+    return package.View.GetInstalledDatabase();
   }
 }

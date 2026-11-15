@@ -63,12 +63,12 @@ public sealed class AlpmDatabaseException(int errno, string? strError = null, st
 public sealed class AlpmPackageException(
   int errno,
   string? strError = null,
-  Package? package = null,
+  IPackageMetadata? package = null,
   string? context = null)
   : AlpmException(errno, strError, context)
 {
   /// <summary>The package the failed call was operating on, when known.</summary>
-  public Package? Package { get; } = package;
+  public IPackageMetadata? Package { get; } = package;
 }
 
 /// <summary>A signature or keyring error (<c>ALPM_ERR_SIG_*</c>, missing signature support).</summary>

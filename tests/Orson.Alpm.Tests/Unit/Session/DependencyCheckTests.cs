@@ -66,7 +66,7 @@ public sealed class DependencyCheckTests
 
     var localDb = env.AlpmSession.GetLocalDatabase();
     var packages = localDb.LoadPackageCache();
-    var libfoo = localDb.GetPackage("libfoo")!;
+    var libfoo = localDb.GetPackage("libfoo")!.Value;
     var result = env.AlpmSession.CheckDependencies(packages, remove: [libfoo], upgrade: [], reverseDependencies: true);
     var missing = Assert.Single(result);
     Assert.Equal("app-needs-libfoo", missing.Target);

@@ -189,7 +189,7 @@ public sealed class TrySeamContractTests : IDisposable
     var ok = tx.TryAddPackage(pkg, out var view, out var failure);
 
     Assert.True(ok);
-    Assert.NotNull(view);
+    Assert.Equal("orson-add-loaded", view.Name);
     Assert.Null(failure);
     Assert.False(pkg.OwnsPackage);
   }
@@ -210,7 +210,7 @@ public sealed class TrySeamContractTests : IDisposable
     Assert.NotNull(installed);
 
     using var remover = _environment.AlpmSession.BeginTransaction();
-    var ok = remover.TryRemovePackage(installed, out var failure);
+    var ok = remover.TryRemovePackage(installed.Value, out var failure);
 
     Assert.True(ok);
     Assert.Null(failure);
@@ -233,7 +233,7 @@ public sealed class TrySeamContractTests : IDisposable
 
     using var tx = _environment.AlpmSession.BeginTransaction();
     // Adding an already-installed package to a transaction is refused with ALPM_ERR_WRONG_ARGS
-    var ok = tx.TryAddPackage(installed, out var failure);
+    var ok = tx.TryAddPackage(installed.Value, out var failure);
 
     Assert.False(ok);
     Assert.NotNull(failure);

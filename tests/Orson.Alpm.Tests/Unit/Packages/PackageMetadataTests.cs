@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using Orson.Alpm.Tests.Fixtures;
 
@@ -135,8 +136,8 @@ public sealed class PackageMetadataTests : IDisposable
 
     // The second case used to overflow offset + count into a negative value and fall through to
     // Span's own range check; both must fail the standard bounds check with the same exception type.
-    Assert.IsType<ArgumentException>(Record.Exception(() => stream.Read(new byte[4], 3, 5)));
-    Assert.IsType<ArgumentException>(Record.Exception(() => stream.Read(new byte[4], int.MaxValue, 1)));
+    Assert.Throws<ArgumentException>(() => stream.Read(new byte[4], 3, 5));
+    Assert.Throws<ArgumentException>(() => stream.Read(new byte[4], int.MaxValue, 1));
   }
 
   [Fact]
@@ -211,13 +212,15 @@ public sealed class PackageMetadataTests : IDisposable
       var replaces = Assert.Single(loaded.Replaces);
       Assert.Equal("old-meta", replaces.Name);
 
-      var backup = Assert.Single(loaded.BackupFiles);
+      Assert.NotNull(loaded.BackupFiles);
+      var backup = Assert.Single(loaded.BackupFiles!);
       Assert.Equal("etc/meta.conf", backup.Name);
 
       var snapshot = loaded.ToSnapshot(includeFiles: true);
       Assert.Equal(loaded.Name, snapshot.Name);
       Assert.NotNull(snapshot.Files);
-      Assert.Equal(loaded.Files.Count, snapshot.Files.Count);
+      Assert.NotNull(loaded.Files);
+      Assert.Equal(loaded.Files!.Count, snapshot.Files.Count);
       Assert.Equal(loaded.CheckDepends.Select(d => d.Name), snapshot.CheckDepends.Select(d => d.Name));
       Assert.Equal(loaded.MakeDepends.Select(d => d.Name), snapshot.MakeDepends.Select(d => d.Name));
       Assert.Equal(loaded.DownloadSize, snapshot.DownloadSize);
@@ -249,8 +252,9 @@ public sealed class PackageMetadataTests : IDisposable
       tx.Commit();
     }
 
-    var installed = _environment.AlpmSession.GetLocalDatabase().GetPackage("meta-pkg");
-    Assert.NotNull(installed);
+    var installedOpt = _environment.AlpmSession.GetLocalDatabase().GetPackage("meta-pkg");
+    Assert.NotNull(installedOpt);
+    var installed = installedOpt.Value;
     Assert.Equal(PackageOrigin.LocalDatabase, installed.Origin);
     Assert.NotNull(installed.InstallDate);
     Assert.True(installed.InstallDate.Value.ToUnixTimeSeconds() > 0);
@@ -279,8 +283,9 @@ public sealed class PackageMetadataTests : IDisposable
       tx.Commit();
     }
 
-    var pkg = _environment.AlpmSession.GetLocalDatabase().GetPackage("files-pkg");
-    Assert.NotNull(pkg);
+    var pkgOpt = _environment.AlpmSession.GetLocalDatabase().GetPackage("files-pkg");
+    Assert.NotNull(pkgOpt);
+    var pkg = pkgOpt.Value;
 
     Assert.Equal(2, pkg.Files.Count);
     Assert.Equal("etc/a.conf", pkg.Files[0].Name);
@@ -292,18 +297,78 @@ public sealed class PackageMetadataTests : IDisposable
     Assert.Throws<ArgumentNullException>(() => pkg.Files.FindFile(null!));
 
     using var enumerator = pkg.Files.GetEnumerator();
-    Assert.Throws<InvalidOperationException>(() => _ = enumerator.Current);
+    Assert.Throws<InvalidOperationException>(() => { _ = enumerator.Current; });
 
     Assert.True(enumerator.MoveNext());
     Assert.Equal("etc/a.conf", enumerator.Current.Name);
     Assert.True(enumerator.MoveNext());
     Assert.Equal("usr/bin/tool", enumerator.Current.Name);
     Assert.False(enumerator.MoveNext());
-    Assert.Throws<InvalidOperationException>(() => _ = enumerator.Current);
+    Assert.Throws<InvalidOperationException>(() => { _ = enumerator.Current; });
 
     enumerator.Reset();
-    Assert.Throws<InvalidOperationException>(() => _ = enumerator.Current);
+    Assert.Throws<InvalidOperationException>(() => { _ = enumerator.Current; });
     Assert.True(enumerator.MoveNext());
     Assert.Equal("etc/a.conf", enumerator.Current.Name);
   }
+
+  [Fact]
+  public void PackageView_SizeOf_Is40Bytes()
+  {
+    Assert.Equal(40, Unsafe.SizeOf<PackageView>());
+  }
+
+  [Fact]
+  public void PackageView_ZeroCopyUtf8Spans_MatchExpectedUtf8()
+  {
+    var pkg = _environment.Install(new PackageSpec("utf8-spec-pkg")
+    {
+      Version = "1.0.0-1",
+      Description = "A test package description"
+    });
+
+    Assert.True(pkg.NameUtf8.SequenceEqual("utf8-spec-pkg"u8));
+    Assert.True(pkg.VersionUtf8.SequenceEqual("1.0.0-1"u8));
+    Assert.False(pkg.DescriptionUtf8.IsEmpty);
+    Assert.True(pkg.DescriptionUtf8.SequenceEqual("A test package description"u8));
+  }
+
+  [Fact]
+  public void PackageSnapshot_FilesAndBackupGating_Respected()
+  {
+    var pkg = _environment.Install(new PackageSpec("gating-pkg")
+    {
+      Files = ["usr/bin/tool", "etc/config"],
+      BackupFiles = ["etc/config"]
+    });
+
+    var snapshotWithoutFiles = pkg.ToSnapshot();
+    Assert.Null(snapshotWithoutFiles.Files);
+    Assert.Null(snapshotWithoutFiles.BackupFiles);
+    Assert.Equal("gating-pkg", snapshotWithoutFiles.Name);
+
+    var snapshotWithFiles = pkg.ToSnapshot(includeFiles: true);
+    Assert.NotNull(snapshotWithFiles.Files);
+    Assert.NotNull(snapshotWithFiles.BackupFiles);
+    Assert.True(snapshotWithFiles.Files.Count > 0);
+    Assert.True(snapshotWithFiles.BackupFiles.Count > 0);
+  }
+
+  [Fact]
+  public void IPackageMetadata_ImplementedByPackageView_Snapshot_AndLoadedPackage()
+  {
+    var archive = PackageArchive.Create(_environment.PackageDirectory, new PackageSpec("interface-pkg"));
+    using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
+    var view = (PackageView)loaded;
+    var snapshot = view.ToSnapshot();
+
+    Assert.IsAssignableFrom<IPackageMetadata>(loaded);
+    Assert.IsAssignableFrom<IPackageMetadata>(view);
+    Assert.IsAssignableFrom<IPackageMetadata>(snapshot);
+
+    Assert.Equal("interface-pkg", ((IPackageMetadata)loaded).Name);
+    Assert.Equal("interface-pkg", ((IPackageMetadata)view).Name);
+    Assert.Equal("interface-pkg", ((IPackageMetadata)snapshot).Name);
+  }
 }
+

@@ -32,7 +32,7 @@ public sealed class CachedReadInvalidationTests : IDisposable
   public void EveryCachedMember_ThrowsOnceTheSessionIsGone()
   {
     Install("orson-cached-read-pkg");
-    var pkg = _environment.AlpmSession.GetLocalDatabase().GetPackage("orson-cached-read-pkg")!;
+    var pkg = _environment.AlpmSession.GetLocalDatabase().GetPackage("orson-cached-read-pkg")!.Value;
 
     Assert.Equal("orson-cached-read-pkg", pkg.Name);
     _ = pkg.Filename;

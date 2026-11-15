@@ -16,7 +16,7 @@ namespace Orson.Benchmarks;
 public class ListTraversalBenchmarks
 {
   private AlpmSession _alpm = null!;
-  private PackageView _pkg = null!;
+  private PackageView _pkg;
   private AlpmList<Dependency> _depends = null!;
 
   [GlobalSetup]
@@ -35,7 +35,7 @@ public class ListTraversalBenchmarks
         bestPkg = pkg;
       }
     }
-    _pkg = bestPkg!;
+    _pkg = bestPkg!.Value;
     _depends = _pkg.Depends;
   }
 

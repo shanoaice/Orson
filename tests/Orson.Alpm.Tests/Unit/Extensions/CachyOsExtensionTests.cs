@@ -70,7 +70,7 @@ public sealed class CachyOsExtensionTests
     }
     else
     {
-      Assert.Throws<PlatformNotSupportedException>(pkg.GetInstalledDatabase);
+      Assert.Throws<PlatformNotSupportedException>(() => pkg.GetInstalledDatabase());
     }
   }
 
@@ -93,7 +93,7 @@ public sealed class CachyOsExtensionTests
     var pkg = reopened.GetLocalDatabase().GetPackage("synced-pkg");
 
     Assert.NotNull(pkg);
-    Assert.Equal("core", pkg.GetInstalledDatabase());
+    Assert.Equal("core", pkg.Value.GetInstalledDatabase());
   }
 
   [Fact]
@@ -104,12 +104,13 @@ public sealed class CachyOsExtensionTests
 
     env.Dispose(); // dispose the environment and the associated AlpmSession
 
-    Assert.Throws<AlpmLifetimeException>(pkg.GetInstalledDatabase);
+    Assert.Throws<AlpmLifetimeException>(() => pkg.GetInstalledDatabase());
   }
 
   [Fact]
   public void GetInstalledDatabase_GuardsAgainstNullPackage()
   {
-    Assert.Throws<ArgumentNullException>(() => ((Package)null!).GetInstalledDatabase());
+    Assert.Throws<ArgumentNullException>(() => ((LoadedPackage)null!).GetInstalledDatabase());
+    Assert.Throws<ArgumentException>(() => default(PackageView).GetInstalledDatabase());
   }
 }

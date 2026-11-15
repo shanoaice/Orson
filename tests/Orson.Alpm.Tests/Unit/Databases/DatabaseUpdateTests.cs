@@ -45,7 +45,7 @@ public sealed class DatabaseUpdateTests : IDisposable
   {
     PackageArchive.CreateSyncDatabase(_environment.DatabasePath, "core", "core-pkg", "base-grp");
     var syncDb = _environment.AlpmSession.RegisterSyncDatabase("core", SigLevel.UseDefault);
-    var pkg = syncDb.GetPackage("core-pkg")!;
+    var pkg = syncDb.GetPackage("core-pkg")!.Value;
 
     syncDb.Unregister();
 

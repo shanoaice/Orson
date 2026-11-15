@@ -31,7 +31,7 @@ public enum Capability : uint
 /// libalpm is not thread-safe, so a session, the databases and transactions that hang off it, and every view they
 /// issue belong to one thread at a time. The rest of the library assumes this contract, and if you violates it, bad things
 /// WILL happen. Concurrent work belongs on other threads that hand results back to the session's thread, and anything that
-/// must cross a thread boundary should be copied out with <see cref="Package.ToSnapshot" /> first.
+/// must cross a thread boundary should be copied out with <see cref="PackageView.ToSnapshot" /> first.
 /// </remarks>
 public sealed partial class AlpmSession : IDisposable
 {

@@ -74,7 +74,7 @@ public class LifetimeCheckBenchmarks
     int count = 0;
     foreach (var pkg in _localPkgs)
     {
-      if (pkg is not null) count++;
+      if (pkg != default) count++;
     }
     return count;
   }
@@ -89,7 +89,7 @@ public class LifetimeCheckBenchmarks
     foreach (var pkg in _localPkgs)
     {
       _viewToken.ThrowIfStale();
-      if (pkg is not null) count++;
+      if (pkg != default) count++;
     }
     return count;
   }

@@ -214,20 +214,20 @@ internal enum LifetimeFacet
 /// </remarks>
 internal sealed class ChildLifetime : Lifetime
 {
-  private readonly RootLifetime _root;
-
   // Allocated on first use and indexed by LifetimeFacet. Null while the domain issues no facet: most
   // domains never need one, and the slot costs eight bytes per domain rather than a dictionary.
   private ChildLifetime?[]? _facets;
 
   internal ChildLifetime(object owner, string target, RootLifetime root) : base(owner, target)
   {
-    _root = root ?? throw new ArgumentNullException(nameof(root));
+    Root = root ?? throw new ArgumentNullException(nameof(root));
   }
+
+  internal RootLifetime Root { get; }
 
   internal override bool IsRoot => false;
 
-  internal override bool IsAlive => Generation == 0 && _root.Generation == 0;
+  internal override bool IsAlive => Generation == 0 && Root.Generation == 0;
 
   /// <summary>The facet domain of this resource, created on first use and reissued once it has been retired.</summary>
   /// <remarks>
@@ -246,7 +246,7 @@ internal sealed class ChildLifetime : Lifetime
     var current = facets[(int)facet];
     if (current is { IsAlive: true }) return current;
 
-    return facets[(int)facet] = new ChildLifetime(_owner, target, _root);
+    return facets[(int)facet] = new ChildLifetime(_owner, target, Root);
   }
 
   /// <summary>Retires the views of one facet, leaving this domain and the other facets alive.</summary>
@@ -275,7 +275,7 @@ internal sealed class ChildLifetime : Lifetime
     }
   }
 
-  private protected override LifetimeStamp CreateStamp() => new(this, _root);
+  private protected override LifetimeStamp CreateStamp() => new(this, Root);
 }
 
 /// <summary>

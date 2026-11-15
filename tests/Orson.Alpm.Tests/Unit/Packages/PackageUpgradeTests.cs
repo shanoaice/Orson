@@ -29,6 +29,6 @@ public sealed class PackageUpgradeTests : IDisposable
 
     var newer = installedPkg.GetNewVersion(_environment.AlpmSession.GetSyncDatabases());
     Assert.NotNull(newer);
-    Assert.Equal("2.0-1", newer.Version.ToString());
+    Assert.Equal("2.0-1", newer.Value.Version.ToString());
   }
 }

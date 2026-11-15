@@ -90,8 +90,9 @@ public sealed class LifetimeInvalidationTests : IDisposable
     Install("orson-precommit-pkg");
 
     var localDb = _environment.AlpmSession.GetLocalDatabase();
-    var preCommitView = localDb.GetPackage("orson-precommit-pkg");
-    Assert.NotNull(preCommitView);
+    var preCommitViewOpt = localDb.GetPackage("orson-precommit-pkg");
+    Assert.NotNull(preCommitViewOpt);
+    var preCommitView = preCommitViewOpt.Value;
 
     bool callbackRan = false;
     bool preCommitViewWasStaleInCallback = false;
@@ -151,8 +152,9 @@ public sealed class LifetimeInvalidationTests : IDisposable
 
     // A view obtained after the first commit, under the fresh token that commit issued.
     var localDb = _environment.AlpmSession.GetLocalDatabase();
-    var held = localDb.GetPackage("orson-lifetime-first");
-    Assert.NotNull(held);
+    var heldOpt = localDb.GetPackage("orson-lifetime-first");
+    Assert.NotNull(heldOpt);
+    var held = heldOpt.Value;
     Assert.Equal("orson-lifetime-first", held.Name);
 
     // The second commit rewrites the local database caches again.
@@ -169,8 +171,9 @@ public sealed class LifetimeInvalidationTests : IDisposable
 
     // ...while a fresh GetLocalDatabase() starts over with a new token and answers normally.
     var fresh = _environment.AlpmSession.GetLocalDatabase();
-    var reissued = fresh.GetPackage("orson-lifetime-first");
-    Assert.NotNull(reissued);
+    var reissuedOpt = fresh.GetPackage("orson-lifetime-first");
+    Assert.NotNull(reissuedOpt);
+    var reissued = reissuedOpt.Value;
     Assert.Equal("orson-lifetime-first", reissued.Name);
   }
 
@@ -181,8 +184,9 @@ public sealed class LifetimeInvalidationTests : IDisposable
     PackageArchive.CreateSyncDatabase(dbpath, "repo-sync", "pkg-sync", "sync-group");
 
     var syncDb = _environment.AlpmSession.RegisterSyncDatabase("repo-sync", SigLevel.UseDefault);
-    var syncPkg = syncDb.GetPackage("pkg-sync");
-    Assert.NotNull(syncPkg);
+    var syncPkgOpt = syncDb.GetPackage("pkg-sync");
+    Assert.NotNull(syncPkgOpt);
+    var syncPkg = syncPkgOpt.Value;
     Assert.Equal("pkg-sync", syncPkg.Name);
 
     Install("orson-lifetime-commit-sync");

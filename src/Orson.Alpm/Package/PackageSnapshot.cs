@@ -1,8 +1,8 @@
 namespace Orson.Alpm;
 
 /// <summary>
-/// A detached copy of the metadata a <see cref="Package" /> reads, made by
-/// <see cref="Package.ToSnapshot" />.
+/// A detached copy of the metadata a <see cref="PackageView" /> reads, made by
+/// <see cref="PackageView.ToSnapshot" />.
 /// </summary>
 /// <remarks>
 /// A <see cref="PackageView" /> is a view over memory libalpm owns, so it stops being safe to read as soon as the
@@ -11,30 +11,23 @@ namespace Orson.Alpm;
 /// it stays readable after the owning database is unregistered, after the handle is released, and while a transaction
 /// commits.
 /// <para>
-/// Creating a snapshot eagerly reads all package metadata from disk or database caches, which is substantially more
-/// expensive than iterating a lazy <see cref="PackageView" />. Callers should iterate views by default and snapshot only
-/// packages that must outlive the originating database or transaction.
-/// </para>
-/// <para>
-/// Values are captured once. The fields libalpm mutates - <see cref="Reason" />, <see cref="InstallDate" /> and
-/// <see cref="Validation" /> - are frozen at the moment of the copy, which is the point of a snapshot, but two snapshots
-/// taken at different times can therefore disagree.
-/// </para>
-/// <para>
-/// The file list is the one optional part: it is by far the most expensive thing to copy, so it is read only when
-/// <c>includeFiles</c> asks for it and is <c>null</c> otherwise.
+/// Creating a snapshot eagerly reads all package metadata from disk or database caches. Both the file list and backup
+/// entries are gated behind <c>includeFiles</c> because libalpm parses them from the on-disk <c>files</c> manifest.
 /// </para>
 /// </remarks>
-public sealed class PackageSnapshot
+public sealed class PackageSnapshot : IPackageMetadata
 {
   /// <summary>
-  /// Copies <paramref name="package" />; when <paramref name="includeFiles" /> is set, the file list is copied too.
-  /// Prefer <see cref="Package.ToSnapshot" />.
+  /// Copies <paramref name="package" /> without files. Prefer <see cref="PackageView.ToSnapshot" />.
   /// </summary>
-  public PackageSnapshot(Package package, bool includeFiles = false)
-  {
-    ArgumentNullException.ThrowIfNull(package);
+  public PackageSnapshot(PackageView package) : this(package, includeFiles: false) { }
 
+  /// <summary>
+  /// Copies <paramref name="package" />; when <paramref name="includeFiles" /> is set, the file list and backup entries
+  /// are copied too. Prefer <see cref="PackageView.ToSnapshot" />.
+  /// </summary>
+  public PackageSnapshot(PackageView package, bool includeFiles)
+  {
     Name = package.Name;
     Version = package.Version;
     Filename = package.Filename;
@@ -46,7 +39,7 @@ public sealed class PackageSnapshot
     Packager = package.Packager;
     Md5Sum = package.Md5Sum;
     Sha256Sum = package.Sha256Sum;
-    Arch = package.Architecture;
+    Architecture = package.Architecture;
     Size = package.Size;
     InstalledSize = package.InstalledSize;
     Origin = package.Origin;
@@ -59,14 +52,31 @@ public sealed class PackageSnapshot
     Conflicts = [.. package.Conflicts];
     Provides = [.. package.Provides];
     Replaces = [.. package.Replaces];
-    BackupFiles = [.. package.BackupFiles];
     CheckDepends = [.. package.CheckDepends];
     MakeDepends = [.. package.MakeDepends];
     DownloadSize = package.DownloadSize;
     HasScriptlet = package.HasScriptlet;
     Base64Signature = package.Base64Signature;
 
-    if (includeFiles) Files = [.. package.Files];
+    if (includeFiles)
+    {
+      Files = [.. package.Files];
+      BackupFiles = [.. package.BackupFiles];
+    }
+    else
+    {
+      Files = null;
+      BackupFiles = null;
+    }
+  }
+
+  /// <summary>Copies <paramref name="package" /> from an owning <see cref="LoadedPackage" /> without files.</summary>
+  public PackageSnapshot(LoadedPackage package) : this(package, includeFiles: false) { }
+
+  /// <summary>Copies <paramref name="package" /> from an owning <see cref="LoadedPackage" />.</summary>
+  public PackageSnapshot(LoadedPackage package, bool includeFiles)
+    : this((package ?? throw new ArgumentNullException(nameof(package))).View, includeFiles)
+  {
   }
 
   /// <summary>Gets the package name.</summary>
@@ -75,7 +85,7 @@ public sealed class PackageSnapshot
   /// <summary>Gets the package version.</summary>
   public PackageVersion Version { get; }
 
-  /// <summary>Gets the filename of the package archive, or <c>null</c> if not applicable.</summary>
+  /// <summary>Gets the archive filename of the package, or <c>null</c> if not applicable.</summary>
   public string? Filename { get; }
 
   /// <summary>Gets the package base name, or <c>null</c> if none was specified.</summary>
@@ -103,7 +113,10 @@ public sealed class PackageSnapshot
   public string? Sha256Sum { get; }
 
   /// <summary>Gets the target architecture of the package, or <c>null</c> if not specified.</summary>
-  public string? Arch { get; }
+  public string? Arch => Architecture;
+
+  /// <summary>Gets the target architecture of the package, or <c>null</c> if not specified.</summary>
+  public string? Architecture { get; }
 
   /// <summary>The package size in bytes, as libalpm reports it.</summary>
   public long Size { get; }
@@ -141,8 +154,8 @@ public sealed class PackageSnapshot
   /// <summary>Gets the list of packages this package replaces.</summary>
   public IReadOnlyList<Dependency> Replaces { get; }
 
-  /// <summary>The copied backup-file entries, frozen at the moment of the copy.</summary>
-  public IReadOnlyList<BackupEntry> BackupFiles { get; }
+  /// <summary>The copied backup-file entries, or <c>null</c> when the snapshot was taken without files.</summary>
+  public IReadOnlyList<BackupEntry>? BackupFiles { get; }
 
   /// <summary>Gets the list of dependencies required only to run the test suite when building.</summary>
   public IReadOnlyList<Dependency> CheckDepends { get; }
@@ -161,4 +174,17 @@ public sealed class PackageSnapshot
 
   /// <summary>The copied file list, or <c>null</c> when the snapshot was taken without it.</summary>
   public IReadOnlyList<PackageFile>? Files { get; }
+
+  // IPackageMetadata explicit adaptations
+  IReadOnlyCollection<string> IPackageMetadata.Licenses => Licenses;
+  IReadOnlyCollection<string> IPackageMetadata.Groups => Groups;
+  IReadOnlyCollection<Dependency> IPackageMetadata.Depends => Depends;
+  IReadOnlyCollection<Dependency> IPackageMetadata.OptionalDepends => OptionalDepends;
+  IReadOnlyCollection<Dependency> IPackageMetadata.CheckDepends => CheckDepends;
+  IReadOnlyCollection<Dependency> IPackageMetadata.MakeDepends => MakeDepends;
+  IReadOnlyCollection<Dependency> IPackageMetadata.Conflicts => Conflicts;
+  IReadOnlyCollection<Dependency> IPackageMetadata.Provides => Provides;
+  IReadOnlyCollection<Dependency> IPackageMetadata.Replaces => Replaces;
+  IReadOnlyCollection<PackageFile>? IPackageMetadata.Files => Files;
+  IReadOnlyCollection<BackupEntry>? IPackageMetadata.BackupFiles => BackupFiles;
 }

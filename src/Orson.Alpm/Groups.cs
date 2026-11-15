@@ -17,17 +17,25 @@ public sealed class Group
   /// <param name="lifetime">Token of the database owning the group and its member packages; forwarded to the members.</param>
   internal unsafe Group(_alpm_group_t* backingStruct, ChildLifetime? lifetime)
   {
+    if (lifetime is null)
+    {
+      throw new InvalidOperationException("Group packages cannot be constructed without a child database lifetime.");
+    }
     Name = NativeString.FromNative((nint)backingStruct->name)!;
     Packages = [.. AlpmList<PackageView>.Borrow(backingStruct->packages, &PackageView.Factory, lifetime)];
   }
 
   internal static unsafe Group Factory(void* ptr, Lifetime? lifetime)
   {
+    if (lifetime is null)
+    {
+      throw new InvalidOperationException("Group member packages cannot be anchored without a lifetime domain.");
+    }
     if (lifetime is RootLifetime)
     {
       throw new InvalidOperationException("Group member packages cannot be anchored directly to a root lifetime domain; a child database domain is required.");
     }
-    return new((_alpm_group_t*)ptr, (ChildLifetime?)lifetime);
+    return new((_alpm_group_t*)ptr, (ChildLifetime)lifetime);
   }
 
   // ReSharper disable once MemberCanBePrivate.Global
@@ -63,19 +71,35 @@ public sealed class Group
   /// the owner is asked for with <c>alpm_pkg_get_db</c> and resolved through the session's pointer registry. Without this
   /// the members would all carry the session domain, which is correct but coarse: it is the last domain to move, so one
   /// database being unregistered would retire packages that still belong to a live sibling.
-  /// <para>
-  /// A package with no database - one this library loaded from a file - falls back to the session, because nothing
-  /// narrower owns it.
-  /// </para>
   /// </remarks>
   internal static unsafe PackageView GroupPackageFactory(void* ptr, Lifetime? sessionDomain)
   {
-    if (sessionDomain is null) return new PackageView((_alpm_pkg_t*)ptr, null);
+    if (sessionDomain is null)
+    {
+      throw new InvalidOperationException("Cannot resolve group package lifetime without a session lifetime domain.");
+    }
 
     var db = NativeMethods.alpm_pkg_get_db((_alpm_pkg_t*)ptr);
-    var dbLifetime = (db != null && sessionDomain is RootLifetime root)
-      ? root.GetLifetimeTokenForHandle(db, "a group member's database")
-      : null;
+    if (db == null)
+    {
+      throw new InvalidOperationException("Group member package has no owning database.");
+    }
+
+    ChildLifetime? dbLifetime = null;
+    if (sessionDomain is RootLifetime root)
+    {
+      dbLifetime = root.GetLifetimeTokenForHandle(db, "a group member's database");
+    }
+    else if (sessionDomain is ChildLifetime child)
+    {
+      dbLifetime = child.Root.GetLifetimeTokenForHandle(db, "a group member's database");
+    }
+
+    if (dbLifetime is null)
+    {
+      throw new InvalidOperationException("Could not resolve database lifetime for group package.");
+    }
+
     return new PackageView((_alpm_pkg_t*)ptr, dbLifetime);
   }
 }
