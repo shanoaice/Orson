@@ -16,6 +16,7 @@ namespace Orson.Alpm.Tests.Unit.Errors;
 /// process with <c>free(): invalid pointer</c> instead of reporting anything. A C probe against libalpm measured that
 /// abort.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed unsafe class TransactionFailureTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

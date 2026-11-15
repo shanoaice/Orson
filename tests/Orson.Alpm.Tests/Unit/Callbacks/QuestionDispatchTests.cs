@@ -10,6 +10,7 @@ namespace Orson.Alpm.Tests.Unit.Callbacks;
 /// <see cref="WeakGCHandle{T}" /> resolution → typed <c>AlpmCallbacks.On*</c> delegate routing →
 /// package lifetime domain resolution → in-place native answer write-back → exception shielding.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed unsafe class QuestionDispatchTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

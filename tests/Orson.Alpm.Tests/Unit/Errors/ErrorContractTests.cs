@@ -11,6 +11,7 @@ namespace Orson.Alpm.Tests.Unit.Errors;
 /// <item>rule 5 - option getters that start out unset are nullable instead of asserting non-null.</item>
 /// </list>
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed class ErrorContractTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

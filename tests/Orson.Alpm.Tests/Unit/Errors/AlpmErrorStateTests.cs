@@ -9,6 +9,7 @@ namespace Orson.Alpm.Tests.Unit.Errors;
 /// init it stayed <c>ALPM_ERR_OK</c> forever, so failures surfaced as <see cref="NullReferenceException" /> (from
 /// <c>throw GetCurrentError()!</c>) or as the wrong error entirely.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed class AlpmErrorStateTests
 {
   /// <summary>A path that is guaranteed not to exist, so loading it fails inside libalpm.</summary>

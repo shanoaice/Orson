@@ -7,6 +7,7 @@ namespace Orson.Alpm.Tests.Unit.Packages;
 /// <see cref="PackageView.FindSatisfier" /> hands the caller's own view back, while
 /// <see cref="AlpmSession.ResolveDependency" /> mints a new one under the database that owns the match.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed class PackageSatisfierTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

@@ -3,6 +3,7 @@ using Orson.Alpm.Tests.Fixtures;
 
 namespace Orson.Alpm.Tests.Unit.Extensions;
 
+[Collection("AlpmSessionSerial")]
 public sealed class CachyOsExtensionTests
 {
   [Fact]

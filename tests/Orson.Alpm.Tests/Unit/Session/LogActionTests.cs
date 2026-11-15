@@ -8,6 +8,7 @@ namespace Orson.Alpm.Tests.Unit.Session;
 /// the format string. Measured: an unescaped <c>%s</c> reads whatever pointer happens to be left in the argument register,
 /// so the wrapper must escape <c>%</c> to <c>%%</c>.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class LogActionTests : IDisposable
 {
   private readonly string _logPath =

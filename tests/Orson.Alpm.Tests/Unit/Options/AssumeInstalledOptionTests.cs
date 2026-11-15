@@ -14,6 +14,7 @@ namespace Orson.Alpm.Tests.Unit.Options;
 /// Like <see cref="OptionCollectionTests" />, this runs against <see cref="IsolatedAlpmEnvironment" />, so it
 /// stays in the non-integration set.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed unsafe class AssumeInstalledOptionTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

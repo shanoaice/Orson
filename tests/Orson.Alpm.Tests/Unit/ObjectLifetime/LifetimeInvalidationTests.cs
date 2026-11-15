@@ -11,6 +11,7 @@ namespace Orson.Alpm.Tests.Unit.ObjectLifetime;
 /// Every test runs against an isolated throwaway root/dbpath (see <see cref="IsolatedAlpmEnvironment" />), so no
 /// project container and no system database are involved.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class LifetimeInvalidationTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

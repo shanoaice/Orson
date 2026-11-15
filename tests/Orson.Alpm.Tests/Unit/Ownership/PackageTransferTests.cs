@@ -14,6 +14,7 @@ namespace Orson.Alpm.Tests.Unit.Ownership;
 /// the old wrapper freed the package a second time there and died with SIGABRT, which a C probe against libalpm reproduced
 /// in two release orders.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class PackageTransferTests : IDisposable
 {
   /// <summary>No flags: the tests only care about ownership, but the transaction must still be sound.</summary>

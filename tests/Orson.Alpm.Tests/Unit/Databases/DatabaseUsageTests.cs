@@ -3,6 +3,7 @@ using Orson.Alpm.Tests.Fixtures;
 namespace Orson.Alpm.Tests.Unit.Databases;
 
 /// <summary>Coverage ledger §4: <c>alpm_db_usage_t</c> exposed as <see cref="DatabaseUsage" />.</summary>
+[Collection("AlpmSessionSerial")]
 public sealed class DatabaseUsageTests
 {
   /// <summary>Measured on libalpm 16.0.1: a freshly registered sync database reports 15 (ALL).</summary>

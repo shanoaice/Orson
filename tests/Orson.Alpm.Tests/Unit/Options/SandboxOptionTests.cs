@@ -8,6 +8,7 @@ namespace Orson.Alpm.Tests.Unit.Options;
 /// <c>alpm_option_get/set_disable_sandbox</c>) are declared in alpm.h but are <b>not exported</b> by the installed
 /// <c>libalpm.so.16</c>. Callers that need the state should read the component flags.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class SandboxOptionTests
 {
   [Fact]

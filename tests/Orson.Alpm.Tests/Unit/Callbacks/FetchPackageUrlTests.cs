@@ -9,6 +9,7 @@ namespace Orson.Alpm.Tests.Unit.Callbacks;
 /// proves the wrapper really calls the native function rather than short-circuiting. A success path needs a reachable URL,
 /// so it waits for a container test: see <c>docs/research/speculative-integration-tests.md</c>.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class FetchPackageUrlTests
 {
   private const string Url = "https://example.invalid/x-1.0-1-x86_64.pkg.tar.zst";

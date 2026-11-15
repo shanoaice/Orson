@@ -13,6 +13,7 @@ namespace Orson.Alpm.Tests.Unit.Interop;
 /// these tests pin the encoding choice rather than a behaviour change. They are the portable half of the sweep: on a
 /// Windows host the old code would fail them.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed unsafe class Utf8StringTests
 {
   private const string NonAscii = "中文 / ünïcødé";

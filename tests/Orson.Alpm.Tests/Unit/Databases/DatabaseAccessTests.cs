@@ -6,6 +6,7 @@ namespace Orson.Alpm.Tests.Unit.Databases;
 /// The two ways a session hands out a database: the local database it always has, and the sync databases a caller
 /// registers. These are the baseline every other database test starts from.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed class DatabaseAccessTests
 {
   [Fact]

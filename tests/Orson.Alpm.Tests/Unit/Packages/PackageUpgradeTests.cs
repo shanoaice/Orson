@@ -3,6 +3,7 @@ using Orson.Alpm.Tests.Fixtures;
 namespace Orson.Alpm.Tests.Unit.Packages;
 
 /// <summary>Covers <see cref="PackageView.GetNewVersion" />, which searches only the databases it is handed.</summary>
+[Collection("AlpmSessionSerial")]
 public sealed class PackageUpgradeTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

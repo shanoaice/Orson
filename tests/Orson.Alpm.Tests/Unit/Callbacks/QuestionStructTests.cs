@@ -9,6 +9,7 @@ namespace Orson.Alpm.Tests.Unit.Callbacks;
 /// These tests verify reading question properties, mutating answers back to native memory,
 /// lifetime invalidation of borrowed package views, and explicit snapshot survival.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed unsafe class QuestionStructTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

@@ -8,6 +8,7 @@ namespace Orson.Alpm.Tests.Unit.Databases;
 /// when they removed the entry and <c>1</c> when it was not there, measured against libalpm directly. The tests below pin
 /// that in the wrapper's own vocabulary.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class DatabaseServerTests
 {
   private const string Url = "https://example.invalid/$repo/os/$arch";

@@ -29,7 +29,7 @@ internal static class BenchEnvironment
         "Run them on an Arch-based system, or set ORSON_BENCH_DBPATH (and ORSON_BENCH_ROOT) " +
         "to a valid database. The benchmarks are read-only.");
     }
-    return new AlpmSession(RootDir, DbPath);
+    return AlpmSession.Acquire(RootDir, DbPath);
   }
 
   /// <summary>Registers the first available sync database (<c>extra</c>, then <c>core</c>).</summary>

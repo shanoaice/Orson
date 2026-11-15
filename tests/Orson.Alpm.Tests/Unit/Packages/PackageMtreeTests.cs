@@ -10,6 +10,7 @@ namespace Orson.Alpm.Tests.Unit.Packages;
 /// libalpm reads the mtree from <c>dbpath/local/pkg/mtree</c>, which exists only once the package is installed,
 /// so every case installs first and then reads it back through a handle opened after the commit.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class PackageMtreeTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();
@@ -24,10 +25,8 @@ public sealed class PackageMtreeTests : IDisposable
   {
     _environment.Install(name, mtree: mtreeContent);
 
-    var root = Path.Combine(_environment.WorkspaceRoot, "root");
-    var dbpath = Path.Combine(_environment.WorkspaceRoot, "var", "lib", "pacman");
-    using var freshSession = new AlpmSession(root, dbpath);
-    var pkg = freshSession.GetLocalDatabase().GetPackage(name)!;
+    _environment.ReopenSession();
+    var pkg = _environment.AlpmSession.GetLocalDatabase().GetPackage(name)!;
 
     var entries = pkg.GetMtreeEntries();
     Assert.NotNull(entries);
@@ -131,17 +130,12 @@ public sealed class PackageMtreeTests : IDisposable
       ./detached size=0
 
       """;
-    IReadOnlyList<MtreeEntry> entries;
-    using (var env = new IsolatedAlpmEnvironment())
-    {
-      env.Install("orson-mtree-detached", mtree: mtreeContent);
-      var root = Path.Combine(env.WorkspaceRoot, "root");
-      var dbpath = Path.Combine(env.WorkspaceRoot, "var", "lib", "pacman");
-      using var freshSession = new AlpmSession(root, dbpath);
-      var pkg = freshSession.GetLocalDatabase().GetPackage("orson-mtree-detached")!;
-      entries = pkg.GetMtreeEntries()!;
-      Assert.NotNull(entries);
-    }
+    _environment.Install("orson-mtree-detached", mtree: mtreeContent);
+    _environment.ReopenSession();
+    var pkg = _environment.AlpmSession.GetLocalDatabase().GetPackage("orson-mtree-detached")!;
+    var entries = pkg.GetMtreeEntries()!;
+    Assert.NotNull(entries);
+    _environment.ReopenSession();
 
     Assert.Equal("detached", Assert.Single(entries).Path);
   }

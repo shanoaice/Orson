@@ -10,6 +10,7 @@ namespace Orson.Alpm.Tests.Unit.Session;
 /// different decision, and deliberately not one this API takes for the caller; see
 /// <see cref="Unlock_LeavesALockFileThisSessionDoesNotHold" />.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class UnlockTests
 {
   /// <summary>

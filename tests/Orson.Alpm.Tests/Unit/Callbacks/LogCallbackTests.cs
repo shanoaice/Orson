@@ -17,6 +17,7 @@ namespace Orson.Alpm.Tests.Unit.Callbacks;
 /// do not break when libalpm rewords a message. The deterministic check of the <c>va_list</c> expansion itself lives in
 /// <see cref="LogMessageFormatterTests" />.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class LogCallbackTests
 {
   private const LogLevel AllLevels = LogLevel.Error | LogLevel.Warning | LogLevel.Debug | LogLevel.Function;

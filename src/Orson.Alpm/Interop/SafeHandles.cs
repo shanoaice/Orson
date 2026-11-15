@@ -1,5 +1,6 @@
 using Microsoft.Win32.SafeHandles;
 using Orson.Alpm.Bindings;
+using Orson.Alpm.Interop;
 
 namespace Orson.Alpm;
 
@@ -46,16 +47,26 @@ internal sealed unsafe class SafeAlpmHandle : SafeHandleZeroOrMinusOneIsInvalid
 
   protected override bool ReleaseHandle()
   {
-    // Before the free, never after: a stamp that still passes its check while alpm_release tears the
-    // graph down would let a view read freed memory. Invalidating early only risks a false positive.
-    if (_domain is not null && _domain.TryGetTarget(out var domain))
+    using (AlpmExecutionLock.Hold())
     {
-      domain.Invalidate("the owning Alpm was garbage-collected");
+      try
+      {
+        // Before the free, never after: a stamp that still passes its check while alpm_release tears the
+        // graph down would let a view read freed memory. Invalidating early only risks a false positive.
+        if (_domain is not null && _domain.TryGetTarget(out var domain))
+        {
+          domain.Invalidate("the owning Alpm was garbage-collected");
+        }
+
+        var err = NativeMethods.alpm_release((_alpm_handle_t*)handle);
+        _releaseResult = err;
+
+        return err == 0;
+      }
+      finally
+      {
+        AlpmSession.ReleaseProcessLeaseInternal();
+      }
     }
-
-    var err = NativeMethods.alpm_release((_alpm_handle_t*)handle);
-    _releaseResult = err;
-
-    return err == 0;
   }
 }

@@ -6,6 +6,7 @@ namespace Orson.Alpm.Tests.Unit.Session;
 /// Covers <see cref="AlpmSession.UpdateDatabases" /> argument validation: an empty sequence is caller error, not
 /// a native failure.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed class UpdateDatabasesTests
 {
   [Fact]

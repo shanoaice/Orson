@@ -12,6 +12,7 @@ namespace Orson.Alpm.Tests.Unit.Errors;
 /// <c>alpm_db_get_servers</c> succeeds and leaves the errno exactly as it found it. The wrapper used to probe it there, so
 /// a successful server query threw the earlier package error.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class StickyErrnoTests
 {
   private static Database RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("orson-sticky", 0);

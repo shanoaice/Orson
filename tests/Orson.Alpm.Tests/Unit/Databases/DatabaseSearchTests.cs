@@ -6,6 +6,7 @@ namespace Orson.Alpm.Tests.Unit.Databases;
 /// Covers <see cref="Database.Search" />: libalpm matches a package when any of the needles is a substring of its
 /// name, and answers with a list the caller owns.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed class DatabaseSearchTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

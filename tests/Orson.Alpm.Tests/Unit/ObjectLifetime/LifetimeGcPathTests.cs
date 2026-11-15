@@ -30,6 +30,7 @@ namespace Orson.Alpm.Tests.Unit.ObjectLifetime;
 /// <see cref="IsolatedAlpmEnvironment.Dispose" /> - the tests delete the directory themselves.
 /// </para>
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class LifetimeGcPathTests
 {
   private static void CollectEverything()
@@ -43,36 +44,52 @@ public sealed class LifetimeGcPathTests
   [Fact]
   public void ALiveView_KeepsTheSessionAlive_SoTheGcPathCannotFreeUnderIt()
   {
-    var (view, session, workspace) = CreateWithALiveView();
+    SafeAlpmHandle? capturedHandle = null;
+    string? capturedWorkspace = null;
+    try
+    {
+      var (view, handleRef, workspace) = CreateWithALiveView();
+      capturedWorkspace = workspace;
 
-    CollectEverything();
+      CollectEverything();
 
-    // The caller dropped the session, but the view still reaches it through
-    // view -> stamp -> domain -> owner, so nothing was finalized and nothing was freed.
-    Assert.True(session.IsAlive,
-      "a live view must keep the session reachable, or its finalizer could free the graph underneath");
-    Assert.Empty(view.ToArray()); // still usable, not merely non-crashing
-
-    view = null;
-    session = null;
-    CollectEverything();
-
-    DeleteWorkspace(workspace);
+      // The caller dropped the session, but the view still reaches the handle through
+      // view -> stamp -> domain -> owner, so nothing was finalized and nothing was freed.
+      Assert.True(handleRef.TryGetTarget(out var handle), "a live view must keep the handle reachable");
+      capturedHandle = handle;
+      Assert.False(handle.IsClosed);
+      Assert.False(handle.IsInvalid);
+      Assert.Empty(view.ToArray()); // still usable, not merely non-crashing
+    }
+    finally
+    {
+      capturedHandle?.Dispose();
+      AlpmSession.ReleaseProcessLeaseInternal();
+      if (capturedWorkspace != null) DeleteWorkspace(capturedWorkspace);
+    }
   }
 
   [Fact]
   public void SessionWithoutViews_IsCollected_AndItsHandleIsReleased()
   {
-    var (session, workspace) = CreateWithoutViews();
+    string? capturedWorkspace = null;
+    try
+    {
+      var (session, workspace) = CreateWithoutViews();
+      capturedWorkspace = workspace;
 
-    CollectEverything();
+      CollectEverything();
 
-    // Nothing holds the session, so its SafeAlpmHandle was finalized: ReleaseHandle retired the root
-    // domain and then ran alpm_release. Reaching this line without an exception is part of the
-    // assertion - it means the release path ran to completion outside a orson-thread call.
-    Assert.False(session.IsAlive, "the session should have been collected");
-
-    DeleteWorkspace(workspace);
+      // Nothing holds the session, so its SafeAlpmHandle was finalized: ReleaseHandle retired the root
+      // domain and then ran alpm_release. Reaching this line without an exception is part of the
+      // assertion - it means the release path ran to completion outside a orson-thread call.
+      Assert.False(session.IsAlive, "the session should have been collected");
+    }
+    finally
+    {
+      AlpmSession.ReleaseProcessLeaseInternal();
+      if (capturedWorkspace != null) DeleteWorkspace(capturedWorkspace);
+    }
   }
 
   /// <summary>
@@ -80,13 +97,13 @@ public sealed class LifetimeGcPathTests
   /// afterwards.
   /// </summary>
   [MethodImpl(MethodImplOptions.NoInlining)]
-  private static (AlpmStringList View, WeakReference Session, string Workspace) CreateWithALiveView()
+  private static (AlpmStringList View, WeakReference<SafeAlpmHandle> Handle, string Workspace) CreateWithALiveView()
   {
     var environment = new IsolatedAlpmEnvironment();
 
     // Stamped with the local database's domain, whose root is the session.
     return (environment.AlpmSession.GetLocalDatabase().Servers,
-      new WeakReference(environment.AlpmSession),
+      new WeakReference<SafeAlpmHandle>(environment.AlpmSession.Handle),
       environment.WorkspaceRoot);
   }
 

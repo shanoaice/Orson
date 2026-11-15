@@ -119,3 +119,5 @@ Orson.Alpm.SelectProviderQuestion.UseIndex.set -> void
 *REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider.UseIndex.get -> int
 *REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider.UseIndex.set -> void
 *REMOVED*Orson.Alpm.AlpmQuestion.SelectProvider.Version.get -> string!
+*REMOVED*Orson.Alpm.AlpmSession.AlpmSession(string! root, string! dbpath) -> void
+static Orson.Alpm.AlpmSession.Acquire(string! root, string! dbpath) -> Orson.Alpm.AlpmSession!

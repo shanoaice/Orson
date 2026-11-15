@@ -12,6 +12,7 @@ namespace Orson.Alpm.Tests.Unit.Options;
 /// <see cref="Path.GetTempPath()" /> deliberately instead of using the container fixture, so they stay in the
 /// non-integration test set.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class OptionCollectionTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

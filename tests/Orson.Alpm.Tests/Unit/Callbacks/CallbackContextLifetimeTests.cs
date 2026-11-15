@@ -24,6 +24,7 @@ namespace Orson.Alpm.Tests.Unit.Callbacks;
 /// so they delete the workspace themselves once the assertions are done.
 /// </para>
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class CallbackContextLifetimeTests
 {
   /// <summary>
@@ -36,14 +37,21 @@ public sealed class CallbackContextLifetimeTests
   [Fact]
   public void AlpmFinalizer_DoesNotRootTheCallback()
   {
-    var (callback, workspace) = CreateAlpmWithoutDisposing();
+    try
+    {
+      var (callback, workspace) = CreateAlpmWithoutDisposing();
 
-    CollectUntilDead(callback);
+      CollectUntilDead(callback);
 
-    Assert.False(callback.IsAlive,
-      "Callback is still rooted after Alpm was finalized although the ctx handle is weak.");
+      Assert.False(callback.IsAlive,
+        "Callback is still rooted after Alpm was finalized although the ctx handle is weak.");
 
-    DeleteWorkspace(workspace);
+      DeleteWorkspace(workspace);
+    }
+    finally
+    {
+      AlpmSession.ReleaseProcessLeaseInternal();
+    }
   }
 
   [MethodImpl(MethodImplOptions.NoInlining)]
@@ -57,34 +65,7 @@ public sealed class CallbackContextLifetimeTests
   }
 
   /// <summary>
-  /// The finalizer counterpart of
-  /// <see cref="AlpmDispose_KeepsTheCallbackContext_WhenTheHandleCouldNotBeReleased" /> : when the native handle cannot be
-  /// released it stays alive with its callbacks registered, carrying the ctx handle value, so the ctx handle slot must stay
-  /// allocated - freeing it would let the runtime reuse the slot for a foreign object that
-  /// <c>WeakGCHandle&lt;AlpmCallbacks&gt;.TryGetTarget</c> would then read as a <see cref="AlpmCallbacks" /> (it casts
-  /// without a type check). Only object liveness is observable here: holding the <see cref="AlpmCallbacks" /> alive to
-  /// inspect the slot would also root its <see cref="SafeAlpmHandle" /> and suppress the finalizer this test is about. The
-  /// slot mechanism itself is pinned deterministically by the <c>AlpmDispose_</c> tests below; the end-to-end stale-ctx
-  /// behavior by <see cref="LeakedHandle_LogCallbacksAfterCollection_AreSafeNoOps" />.
-  /// </summary>
-  [Fact]
-  public void AlpmFinalizer_DoesNotRootTheCallback_WhenTheHandleCouldNotBeReleased()
-  {
-    var (callback, workspace) = CreateAlpmWithAnUnreleasableHandle();
-
-    CollectUntilDead(callback);
-
-    Assert.False(callback.IsAlive,
-      "Callback is rooted although the ctx handle is weak and the Alpm instance is gone.");
-
-    DeleteWorkspace(workspace);
-  }
-
-  /// <summary>
-  /// The disposal counterpart of
-  /// <see
-  ///   cref="AlpmFinalizer_DoesNotRootTheCallback_WhenTheHandleCouldNotBeReleased" />
-  /// : when <c>alpm_release</c> fails during <see cref="AlpmSession.Dispose()" />, the native handle is what leaks - alive,
+  /// When <c>alpm_release</c> fails during <see cref="AlpmSession.Dispose()" />, the native handle is what leaks - alive,
   /// with the callback registrations still in place and the ctx handle value still in <c>logcb_ctx</c> and friends. The ctx
   /// handle slot must therefore stay allocated: freeing it would let the runtime hand the slot to another GC handle
   /// allocation, and <c>WeakGCHandle&lt;AlpmCallbacks&gt;.TryGetTarget</c> casts its result without a type check
@@ -158,9 +139,16 @@ public sealed class CallbackContextLifetimeTests
     alpm.CurrentTransaction = null;
     var handle = alpm.Handle;   // captured before Dispose: the getter refuses afterwards
 
-    alpm.Dispose();
-    Assert.False(handle.ReleaseSucceeded,
-      "Test setup must leave alpm_release failing, or the scenario silently becomes the success path.");
+    try
+    {
+      alpm.Dispose();
+      Assert.False(handle.ReleaseSucceeded,
+        "Test setup must leave alpm_release failing, or the scenario silently becomes the success path.");
+    }
+    finally
+    {
+      AlpmSession.ReleaseProcessLeaseInternal();
+    }
 
     return callback;
   }

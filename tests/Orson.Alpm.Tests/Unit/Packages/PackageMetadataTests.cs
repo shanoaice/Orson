@@ -7,6 +7,7 @@ namespace Orson.Alpm.Tests.Unit.Packages;
 /// Covers the package members that read what the package records about itself: the install reason, its file list,
 /// its download size, and its changelog.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed class PackageMetadataTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

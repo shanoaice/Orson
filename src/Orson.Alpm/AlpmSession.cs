@@ -35,6 +35,10 @@ public enum Capability : uint
 /// </remarks>
 public sealed partial class AlpmSession : IDisposable
 {
+  private static int s_activeLease;
+  private static uint s_sessionEpoch;
+  private static WeakReference<AlpmSession>? s_current;
+
   // opaque handle to libalpm wrapped in a SafeHandle
   private readonly SafeAlpmHandle _handle;
 
@@ -46,13 +50,48 @@ public sealed partial class AlpmSession : IDisposable
   private int _disposeStarted;
   private int _disposedFlag;
 
-  private AlpmSession(SafeAlpmHandle handle)
+  internal AlpmSession(SafeAlpmHandle handle)
   {
     _handle = handle;
-    _lifetime = RootLifetime.Create(this, "the ALPM handle");
+    _lifetime = RootLifetime.Create(_handle, "the ALPM handle");
     _handle.OwnDomain(_lifetime);
     Options = new AlpmOptions(_handle, _lifetime);
     Callbacks = new AlpmCallbacks(this, _handle, _lifetime);
+  }
+
+  /// <summary>
+  /// Acquires an exclusive process lease and initializes a new <see cref="AlpmSession" /> instance.
+  /// </summary>
+  /// <param name="root">The root directory of the installation (e.g. <c>"/"</c>).</param>
+  /// <param name="dbpath">The path to the pacman database directory (e.g. <c>"/var/lib/pacman"</c>).</param>
+  /// <returns>An initialized <see cref="AlpmSession" /> instance.</returns>
+  /// <exception cref="InvalidOperationException">Thrown if an active session lease already exists in the process.</exception>
+  /// <exception cref="AlpmException">Thrown if libalpm fails to initialize.</exception>
+  public static AlpmSession Acquire(string root, string dbpath)
+  {
+    if (Interlocked.CompareExchange(ref s_activeLease, 1, 0) != 0)
+    {
+      throw new InvalidOperationException("An active AlpmSession already exists in this process. Only one session may be active at a time.");
+    }
+
+    try
+    {
+      var session = new AlpmSession(root, dbpath);
+      s_current = new WeakReference<AlpmSession>(session);
+      s_sessionEpoch++;
+      return session;
+    }
+    catch
+    {
+      ReleaseProcessLeaseInternal();
+      throw;
+    }
+  }
+
+  internal static void ReleaseProcessLeaseInternal()
+  {
+    s_current = null;
+    Interlocked.Exchange(ref s_activeLease, 0);
   }
 
   private static SafeAlpmHandle InitializeOrThrow(string root, string dbpath)
@@ -69,40 +108,43 @@ public sealed partial class AlpmSession : IDisposable
     [NotNullWhen(true)] out SafeAlpmHandle? handle,
     [NotNullWhen(false)] out AlpmFailure? failure)
   {
-    ArgumentNullException.ThrowIfNull(root);
-    ArgumentNullException.ThrowIfNull(dbpath);
-
-    var initializeErrno = (_alpm_errno_t*)NativeMemory.Alloc(sizeof(_alpm_errno_t));
-    *initializeErrno = _alpm_errno_t.ALPM_ERR_OK;
-
-    _alpm_handle_t* rawHandle;
-    try
+    using (AlpmExecutionLock.Hold())
     {
-      Span<byte> rootScratch = stackalloc byte[256];
-      Span<byte> dbpathScratch = stackalloc byte[256];
-      using var rootBuf = new Utf8Buffer(root, rootScratch);
-      using var dbpathBuf = new Utf8Buffer(dbpath, dbpathScratch);
-      rawHandle = NativeMethods.alpm_initialize(rootBuf.Ptr, dbpathBuf.Ptr, initializeErrno);
-    }
-    catch
-    {
+      ArgumentNullException.ThrowIfNull(root);
+      ArgumentNullException.ThrowIfNull(dbpath);
+
+      var initializeErrno = (_alpm_errno_t*)NativeMemory.Alloc(sizeof(_alpm_errno_t));
+      *initializeErrno = _alpm_errno_t.ALPM_ERR_OK;
+
+      _alpm_handle_t* rawHandle;
+      try
+      {
+        Span<byte> rootScratch = stackalloc byte[256];
+        Span<byte> dbpathScratch = stackalloc byte[256];
+        using var rootBuf = new Utf8Buffer(root, rootScratch);
+        using var dbpathBuf = new Utf8Buffer(dbpath, dbpathScratch);
+        rawHandle = NativeMethods.alpm_initialize(rootBuf.Ptr, dbpathBuf.Ptr, initializeErrno);
+      }
+      catch
+      {
+        NativeMemory.Free(initializeErrno);
+        throw;
+      }
+
+      if (rawHandle == null)
+      {
+        var rawErrno = (int)*initializeErrno;
+        NativeMemory.Free(initializeErrno);
+        handle = null;
+        failure = AlpmFailure.Of(rawErrno, "initialize libalpm");
+        return false;
+      }
+
       NativeMemory.Free(initializeErrno);
-      throw;
+      handle = new SafeAlpmHandle(rawHandle);
+      failure = null;
+      return true;
     }
-
-    if (rawHandle == null)
-    {
-      var rawErrno = (int)*initializeErrno;
-      NativeMemory.Free(initializeErrno);
-      handle = null;
-      failure = AlpmFailure.Of(rawErrno, "initialize libalpm");
-      return false;
-    }
-
-    NativeMemory.Free(initializeErrno);
-    handle = new SafeAlpmHandle(rawHandle);
-    failure = null;
-    return true;
   }
 
   /// <summary>Gets the version of libalpm.</summary>
@@ -115,7 +157,7 @@ public sealed partial class AlpmSession : IDisposable
   /// <param name="root">The root directory of the installation (e.g. <c>"/"</c>).</param>
   /// <param name="dbpath">The path to the pacman database directory (e.g. <c>"/var/lib/pacman"</c>).</param>
   /// <exception cref="AlpmException">Thrown if libalpm fails to initialize.</exception>
-  public AlpmSession(string root, string dbpath) : this(InitializeOrThrow(root, dbpath))
+  internal AlpmSession(string root, string dbpath) : this(InitializeOrThrow(root, dbpath))
   {
   }
 
@@ -575,30 +617,40 @@ public sealed partial class AlpmSession : IDisposable
 
   private unsafe void Dispose(bool disposing)
   {
-    if (Interlocked.CompareExchange(ref _disposeStarted, 1, 0) != 0) return;
-
-    CurrentTransaction?.Dispose();
-
-    // Retire the whole tree in one step before anything is freed: the sweep below releases the
-    // file-loaded packages and alpm_release below that frees the rest. Bumping the root retires
-    // every child stamp - including the ones for packages we are about to alpm_pkg_free - so no
-    // wrapper can pass its check while its memory is on the way out.
-    _lifetime.Invalidate("AlpmSession.Dispose()");
-    _localDatabaseLifetime = null;
-
-    // Free any undisposed file-loaded packages from this session
-    _loadedPackages.Dispose();
-
-    // Release the native library handle. SafeAlpmHandle.ReleaseHandle calls alpm_release.
-    _handle.Dispose();
-
-    // Only after alpm_release has succeeded and native code will no longer call back,
-    // dispose the callback context GCHandle.
-    if (_handle.ReleaseSucceeded)
+    using (AlpmExecutionLock.Hold())
     {
-      Callbacks.Dispose();
-    }
+      if (Interlocked.CompareExchange(ref _disposeStarted, 1, 0) != 0) return;
 
-    Volatile.Write(ref _disposedFlag, 1);
+      try
+      {
+        CurrentTransaction?.Dispose();
+
+        // Retire the whole tree in one step before anything is freed: the sweep below releases the
+        // file-loaded packages and alpm_release below that frees the rest. Bumping the root retires
+        // every child stamp - including the ones for packages we are about to alpm_pkg_free - so no
+        // wrapper can pass its check while its memory is on the way out.
+        _lifetime.Invalidate("AlpmSession.Dispose()");
+        _localDatabaseLifetime = null;
+
+        // Free any undisposed file-loaded packages from this session
+        _loadedPackages.Dispose();
+
+        // Release the native library handle. SafeAlpmHandle.ReleaseHandle calls alpm_release.
+        _handle.Dispose();
+
+        // Only after alpm_release has succeeded and native code will no longer call back,
+        // dispose the callback context GCHandle.
+        if (_handle.ReleaseSucceeded)
+        {
+          Callbacks.Dispose();
+        }
+
+        Volatile.Write(ref _disposedFlag, 1);
+      }
+      finally
+      {
+        ReleaseProcessLeaseInternal();
+      }
+    }
   }
 }

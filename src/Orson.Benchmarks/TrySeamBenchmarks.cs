@@ -28,7 +28,7 @@ public class TrySeamBenchmarks
     Directory.CreateDirectory(Path.Combine(dbpath, "local"));
     Directory.CreateDirectory(Path.Combine(dbpath, "sync"));
 
-    _alpm = new AlpmSession(root, dbpath);
+    _alpm = AlpmSession.Acquire(root, dbpath);
     _syncDb = _alpm.RegisterSyncDatabase("nonexistent", 0);
   }
 

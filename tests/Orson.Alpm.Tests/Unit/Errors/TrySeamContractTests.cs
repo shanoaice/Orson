@@ -6,6 +6,7 @@ namespace Orson.Alpm.Tests.Unit.Errors;
 /// Verifies the ADR 0001 Try* seam contract across all twin methods: on success (true), failure is null and any
 /// result is non-null; on failure (false), failure is non-null and any result is null.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed class TrySeamContractTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

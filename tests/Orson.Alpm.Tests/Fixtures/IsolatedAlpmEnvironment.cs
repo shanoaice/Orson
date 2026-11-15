@@ -22,10 +22,10 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
     Directory.CreateDirectory(Path.Combine(root, "var", "cache", "pacman", "pkg"));
     Directory.CreateDirectory(PackageDirectory);
 
-    AlpmSession = new AlpmSession(root, dbpath);
+    AlpmSession = AlpmSession.Acquire(root, dbpath);
   }
 
-  internal AlpmSession AlpmSession { get; }
+  internal AlpmSession AlpmSession { get; private set; }
   internal string WorkspaceRoot { get; }
 
   /// <summary>The fake installation root the handle was opened on.</summary>
@@ -75,13 +75,24 @@ internal sealed class IsolatedAlpmEnvironment : IDisposable
     return installed;
   }
 
-  public void Dispose()
+  internal void ReopenSession()
   {
     AlpmSession.Dispose();
+    AlpmSession = AlpmSession.Acquire(Root, DatabasePath);
+  }
 
-    if (Directory.Exists(WorkspaceRoot))
+  public void Dispose()
+  {
+    try
     {
-      Directory.Delete(WorkspaceRoot, recursive: true);
+      AlpmSession.Dispose();
+    }
+    finally
+    {
+      if (Directory.Exists(WorkspaceRoot))
+      {
+        Directory.Delete(WorkspaceRoot, recursive: true);
+      }
     }
   }
 }

@@ -7,6 +7,7 @@ namespace Orson.Alpm.Tests.Unit.Ownership;
 /// The handle's one-transaction-at-a-time contract as the wrapper presents it: libalpm allows one active transaction per handle.
 /// Attempting to start a second transaction while one is active throws <see cref="InvalidOperationException" />.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed class TransactionLifecycleTests
 {
   /// <summary>No flags: every check on, database locked, filesystem written.</summary>

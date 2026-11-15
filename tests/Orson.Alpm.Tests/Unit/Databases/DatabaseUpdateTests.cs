@@ -6,6 +6,7 @@ namespace Orson.Alpm.Tests.Unit.Databases;
 /// Covers <see cref="Database.Update" />: it reports the failure libalpm gives it, and it retires the views it
 /// issued before that - both halves matter, because a failed update leaves the database's contents changed all the same.
 /// </summary>
+[Collection("AlpmSessionSerial")]
 public sealed class DatabaseUpdateTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();

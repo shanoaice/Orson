@@ -9,6 +9,7 @@ namespace Orson.Alpm.Tests.Unit.Session;
 /// exercise; the cases that do report a missing dependency or a conflict are covered through a transaction, in
 /// <see cref="Orson.Alpm.Tests.Unit.Errors.TransactionFailureTests" />.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class DependencyCheckTests
 {
   [Fact]

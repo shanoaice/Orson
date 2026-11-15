@@ -10,6 +10,7 @@ namespace Orson.Alpm.Tests.Unit.ObjectLifetime;
 /// first read still crosses the interop boundary, and the guarded accessor throws for it whether or not the member checks
 /// anything.
 /// </remarks>
+[Collection("AlpmSessionSerial")]
 public sealed class CachedReadInvalidationTests : IDisposable
 {
   private readonly IsolatedAlpmEnvironment _environment = new();
