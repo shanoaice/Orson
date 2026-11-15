@@ -128,30 +128,34 @@ public sealed partial class Transaction
   {
     ThrowIfDisposed();
 
-    // A commit may free package caches and the packages this transaction loaded, and its events hand
-    // payload views to callbacks. Retire every stamp in the session before the call, so nothing can
-    // pass its check while libalpm rewrites the object graph; views a callback creates capture the
-    // post-bump generation and stay valid for the duration of that callback.
-    _session.RootLifetime.Invalidate("Transaction.Commit()");
-
     _completionState = CompletionState.Committing;
-    _alpm_list_t* messages = null;
-    var err = NativeMethods.alpm_trans_commit(_session.Handle, &messages);
-    if (err != 0)
-    {
-      _completionState = CompletionState.Faulted;
-      failure = AlpmFailure.Take(_session.Errno, messages, "commit transaction");
-      GC.KeepAlive(_session);
-      GC.KeepAlive(this);
-      return false;
-    }
-    _completionState = CompletionState.Committed;
-    // every view borrowed from the local database now points into freed memory. Retire the local
-    // database's token conservatively - libalpm does not tell us which caches it dropped - and let
-    // the next GetLocalDatabase() issue a fresh one. Callers that keep package data across a commit
-    // call ToSnapshot() first.
+
+    // Retire existing local database and transaction views before libalpm rewrites them.
+    // Callbacks receive their own scoped lifetime tokens, and sync databases remain valid.
     _session.InvalidateLocalDatabase("Transaction.Commit()");
-    failure = null;
-    return true;
+    Lifetime.Invalidate("Transaction.Commit()");
+
+    try
+    {
+      _alpm_list_t* messages = null;
+      var err = NativeMethods.alpm_trans_commit(_session.Handle, &messages);
+      if (err != 0)
+      {
+        _completionState = CompletionState.Faulted;
+        failure = AlpmFailure.Take(_session.Errno, messages, "commit transaction");
+        GC.KeepAlive(_session);
+        GC.KeepAlive(this);
+        return false;
+      }
+
+      _completionState = CompletionState.Committed;
+      failure = null;
+      return true;
+    }
+    finally
+    {
+      // Ensure any local database wrapper created during a callback is retired.
+      _session.InvalidateLocalDatabase("Transaction.Commit()");
+    }
   }
 }

@@ -73,10 +73,54 @@ public sealed class LifetimeInvalidationTests : IDisposable
     Assert.False(pkg.OwnsPackage);
     Assert.Throws<ObjectDisposedException>(() => pkg.Name);
 
-    // ...and the view handed back is now guarded by the transaction: releasing the transaction
-    // (done by the using above on method exit) retires it through the parent chain as well.
+    // ...and the view handed back is now guarded by the transaction: committing or releasing
+    // the transaction retires it.
     transaction.Prepare();
     transaction.Commit();
+
+    var thrown = Assert.Throws<AlpmLifetimeException>(() => view.Name);
+    Assert.Equal("the transaction", thrown.Target);
+    Assert.Equal("Transaction.Commit()", thrown.InvalidatedBy);
+  }
+
+  [Fact]
+  public void Commit_InvalidatesLocalDatabasePackages_BeforeCallbacksExecute()
+  {
+    Install("orson-precommit-pkg");
+
+    var localDb = _environment.AlpmSession.GetLocalDatabase();
+    var preCommitView = localDb.GetPackage("orson-precommit-pkg");
+    Assert.NotNull(preCommitView);
+
+    bool callbackRan = false;
+    bool preCommitViewWasStaleInCallback = false;
+
+    _environment.AlpmSession.Callbacks.EventHandler = ev =>
+    {
+      if (ev is AlpmEvent.TransactionStart)
+      {
+        callbackRan = true;
+        try
+        {
+          _ = preCommitView.Name;
+        }
+        catch (AlpmLifetimeException ex) when (ex.InvalidatedBy == "Transaction.Commit()")
+        {
+          preCommitViewWasStaleInCallback = true;
+        }
+      }
+    };
+
+    try
+    {
+      Install("orson-second-pkg");
+      Assert.True(callbackRan, "TransactionStart event callback must have run.");
+      Assert.True(preCommitViewWasStaleInCallback, "Pre-commit local view must be invalidated before callbacks execute.");
+    }
+    finally
+    {
+      _environment.AlpmSession.Callbacks.EventHandler = null;
+    }
   }
 
   [Fact]
@@ -127,6 +171,24 @@ public sealed class LifetimeInvalidationTests : IDisposable
     var reissued = fresh.GetPackage("orson-lifetime-first");
     Assert.NotNull(reissued);
     Assert.Equal("orson-lifetime-first", reissued.Name);
+  }
+
+  [Fact]
+  public void Commit_DoesNotInvalidateSyncDatabases_OrTheirViews()
+  {
+    var dbpath = _environment.AlpmSession.Options.DatabasePath;
+    PackageArchive.CreateSyncDatabase(dbpath, "repo-sync", "pkg-sync", "sync-group");
+
+    var syncDb = _environment.AlpmSession.RegisterSyncDatabase("repo-sync", SigLevel.UseDefault);
+    var syncPkg = syncDb.GetPackage("pkg-sync");
+    Assert.NotNull(syncPkg);
+    Assert.Equal("pkg-sync", syncPkg.Name);
+
+    Install("orson-lifetime-commit-sync");
+
+    // Sync database and views issued from it must remain valid across transaction commit
+    Assert.Equal("repo-sync", syncDb.Name);
+    Assert.Equal("pkg-sync", syncPkg.Name);
   }
 
   [Fact]
