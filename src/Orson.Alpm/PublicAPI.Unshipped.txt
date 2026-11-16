@@ -20,6 +20,14 @@ Orson.Alpm.AlpmCallbacks.PackageConflictHandler
 Orson.Alpm.AlpmCallbacks.RemoveUnresolvablePackagesHandler
 Orson.Alpm.AlpmCallbacks.ReplacePackageHandler
 Orson.Alpm.AlpmCallbacks.SelectProviderHandler
+Orson.Alpm.AlpmDownloadEvent.Completed.get -> Orson.Alpm.DownloadCompleted?
+Orson.Alpm.AlpmDownloadEvent.Init.get -> Orson.Alpm.DownloadInit?
+Orson.Alpm.AlpmDownloadEvent.Progress.get -> Orson.Alpm.DownloadProgress?
+Orson.Alpm.AlpmDownloadEvent.Retry.get -> Orson.Alpm.DownloadRetry?
+Orson.Alpm.AlpmDownloadEvent.TryGetCompleted(out Orson.Alpm.DownloadCompleted completed) -> bool
+Orson.Alpm.AlpmDownloadEvent.TryGetInit(out Orson.Alpm.DownloadInit init) -> bool
+Orson.Alpm.AlpmDownloadEvent.TryGetProgress(out Orson.Alpm.DownloadProgress progress) -> bool
+Orson.Alpm.AlpmDownloadEvent.TryGetRetry(out Orson.Alpm.DownloadRetry retry) -> bool
 Orson.Alpm.AlpmEvent.OptionalDependencyRemoval.Package.get -> Orson.Alpm.PackageView
 Orson.Alpm.AlpmPackageException.AlpmPackageException(int errno, string? strError = null, Orson.Alpm.IPackageMetadata? package = null, string? context = null) -> void
 Orson.Alpm.AlpmPackageException.Package.get -> Orson.Alpm.IPackageMetadata?
@@ -34,6 +42,33 @@ Orson.Alpm.CorruptedPackageQuestion.Remove.get -> bool
 Orson.Alpm.CorruptedPackageQuestion.Remove.set -> void
 Orson.Alpm.Database.LoadPackageCache() -> Orson.Alpm.AlpmList<Orson.Alpm.PackageView>!
 Orson.Alpm.Database.Search(System.Collections.Generic.IEnumerable<string!>! needles) -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView>!
+Orson.Alpm.DownloadCompleted
+Orson.Alpm.DownloadCompleted.DownloadCompleted() -> void
+Orson.Alpm.DownloadCompleted.DownloadCompleted(long Total, int Result) -> void
+Orson.Alpm.DownloadCompleted.IsError.get -> bool
+Orson.Alpm.DownloadCompleted.IsSuccessful.get -> bool
+Orson.Alpm.DownloadCompleted.IsUpToDate.get -> bool
+Orson.Alpm.DownloadCompleted.Result.get -> int
+Orson.Alpm.DownloadCompleted.Result.init -> void
+Orson.Alpm.DownloadCompleted.Total.get -> long
+Orson.Alpm.DownloadCompleted.Total.init -> void
+Orson.Alpm.DownloadInit
+Orson.Alpm.DownloadInit.DownloadInit() -> void
+Orson.Alpm.DownloadInit.DownloadInit(bool IsOptional) -> void
+Orson.Alpm.DownloadInit.IsOptional.get -> bool
+Orson.Alpm.DownloadInit.IsOptional.init -> void
+Orson.Alpm.DownloadProgress
+Orson.Alpm.DownloadProgress.Downloaded.get -> long
+Orson.Alpm.DownloadProgress.Downloaded.init -> void
+Orson.Alpm.DownloadProgress.DownloadProgress() -> void
+Orson.Alpm.DownloadProgress.DownloadProgress(long Downloaded, long Total) -> void
+Orson.Alpm.DownloadProgress.Total.get -> long
+Orson.Alpm.DownloadProgress.Total.init -> void
+Orson.Alpm.DownloadRetry
+Orson.Alpm.DownloadRetry.DownloadRetry() -> void
+Orson.Alpm.DownloadRetry.DownloadRetry(bool WillResume) -> void
+Orson.Alpm.DownloadRetry.WillResume.get -> bool
+Orson.Alpm.DownloadRetry.WillResume.init -> void
 Orson.Alpm.Group.FindPackages(Orson.Alpm.AlpmList<Orson.Alpm.Database!>! dbs) -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView>!
 Orson.Alpm.Group.Packages.get -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView>!
 Orson.Alpm.ImportKeyQuestion
@@ -386,3 +421,29 @@ Orson.Alpm.SyncDatabase.Update(bool force = false) -> bool
 *REMOVED*Orson.Alpm.Database.Unregister() -> void
 *REMOVED*Orson.Alpm.Database.Update(bool force = false) -> bool
 *REMOVED*Orson.Alpm.AlpmStringList.AlpmStringList() -> void
+Orson.Alpm.AlpmCallbacks.EnabledLogLevels.get -> Orson.Alpm.LogLevel
+Orson.Alpm.AlpmCallbacks.EnabledLogLevels.set -> void
+Orson.Alpm.AlpmCallbacks.LogMessageHandler
+Orson.Alpm.AlpmCallbacks.DownloadHandler.get -> System.Action<string!, Orson.Alpm.AlpmDownloadEvent>?
+Orson.Alpm.AlpmCallbacks.LogHandler.get -> Orson.Alpm.AlpmCallbacks.LogMessageHandler?
+Orson.Alpm.AlpmDownloadEvent.Type.get -> Orson.Alpm.DownloadEventType
+Orson.Alpm.DownloadEventType
+Orson.Alpm.DownloadEventType.Init = 0 -> Orson.Alpm.DownloadEventType
+Orson.Alpm.DownloadEventType.Progress = 1 -> Orson.Alpm.DownloadEventType
+Orson.Alpm.DownloadEventType.Retry = 2 -> Orson.Alpm.DownloadEventType
+Orson.Alpm.DownloadEventType.Completed = 3 -> Orson.Alpm.DownloadEventType
+*REMOVED*Orson.Alpm.AlpmCallbacks.DownloadHandler.get -> System.Action<string!, Orson.Alpm.AlpmDownloadEvent!>?
+*REMOVED*Orson.Alpm.AlpmCallbacks.LogHandler.get -> System.Action<Orson.Alpm.LogLevel, string!>?
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Completed
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Completed.IsError.get -> bool
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Completed.IsSuccessful.get -> bool
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Completed.IsUpToDate.get -> bool
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Completed.Result.get -> int
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Completed.Total.get -> long
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Init
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Init.IsOptional.get -> bool
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Progress
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Progress.Downloaded.get -> long
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Progress.Total.get -> long
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Retry
+*REMOVED*Orson.Alpm.AlpmDownloadEvent.Retry.WillResume.get -> bool

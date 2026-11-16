@@ -211,6 +211,11 @@ internal enum LifetimeFacet
 /// retired by <see cref="InvalidateFacet" />. It hangs below this domain for ownership only: invalidating this domain
 /// cascades into every facet, so no facet outlives the memory it describes. Its stamp still records the facet and the
 /// session root, never this domain, which keeps a check at two comparisons.
+/// <para>
+/// Database, transaction, and loaded-package domains are terminal after invalidation. A synchronous callback may use
+/// the same domain for repeated frames: it captures the current generation before a frame and invalidates it after the
+/// frame returns. The next frame starts at the incremented generation.
+/// </para>
 /// </remarks>
 internal sealed class ChildLifetime : Lifetime
 {

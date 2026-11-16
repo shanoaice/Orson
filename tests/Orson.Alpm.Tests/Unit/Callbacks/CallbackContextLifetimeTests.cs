@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Orson.Alpm.Bindings;
 using Orson.Alpm.Tests.Fixtures;
 
 namespace Orson.Alpm.Tests.Unit.Callbacks;
@@ -60,6 +61,80 @@ public sealed class CallbackContextLifetimeTests
 
     Assert.False(IsContextHandleAllocated(callback),
       "The ctx handle was not freed although alpm_release destroyed the native handle.");
+  }
+
+  [Fact]
+  public unsafe void EventFrame_IsReusedForOuterCallbackAndReplacedForNestedCallback()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var package = environment.Install("orson-callback-frame");
+    var callbacks = environment.AlpmSession.Callbacks;
+
+    var native = stackalloc _alpm_event_t[1];
+    native->type_ = _alpm_event_type_t.ALPM_EVENT_PACKAGE_OPERATION_START;
+    native->package_operation.newpkg = package.BackingStruct;
+    native->package_operation.oldpkg = null;
+    native->package_operation.operation = _alpm_package_operation_t.ALPM_PACKAGE_INSTALL;
+    var nativeAddress = (nint)native;
+
+    PackageView? outer = null;
+    PackageView? inner = null;
+    var depth = 0;
+
+    callbacks.EventHandler = ev =>
+    {
+      var operation = Assert.IsType<AlpmEvent.PackageOperationStart>(ev);
+      var current = Assert.NotNull(operation.NewPackage);
+
+      if (depth++ == 0)
+      {
+        outer = current;
+        Assert.Equal("orson-callback-frame", current.Name);
+
+        callbacks.DispatchEvent((_alpm_event_t*)nativeAddress);
+
+        Assert.Equal("orson-callback-frame", current.Name);
+      }
+      else
+      {
+        inner = current;
+      }
+    };
+
+    callbacks.DispatchEvent(native);
+
+    var outerError = Assert.Throws<AlpmLifetimeException>(() => outer!.Value.Name);
+    Assert.Equal("the ALPM event callback", outerError.Target);
+    var innerError = Assert.Throws<AlpmLifetimeException>(() => inner!.Value.Name);
+    Assert.Equal("a nested ALPM event callback", innerError.Target);
+  }
+
+  [Fact]
+  public unsafe void EventFrame_AcceptsANewGenerationForTheNextSequentialCallback()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var package = environment.Install("orson-callback-frame-reuse");
+    var callbacks = environment.AlpmSession.Callbacks;
+
+    var native = stackalloc _alpm_event_t[1];
+    native->type_ = _alpm_event_type_t.ALPM_EVENT_PACKAGE_OPERATION_START;
+    native->package_operation.newpkg = package.BackingStruct;
+    native->package_operation.operation = _alpm_package_operation_t.ALPM_PACKAGE_INSTALL;
+
+    var views = new List<PackageView>();
+    callbacks.EventHandler = ev =>
+    {
+      var operation = Assert.IsType<AlpmEvent.PackageOperationStart>(ev);
+      var current = Assert.NotNull(operation.NewPackage);
+      Assert.Equal("orson-callback-frame-reuse", current.Name);
+      views.Add(current);
+    };
+
+    callbacks.DispatchEvent(native);
+    callbacks.DispatchEvent(native);
+
+    Assert.Equal(2, views.Count);
+    Assert.All(views, view => Assert.Throws<AlpmLifetimeException>(() => view.Name));
   }
 
   private static void CollectUntilDead(WeakReference reference)

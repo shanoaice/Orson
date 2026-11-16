@@ -46,38 +46,38 @@ public enum PackageOperation : uint
 /// </remarks>
 public abstract class AlpmEvent
 {
-  internal static unsafe AlpmEvent FromUnion(_alpm_event_t* backingStruct, ChildLifetime? lifetime)
+  internal static unsafe AlpmEvent FromUnion(_alpm_event_t* backingStruct, ChildLifetime lifetime)
   {
     return backingStruct->type_ switch
     {
-      _alpm_event_type_t.ALPM_EVENT_CHECKDEPS_START => new CheckDepsStart(),
-      _alpm_event_type_t.ALPM_EVENT_CHECKDEPS_DONE => new CheckDepsDone(),
-      _alpm_event_type_t.ALPM_EVENT_FILECONFLICTS_START => new FileConflictsStart(),
-      _alpm_event_type_t.ALPM_EVENT_FILECONFLICTS_DONE => new FileConflictsDone(),
-      _alpm_event_type_t.ALPM_EVENT_RESOLVEDEPS_START => new ResolveDepsStart(),
-      _alpm_event_type_t.ALPM_EVENT_RESOLVEDEPS_DONE => new ResolveDepsDone(),
-      _alpm_event_type_t.ALPM_EVENT_INTERCONFLICTS_START => new InterConflictsStart(),
-      _alpm_event_type_t.ALPM_EVENT_INTERCONFLICTS_DONE => new InterConflictsDone(),
-      _alpm_event_type_t.ALPM_EVENT_TRANSACTION_START => new TransactionStart(),
-      _alpm_event_type_t.ALPM_EVENT_TRANSACTION_DONE => new TransactionDone(),
+      _alpm_event_type_t.ALPM_EVENT_CHECKDEPS_START => CheckDepsStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_CHECKDEPS_DONE => CheckDepsDone.Instance,
+      _alpm_event_type_t.ALPM_EVENT_FILECONFLICTS_START => FileConflictsStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_FILECONFLICTS_DONE => FileConflictsDone.Instance,
+      _alpm_event_type_t.ALPM_EVENT_RESOLVEDEPS_START => ResolveDepsStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_RESOLVEDEPS_DONE => ResolveDepsDone.Instance,
+      _alpm_event_type_t.ALPM_EVENT_INTERCONFLICTS_START => InterConflictsStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_INTERCONFLICTS_DONE => InterConflictsDone.Instance,
+      _alpm_event_type_t.ALPM_EVENT_TRANSACTION_START => TransactionStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_TRANSACTION_DONE => TransactionDone.Instance,
       _alpm_event_type_t.ALPM_EVENT_PACKAGE_OPERATION_START => new PackageOperationStart(backingStruct, lifetime),
       _alpm_event_type_t.ALPM_EVENT_PACKAGE_OPERATION_DONE => new PackageOperationDone(backingStruct, lifetime),
-      _alpm_event_type_t.ALPM_EVENT_INTEGRITY_START => new IntegrityStart(),
-      _alpm_event_type_t.ALPM_EVENT_INTEGRITY_DONE => new IntegrityDone(),
-      _alpm_event_type_t.ALPM_EVENT_LOAD_START => new LoadStart(),
-      _alpm_event_type_t.ALPM_EVENT_LOAD_DONE => new LoadDone(),
+      _alpm_event_type_t.ALPM_EVENT_INTEGRITY_START => IntegrityStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_INTEGRITY_DONE => IntegrityDone.Instance,
+      _alpm_event_type_t.ALPM_EVENT_LOAD_START => LoadStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_LOAD_DONE => LoadDone.Instance,
       _alpm_event_type_t.ALPM_EVENT_SCRIPTLET_INFO => new ScriptletInfo(backingStruct),
-      _alpm_event_type_t.ALPM_EVENT_DB_RETRIEVE_START => new RetrieveStart(),
-      _alpm_event_type_t.ALPM_EVENT_DB_RETRIEVE_DONE => new RetrieveDone(),
-      _alpm_event_type_t.ALPM_EVENT_DB_RETRIEVE_FAILED => new RetrieveFailed(),
-      _alpm_event_type_t.ALPM_EVENT_DISKSPACE_START => new DiskSpaceStart(),
-      _alpm_event_type_t.ALPM_EVENT_DISKSPACE_DONE => new DiskSpaceDone(),
+      _alpm_event_type_t.ALPM_EVENT_DB_RETRIEVE_START => RetrieveStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_DB_RETRIEVE_DONE => RetrieveDone.Instance,
+      _alpm_event_type_t.ALPM_EVENT_DB_RETRIEVE_FAILED => RetrieveFailed.Instance,
+      _alpm_event_type_t.ALPM_EVENT_DISKSPACE_START => DiskSpaceStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_DISKSPACE_DONE => DiskSpaceDone.Instance,
       _alpm_event_type_t.ALPM_EVENT_OPTDEP_REMOVAL => new OptionalDependencyRemoval(backingStruct, lifetime),
       _alpm_event_type_t.ALPM_EVENT_DATABASE_MISSING => new DatabaseMissing(backingStruct),
-      _alpm_event_type_t.ALPM_EVENT_KEYRING_START => new KeyringStart(),
-      _alpm_event_type_t.ALPM_EVENT_KEYRING_DONE => new KeyringDone(),
-      _alpm_event_type_t.ALPM_EVENT_KEY_DOWNLOAD_START => new KeyDownloadStart(),
-      _alpm_event_type_t.ALPM_EVENT_KEY_DOWNLOAD_DONE => new KeyDownloadDone(),
+      _alpm_event_type_t.ALPM_EVENT_KEYRING_START => KeyringStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_KEYRING_DONE => KeyringDone.Instance,
+      _alpm_event_type_t.ALPM_EVENT_KEY_DOWNLOAD_START => KeyDownloadStart.Instance,
+      _alpm_event_type_t.ALPM_EVENT_KEY_DOWNLOAD_DONE => KeyDownloadDone.Instance,
       _alpm_event_type_t.ALPM_EVENT_PACNEW_CREATED => new PacnewCreated(backingStruct, lifetime),
       _alpm_event_type_t.ALPM_EVENT_PACSAVE_CREATED => new PacsaveCreated(backingStruct, lifetime),
       _alpm_event_type_t.ALPM_EVENT_HOOK_START => new HookStart(backingStruct),
@@ -95,82 +95,102 @@ public abstract class AlpmEvent
   [PublicAPI]
   public sealed class CheckDepsStart : AlpmEvent
   {
-    internal CheckDepsStart() { }
+    internal static readonly CheckDepsStart Instance = new();
+
+    private CheckDepsStart() { }
   }
 
   /// <summary>Triggered when dependency checking completes.</summary>
   [PublicAPI]
   public sealed class CheckDepsDone : AlpmEvent
   {
-    internal CheckDepsDone() { }
+    internal static readonly CheckDepsDone Instance = new();
+
+    private CheckDepsDone() { }
   }
 
   /// <summary>Triggered when file conflict checking begins.</summary>
   [PublicAPI]
   public sealed class FileConflictsStart : AlpmEvent
   {
-    internal FileConflictsStart() { }
+    internal static readonly FileConflictsStart Instance = new();
+
+    private FileConflictsStart() { }
   }
 
   /// <summary>Triggered when file conflict checking completes.</summary>
   [PublicAPI]
   public sealed class FileConflictsDone : AlpmEvent
   {
-    internal FileConflictsDone() { }
+    internal static readonly FileConflictsDone Instance = new();
+
+    private FileConflictsDone() { }
   }
 
   /// <summary>Triggered when dependency resolution begins.</summary>
   [PublicAPI]
   public sealed class ResolveDepsStart : AlpmEvent
   {
-    internal ResolveDepsStart() { }
+    internal static readonly ResolveDepsStart Instance = new();
+
+    private ResolveDepsStart() { }
   }
 
   /// <summary>Triggered when dependency resolution completes.</summary>
   [PublicAPI]
   public sealed class ResolveDepsDone : AlpmEvent
   {
-    internal ResolveDepsDone() { }
+    internal static readonly ResolveDepsDone Instance = new();
+
+    private ResolveDepsDone() { }
   }
 
   /// <summary>Triggered when inter-package conflict checking begins.</summary>
   [PublicAPI]
   public sealed class InterConflictsStart : AlpmEvent
   {
-    internal InterConflictsStart() { }
+    internal static readonly InterConflictsStart Instance = new();
+
+    private InterConflictsStart() { }
   }
 
   /// <summary>Triggered when inter-package conflict checking completes.</summary>
   [PublicAPI]
   public sealed class InterConflictsDone : AlpmEvent
   {
-    internal InterConflictsDone() { }
+    internal static readonly InterConflictsDone Instance = new();
+
+    private InterConflictsDone() { }
   }
 
   /// <summary>Triggered when transaction processing begins.</summary>
   [PublicAPI]
   public sealed class TransactionStart : AlpmEvent
   {
-    internal TransactionStart() { }
+    internal static readonly TransactionStart Instance = new();
+
+    private TransactionStart() { }
   }
 
   /// <summary>Triggered when transaction processing completes.</summary>
   [PublicAPI]
   public sealed class TransactionDone : AlpmEvent
   {
-    internal TransactionDone() { }
+    internal static readonly TransactionDone Instance = new();
+
+    private TransactionDone() { }
   }
 
   /// <summary>Triggered when a package operation (install, upgrade, downgrade, or remove) begins.</summary>
   [PublicAPI]
   public sealed class PackageOperationStart : AlpmEvent
   {
-    internal unsafe PackageOperationStart(_alpm_event_t* native, ChildLifetime? lifetime)
+    internal unsafe PackageOperationStart(_alpm_event_t* native, ChildLifetime lifetime)
     {
       var newpkg = native->package_operation.newpkg;
       var oldpkg = native->package_operation.oldpkg;
-      NewPackage = newpkg == null || lifetime == null ? null : new PackageView(newpkg, lifetime);
-      OldPackage = oldpkg == null || lifetime == null ? null : new PackageView(oldpkg, lifetime);
+      NewPackage = newpkg == null ? null : new PackageView(newpkg, lifetime);
+      OldPackage = oldpkg == null ? null : new PackageView(oldpkg, lifetime);
       Operation = (PackageOperation)(uint)native->package_operation.operation;
     }
 
@@ -187,12 +207,12 @@ public abstract class AlpmEvent
   [PublicAPI]
   public sealed class PackageOperationDone : AlpmEvent
   {
-    internal unsafe PackageOperationDone(_alpm_event_t* native, ChildLifetime? lifetime)
+    internal unsafe PackageOperationDone(_alpm_event_t* native, ChildLifetime lifetime)
     {
       var newpkg = native->package_operation.newpkg;
       var oldpkg = native->package_operation.oldpkg;
-      NewPackage = newpkg == null || lifetime == null ? null : new PackageView(newpkg, lifetime);
-      OldPackage = oldpkg == null || lifetime == null ? null : new PackageView(oldpkg, lifetime);
+      NewPackage = newpkg == null ? null : new PackageView(newpkg, lifetime);
+      OldPackage = oldpkg == null ? null : new PackageView(oldpkg, lifetime);
       Operation = (PackageOperation)(uint)native->package_operation.operation;
     }
 
@@ -209,28 +229,36 @@ public abstract class AlpmEvent
   [PublicAPI]
   public sealed class IntegrityStart : AlpmEvent
   {
-    internal IntegrityStart() { }
+    internal static readonly IntegrityStart Instance = new();
+
+    private IntegrityStart() { }
   }
 
   /// <summary>Triggered when package integrity checking completes.</summary>
   [PublicAPI]
   public sealed class IntegrityDone : AlpmEvent
   {
-    internal IntegrityDone() { }
+    internal static readonly IntegrityDone Instance = new();
+
+    private IntegrityDone() { }
   }
 
   /// <summary>Triggered when package loading begins.</summary>
   [PublicAPI]
   public sealed class LoadStart : AlpmEvent
   {
-    internal LoadStart() { }
+    internal static readonly LoadStart Instance = new();
+
+    private LoadStart() { }
   }
 
   /// <summary>Triggered when package loading completes.</summary>
   [PublicAPI]
   public sealed class LoadDone : AlpmEvent
   {
-    internal LoadDone() { }
+    internal static readonly LoadDone Instance = new();
+
+    private LoadDone() { }
   }
 
   /// <summary>Carries output from an install or remove scriptlet.</summary>
@@ -250,44 +278,53 @@ public abstract class AlpmEvent
   [PublicAPI]
   public sealed class RetrieveStart : AlpmEvent
   {
-    internal RetrieveStart() { }
+    internal static readonly RetrieveStart Instance = new();
+
+    private RetrieveStart() { }
   }
 
   /// <summary>Triggered when package file retrieval completes successfully.</summary>
   [PublicAPI]
   public sealed class RetrieveDone : AlpmEvent
   {
-    internal RetrieveDone() { }
+    internal static readonly RetrieveDone Instance = new();
+
+    private RetrieveDone() { }
   }
 
   /// <summary>Triggered when package file retrieval fails.</summary>
   [PublicAPI]
   public sealed class RetrieveFailed : AlpmEvent
   {
-    internal RetrieveFailed() { }
+    internal static readonly RetrieveFailed Instance = new();
+
+    private RetrieveFailed() { }
   }
 
   /// <summary>Triggered when disk space checking begins.</summary>
   [PublicAPI]
   public sealed class DiskSpaceStart : AlpmEvent
   {
-    internal DiskSpaceStart() { }
+    internal static readonly DiskSpaceStart Instance = new();
+
+    private DiskSpaceStart() { }
   }
 
   /// <summary>Triggered when disk space checking completes.</summary>
   [PublicAPI]
   public sealed class DiskSpaceDone : AlpmEvent
   {
-    internal DiskSpaceDone() { }
+    internal static readonly DiskSpaceDone Instance = new();
+
+    private DiskSpaceDone() { }
   }
 
   /// <summary>Triggered when an optional dependency is being removed.</summary>
   [PublicAPI]
   public sealed class OptionalDependencyRemoval : AlpmEvent
   {
-    internal unsafe OptionalDependencyRemoval(_alpm_event_t* native, ChildLifetime? lifetime)
+    internal unsafe OptionalDependencyRemoval(_alpm_event_t* native, ChildLifetime lifetime)
     {
-      ArgumentNullException.ThrowIfNull(lifetime);
       OptionalDependency = new Dependency(native->optdep_removal.optdep);
       Package = new PackageView(native->optdep_removal.pkg, lifetime);
     }
@@ -315,41 +352,49 @@ public abstract class AlpmEvent
   [PublicAPI]
   public sealed class KeyringStart : AlpmEvent
   {
-    internal KeyringStart() { }
+    internal static readonly KeyringStart Instance = new();
+
+    private KeyringStart() { }
   }
 
   /// <summary>Triggered when keyring verification or initialization completes.</summary>
   [PublicAPI]
   public sealed class KeyringDone : AlpmEvent
   {
-    internal KeyringDone() { }
+    internal static readonly KeyringDone Instance = new();
+
+    private KeyringDone() { }
   }
 
   /// <summary>Triggered when downloading a PGP key begins.</summary>
   [PublicAPI]
   public sealed class KeyDownloadStart : AlpmEvent
   {
-    internal KeyDownloadStart() { }
+    internal static readonly KeyDownloadStart Instance = new();
+
+    private KeyDownloadStart() { }
   }
 
   /// <summary>Triggered when downloading a PGP key completes.</summary>
   [PublicAPI]
   public sealed class KeyDownloadDone : AlpmEvent
   {
-    internal KeyDownloadDone() { }
+    internal static readonly KeyDownloadDone Instance = new();
+
+    private KeyDownloadDone() { }
   }
 
   /// <summary>Triggered when a .pacnew configuration file is created during package extraction.</summary>
   [PublicAPI]
   public sealed class PacnewCreated : AlpmEvent
   {
-    internal unsafe PacnewCreated(_alpm_event_t* native, ChildLifetime? lifetime)
+    internal unsafe PacnewCreated(_alpm_event_t* native, ChildLifetime lifetime)
     {
       var oldpkg = native->pacnew_created.oldpkg;
       var newpkg = native->pacnew_created.newpkg;
       FromNoUpgrade = native->pacnew_created.from_noupgrade != 0;
-      OldPackage = oldpkg == null || lifetime == null ? null : new PackageView(oldpkg, lifetime);
-      NewPackage = newpkg == null || lifetime == null ? null : new PackageView(newpkg, lifetime);
+      OldPackage = oldpkg == null ? null : new PackageView(oldpkg, lifetime);
+      NewPackage = newpkg == null ? null : new PackageView(newpkg, lifetime);
       File = NativeString.FromNative((nint)native->pacnew_created.file) ?? "";
     }
 
@@ -367,10 +412,10 @@ public abstract class AlpmEvent
   [PublicAPI]
   public sealed class PacsaveCreated : AlpmEvent
   {
-    internal unsafe PacsaveCreated(_alpm_event_t* native, ChildLifetime? lifetime)
+    internal unsafe PacsaveCreated(_alpm_event_t* native, ChildLifetime lifetime)
     {
       var oldpkg = native->pacsave_created.oldpkg;
-      OldPackage = oldpkg == null || lifetime == null ? null : new PackageView(oldpkg, lifetime);
+      OldPackage = oldpkg == null ? null : new PackageView(oldpkg, lifetime);
       File = NativeString.FromNative((nint)native->pacsave_created.file) ?? "";
     }
 

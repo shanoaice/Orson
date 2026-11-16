@@ -24,13 +24,13 @@ public enum ProgressType : uint
   /// <summary>Packages are being removed (<c>ALPM_PROGRESS_REMOVE_START</c>).</summary>
   RemoveStart = 4,
 
-  /// <summary>File conflicts are being checked (<c>ALPM_PROGRESS_CONFLICTS_START</c> ).</summary>
+  /// <summary>File conflicts are being checked (<c>ALPM_PROGRESS_CONFLICTS_START</c>).</summary>
   ConflictsStart = 5,
 
   /// <summary>Disk space is being checked (<c>ALPM_PROGRESS_DISKSPACE_START</c>).</summary>
   DiskSpaceStart = 6,
 
-  /// <summary>Package integrity is being checked ( <c>ALPM_PROGRESS_INTEGRITY_START</c>).</summary>
+  /// <summary>Package integrity is being checked (<c>ALPM_PROGRESS_INTEGRITY_START</c>).</summary>
   IntegrityStart = 7,
 
   /// <summary>Package targets are being loaded (<c>ALPM_PROGRESS_LOAD_START</c>).</summary>
@@ -124,7 +124,7 @@ public enum FetchResult
 /// <see cref="AlpmSession" />, which releases it only once <c>alpm_release</c> has returned successfully.
 /// </para>
 /// </remarks>
-public sealed class AlpmCallbacks
+public sealed partial class AlpmCallbacks
 {
   /// <summary>Handler delegate for <see cref="InstallIgnorePackageQuestion" />.</summary>
   /// <param name="question">The question payload.</param>
@@ -154,351 +154,57 @@ public sealed class AlpmCallbacks
   /// <param name="question">The question payload.</param>
   public delegate void ImportKeyHandler(ref ImportKeyQuestion question);
 
+  /// <summary>Receives one callback-scoped UTF-8 log message.</summary>
+  /// <param name="level">The message severity.</param>
+  /// <param name="messageUtf8">
+  /// The UTF-8 message bytes. The span is valid only until this handler returns; copy it to retain the message.
+  /// </param>
+  public delegate void LogMessageHandler(LogLevel level, ReadOnlySpan<byte> messageUtf8);
+
+  // Owning session and native ALPM handle reference
   private readonly AlpmSession _session;
-
-  // The ALPM context, guarded behind a SafeHandle so it is not disposed while
-  // callbacks are still active.
   private readonly SafeAlpmHandle _handle;
-  private int _invokeDepth;
-  private bool _detached;
 
-  // The ALPM handle's root lifetime token
+  // Lifetime root and captured stamp to ensure callbacks are not reconfigured after session invalidation
   private readonly RootLifetime _rootLifetime;
   private readonly LifetimeStamp _stamp;
 
-  // do not Dispose this before the callback class has been disposed
-  // otherwise it will screw up the callbacks
+  // Native callback context passed to libalpm as `void* ctx`.
+  // Uses a weak handle so libalpm retaining the pointer does not artificially prevent GC if session is abandoned,
+  // while still allowing the native thunks to safely dereference the target instance.
   private WeakGCHandle<AlpmCallbacks> _ctxHandle;
 
-  [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-  private static unsafe void EventAgent(void* ctx, _alpm_event_t* eventT)
-  {
-    if (ctx == null) return;
-    try
-    {
-      var success = WeakGCHandle<AlpmCallbacks>.FromIntPtr((nint)ctx).TryGetTarget(out var callback);
-      if (!success || callback == null) return;
-      callback._invokeDepth++;
-      var callbackLifetime = callback._rootLifetime.CreateChild("AlpmCallbacks.EventAgent");
-      try
-      {
-        SafeInvoke(() => callback.EventHandler?.Invoke(AlpmEvent.FromUnion(eventT, callbackLifetime)),
-          callback.HandlerException);
-      }
-      finally
-      {
-        callback._invokeDepth--;
-        callbackLifetime.Invalidate("callback frame ended");
-      }
-    }
-    catch
-    {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still
-      // calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
-    }
-  }
+  // Tracks active invocation depth on the current thread.
+  // 0 indicates that no callback is active; > 0 indicates an active callback frame (or nested callbacks).
+  private int _invokeDepth;
 
-  [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-  private static unsafe int FetchAgent(void* ctx, byte* url, byte* localPath, int force)
-  {
-    // fails without a valid ctx
-    if (ctx == null) return -1;
-    try
-    {
-      var success = WeakGCHandle<AlpmCallbacks>.FromIntPtr((nint)ctx).TryGetTarget(out var callback);
-      if (!success || callback == null) return -1;
-      callback._invokeDepth++;
-      try
-      {
-        return SafeInvoke(() =>
-        {
-          var urlString = NativeString.FromNative((IntPtr)url) ?? "";
-          var localPathString = NativeString.FromNative((IntPtr)localPath) ?? "";
+  // Tracks whether Dispose() has executed and native ctx resources have been released.
+  private bool _detached;
 
-          return (int)(callback.FetchHandler?.Invoke(urlString, localPathString, force != 0) ?? FetchResult.Error);
-        }, (int)FetchResult.Error, callback.HandlerException);
-      }
-      finally
-      {
-        callback._invokeDepth--;
-      }
-    }
-    catch
-    {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still
-      // calling back. In that case, the WeakGCHandle will throw an exception, which we want to identify as a failure.
-      return -1;
-    }
-  }
-
-  [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-  private static unsafe void QuestionAgent(void* ctx, _alpm_question_t* questionT)
-  {
-    if (ctx == null) return;
-    try
-    {
-      var success = WeakGCHandle<AlpmCallbacks>.FromIntPtr((nint)ctx).TryGetTarget(out var callback);
-      if (!success || callback == null) return;
-      callback._invokeDepth++;
-      try
-      {
-        callback.DispatchQuestion(questionT);
-      }
-      finally
-      {
-        callback._invokeDepth--;
-      }
-    }
-    catch
-    {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still
-      // calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
-    }
-  }
-
-  private unsafe void DispatchQuestion(_alpm_question_t* questionT)
-  {
-    try
-    {
-      switch (questionT->type_)
-      {
-        case _alpm_question_type_t.ALPM_QUESTION_INSTALL_IGNOREPKG:
-          if (OnInstallIgnorePackage is { } installIgnoreHandler)
-          {
-            var lifetime = ResolvePackageLifetime(questionT->install_ignorepkg.pkg);
-            var question = new InstallIgnorePackageQuestion(questionT, lifetime);
-            installIgnoreHandler(ref question);
-          }
-
-          break;
-
-        case _alpm_question_type_t.ALPM_QUESTION_REPLACE_PKG:
-          if (OnReplacePackage is { } replaceHandler)
-          {
-            var oldPackageLifetime = ResolvePackageLifetime(questionT->replace.oldpkg);
-            var newPackageLifetime = ResolvePackageLifetime(questionT->replace.newpkg);
-            var question = new ReplacePackageQuestion(questionT, oldPackageLifetime, newPackageLifetime);
-            replaceHandler(ref question);
-          }
-
-          break;
-
-        case _alpm_question_type_t.ALPM_QUESTION_CONFLICT_PKG:
-          if (OnPackageConflict is { } conflictHandler)
-          {
-            var conflict = questionT->conflict.conflict;
-            var package1Lifetime =
-              ResolvePackageLifetime(conflict != null ? conflict->package1 : null);
-            var package2Lifetime =
-              ResolvePackageLifetime(conflict != null ? conflict->package2 : null);
-            var question = new PackageConflictQuestion(questionT, package1Lifetime, package2Lifetime);
-            conflictHandler(ref question);
-          }
-
-          break;
-
-        case _alpm_question_type_t.ALPM_QUESTION_CORRUPTED_PKG:
-          if (OnCorruptedPackage is { } corruptedHandler)
-          {
-            var question = new CorruptedPackageQuestion(questionT);
-            corruptedHandler(ref question);
-          }
-
-          break;
-
-        case _alpm_question_type_t.ALPM_QUESTION_REMOVE_PKGS:
-          if (OnRemoveUnresolvablePackages is { } removeUnresolvablePackagesHandler)
-          {
-            var packageViews = ResolvePackageViews(questionT->remove_pkgs.packages);
-            var question = new RemoveUnresolvablePackagesQuestion(questionT, packageViews);
-            removeUnresolvablePackagesHandler(ref question);
-          }
-
-          break;
-
-        case _alpm_question_type_t.ALPM_QUESTION_SELECT_PROVIDER:
-          if (OnSelectProvider is { } selectProviderHandler)
-          {
-            var providerViews = ResolvePackageViews(questionT->select_provider.providers);
-            var question = new SelectProviderQuestion(questionT, providerViews);
-            selectProviderHandler(ref question);
-          }
-
-          break;
-
-        case _alpm_question_type_t.ALPM_QUESTION_IMPORT_KEY:
-          if (OnImportKey is { } importKeyHandler)
-          {
-            var question = new ImportKeyQuestion(questionT);
-            importKeyHandler(ref question);
-          }
-
-          break;
-
-        default:
-          throw new NotImplementedException($"Unhandled question type: {questionT->type_}");
-      }
-    }
-    catch (Exception ex)
-    {
-      NotifyHandlerException(HandlerException, ex);
-    }
-  }
-
-  [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-  private static unsafe void ProgressAgent(void* ctx, _alpm_progress_t progress, byte* pkg, int percent, nuint howmany,
-    nuint current)
-  {
-    if (ctx == null) return;
-    try
-    {
-      var success = WeakGCHandle<AlpmCallbacks>.FromIntPtr((nint)ctx).TryGetTarget(out var callback);
-      if (!success || callback == null) return;
-      callback._invokeDepth++;
-      try
-      {
-        SafeInvoke(
-          () => callback.ProgressHandler?.Invoke(new AlpmProgressEvent(
-            (ProgressType)(uint)progress,
-            NativeString.FromNative((nint)pkg) ?? "",
-            percent,
-            (int)current,
-            (int)howmany)), callback.HandlerException);
-      }
-      finally
-      {
-        callback._invokeDepth--;
-      }
-    }
-    catch
-    {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still
-      // calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
-    }
-  }
-
-  [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-  private static unsafe void DownloadAgent(void* ctx, byte* filename, _alpm_download_event_type_t eventType, void* data)
-  {
-    if (ctx == null) return;
-    try
-    {
-      var success = WeakGCHandle<AlpmCallbacks>.FromIntPtr((nint)ctx).TryGetTarget(out var callback);
-      if (!success || callback == null) return;
-      callback._invokeDepth++;
-      try
-      {
-        SafeInvoke(
-          () => callback.DownloadHandler?.Invoke(NativeString.FromNative((nint)filename) ?? "",
-            AlpmDownloadEvent.FromUnion(eventType, data)), callback.HandlerException);
-      }
-      finally
-      {
-        callback._invokeDepth--;
-      }
-    }
-    catch
-    {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
-    }
-  }
+  // Bitmask of log levels forwarded to LogHandler. Defaults to Error and Warning only to avoid formatting overhead.
+  private LogLevel _enabledLogLevels = LogLevel.Error | LogLevel.Warning;
 
   /// <summary>
-  /// Log thunk. This is the one libalpm callback that does not receive expanded arguments: it gets a
-  /// <c>(fmt, va_list)</c> pair, so the message is expanded by <see cref="LogMessageFormatter" />. The <c>va_list</c> is
-  /// delivered as an opaque pointer, which is currently the "correct" representation for all .NET supported platforms.
-  /// We hope that this stays true at least until Microsoft adds native __va_list marshaling to C#.
+  /// Initializes a new callback coordinator for the owning ALPM session.
   /// </summary>
-  [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-  private static unsafe void LogAgent(void* ctx, _alpm_loglevel_t level, byte* fmt, void* vaList)
-  {
-    if (ctx == null) return;
-    try
-    {
-      var success = WeakGCHandle<AlpmCallbacks>.FromIntPtr((nint)ctx).TryGetTarget(out var callback);
-      if (!success || callback == null) return;
-      callback._invokeDepth++;
-      try
-      {
-        SafeInvoke(
-          () => callback.LogHandler?.Invoke((LogLevel)(uint)level, LogMessageFormatter.Format(fmt, vaList) ?? ""),
-          callback.HandlerException);
-      }
-      finally
-      {
-        callback._invokeDepth--;
-      }
-    }
-    catch
-    {
-      // This catch is to guard against a race condition where the callback is disposed while the native code is still
-      // calling back. In that case, the WeakGCHandle will throw an exception, which we want to ignore.
-    }
-  }
-
   internal unsafe AlpmCallbacks(AlpmSession session, SafeAlpmHandle alpmHandle, RootLifetime lifetime)
   {
     _session = session;
     _handle = alpmHandle;
     _rootLifetime = lifetime;
+    _eventLifetime = lifetime.CreateChild("the ALPM event callback");
     _stamp = lifetime.Capture();
     _ctxHandle = new WeakGCHandle<AlpmCallbacks>(this);
 
-    var ctx = (void*)WeakGCHandle<AlpmCallbacks>.ToIntPtr(_ctxHandle);
-    ThrowIfError(NativeMethods.alpm_option_set_questioncb(_handle, &QuestionAgent, ctx));
+    // Question callbacks are registered permanently on the native handle because libalpm requires an active
+    // question callback if prompts are to be handled. Individual question types are presence-driven in managed code.
+    RegisterQuestionCallback();
   }
 
   /// <summary>
-  /// Resolves the lifetime domain for an unmanaged package pointer.
+  /// Ensures callback handlers can only be reconfigured while the session is alive and not currently executing
+  /// inside an active callback frame (mutating callbacks mid-execution causes native memory corruption in libalpm).
   /// </summary>
-  /// <param name="package">The unmanaged package pointer to resolve.</param>
-  /// <returns>The lifetime domain that owns the package.</returns>
-  private unsafe ChildLifetime ResolvePackageLifetime(_alpm_pkg_t* package)
-  {
-    if (package == null)
-    {
-      return _session.CurrentTransaction?.Lifetime
-             ?? _rootLifetime.GetLifetimeTokenForHandle(package, "a package");
-    }
-
-    var packageDatabase = NativeMethods.alpm_pkg_get_db(package);
-    if (packageDatabase == null)
-    {
-      return _session.CurrentTransaction?.Lifetime
-             ?? _rootLifetime.GetLifetimeTokenForHandle(package, "a file-loaded package");
-    }
-
-    if (packageDatabase == NativeMethods.alpm_get_localdb(_handle))
-    {
-      return _session.LocalDatabaseLifetime;
-    }
-
-    var dbName = NativeString.FromNative((nint)NativeMethods.alpm_db_get_name(packageDatabase));
-    var target = string.IsNullOrEmpty(dbName) ? "a sync database" : $"the sync database {dbName}";
-    return _rootLifetime.GetLifetimeTokenForHandle(packageDatabase, target);
-  }
-
-  /// <summary>
-  /// Resolves an unmanaged list of package pointers into borrowed <see cref="PackageView" /> instances.
-  /// </summary>
-  private unsafe List<PackageView> ResolvePackageViews(_alpm_list_t* packages)
-  {
-    List<PackageView> results = [];
-    while (packages != null)
-    {
-      var package = (_alpm_pkg_t*)packages->data;
-      if (package != null)
-      {
-        var lifetime = ResolvePackageLifetime(package);
-        results.Add(new PackageView(package, lifetime));
-      }
-
-      packages = packages->next;
-    }
-
-    return results;
-  }
-
   private void ConfigureGuard()
   {
     ObjectDisposedException.ThrowIf(_detached, this);
@@ -510,12 +216,31 @@ public sealed class AlpmCallbacks
     }
   }
 
+  /// <summary>
+  /// Validates libalpm option return codes when setting or clearing native function pointers.
+  /// </summary>
   private void ThrowIfError(int err, [CallerMemberName] string? operation = null)
   {
     if (err == 0) return;
     GC.KeepAlive(this);
     throw AlpmFailure.Of(_handle, $"set {operation ?? "callback"}").ToException();
   }
+
+  /// <summary>
+  /// Releases the callback ctx handle and returns rented string buffers to shared pools.
+  /// Deliberately internal: owned by AlpmSession, which releases it only once alpm_release returns.
+  /// </summary>
+  internal void Dispose()
+  {
+    if (_detached) return;
+    _detached = true;
+    _progressPackageNames.Release();
+    if (_ctxHandle.IsAllocated) _ctxHandle.Dispose();
+  }
+
+  // =========================================================================
+  // Public Callback Configuration Properties
+  // =========================================================================
 
   /// <summary>
   /// Receives libalpm event notifications. Setting a non-null delegate registers the native event callback; setting
@@ -560,6 +285,104 @@ public sealed class AlpmCallbacks
       field = value;
       var ctx = (void*)WeakGCHandle<AlpmCallbacks>.ToIntPtr(_ctxHandle);
       ThrowIfError(NativeMethods.alpm_option_set_fetchcb(_handle, &FetchAgent, ctx));
+    }
+  }
+
+  /// <summary>
+  /// Receives progress events during downloads handled by libalpm's internal downloader. Setting a non-null
+  /// delegate registers the native download callback; setting <see langword="null" /> unregisters it. Note: this callback
+  /// only fires when libalpm downloads files itself, and is inactive while <see cref="FetchHandler" /> is configured.
+  /// The payload is a value type, so dispatching it does not allocate a managed event object.
+  /// </summary>
+  public unsafe Action<string, AlpmDownloadEvent>? DownloadHandler
+  {
+    get;
+    set
+    {
+      ConfigureGuard();
+      if (value == null)
+      {
+        ThrowIfError(NativeMethods.alpm_option_set_dlcb(_handle, null, null));
+        field = null;
+        return;
+      }
+
+      field = value;
+      var ctx = (void*)WeakGCHandle<AlpmCallbacks>.ToIntPtr(_ctxHandle);
+      ThrowIfError(NativeMethods.alpm_option_set_dlcb(_handle, &DownloadAgent, ctx));
+    }
+  }
+
+  /// <summary>
+  /// Receives progress alerts during database and transaction operations. Setting a non-null delegate registers the
+  /// native progress callback; setting <see langword="null" /> unregisters it.
+  /// </summary>
+  /// <remarks>
+  /// This is the most frequent callback: libalpm reports once per file entry while it extracts or removes a
+  /// package. The payload is an <see cref="AlpmProgressEvent" /> value, so the handler call allocates nothing for the
+  /// payload itself.
+  /// </remarks>
+  public unsafe Action<AlpmProgressEvent>? ProgressHandler
+  {
+    get;
+    set
+    {
+      ConfigureGuard();
+      if (value == null)
+      {
+        ThrowIfError(NativeMethods.alpm_option_set_progresscb(_handle, null, null));
+        field = null;
+        return;
+      }
+
+      field = value;
+      var ctx = (void*)WeakGCHandle<AlpmCallbacks>.ToIntPtr(_ctxHandle);
+      ThrowIfError(NativeMethods.alpm_option_set_progresscb(_handle, &ProgressAgent, ctx));
+      GC.KeepAlive(this);
+    }
+  }
+
+  /// <summary>
+  /// Gets or sets the native log levels forwarded to <see cref="LogHandler" />.
+  /// </summary>
+  /// <remarks>
+  /// Filtering happens before the message is formatted. The default excludes <see cref="LogLevel.Debug" /> and
+  /// <see cref="LogLevel.Function" />; set <see cref="LogLevel.None" /> to suppress all log-handler calls.
+  /// </remarks>
+  public LogLevel EnabledLogLevels
+  {
+    get => _enabledLogLevels;
+    set
+    {
+      ConfigureGuard();
+      _enabledLogLevels = value;
+    }
+  }
+
+  /// <summary>
+  /// Receives libalpm's log messages, already expanded from the <c>(fmt, va_list)</c> pair the native callback is
+  /// given. Setting a non-null delegate registers the native log callback; setting <see langword="null" /> unregisters it.
+  /// </summary>
+  /// <remarks>
+  /// The message is UTF-8 and remains valid only for the duration of the handler call. Copy it before retaining it or
+  /// crossing an asynchronous boundary. A message that cannot be expanded arrives as an empty span.
+  /// </remarks>
+  public unsafe LogMessageHandler? LogHandler
+  {
+    get;
+    set
+    {
+      ConfigureGuard();
+      if (value == null)
+      {
+        ThrowIfError(NativeMethods.alpm_option_set_logcb(_handle, null, null));
+        field = null;
+        return;
+      }
+
+      field = value;
+      var ctx = (void*)WeakGCHandle<AlpmCallbacks>.ToIntPtr(_ctxHandle);
+      ThrowIfError(NativeMethods.alpm_option_set_logcb(_handle, &LogAgent, ctx));
     }
   }
 
@@ -656,87 +479,7 @@ public sealed class AlpmCallbacks
   }
 
   /// <summary>
-  /// Receives progress events during downloads handled by libalpm's internal downloader. Setting a non-null
-  /// delegate registers the native download callback; setting <see langword="null" /> unregisters it. Note: this callback
-  /// only fires when libalpm downloads files itself, and is inactive while <see cref="FetchHandler" /> is configured.
-  /// </summary>
-  public unsafe Action<string, AlpmDownloadEvent>? DownloadHandler
-  {
-    get;
-    set
-    {
-      ConfigureGuard();
-      if (value == null)
-      {
-        ThrowIfError(NativeMethods.alpm_option_set_dlcb(_handle, null, null));
-        field = null;
-        return;
-      }
-
-      field = value;
-      var ctx = (void*)WeakGCHandle<AlpmCallbacks>.ToIntPtr(_ctxHandle);
-      ThrowIfError(NativeMethods.alpm_option_set_dlcb(_handle, &DownloadAgent, ctx));
-    }
-  }
-
-  /// <summary>
-  /// Receives progress alerts during database and transaction operations. Setting a non-null delegate registers the
-  /// native progress callback; setting <see langword="null" /> unregisters it.
-  /// </summary>
-  /// <remarks>
-  /// This is the most frequent callback: libalpm reports once per file entry while it extracts or removes a
-  /// package. The payload is an <see cref="AlpmProgressEvent" /> value, so the handler call allocates nothing for the
-  /// payload itself.
-  /// </remarks>
-  public unsafe Action<AlpmProgressEvent>? ProgressHandler
-  {
-    get;
-    set
-    {
-      ConfigureGuard();
-      if (value == null)
-      {
-        ThrowIfError(NativeMethods.alpm_option_set_progresscb(_handle, null, null));
-        field = null;
-        return;
-      }
-
-      field = value;
-      var ctx = (void*)WeakGCHandle<AlpmCallbacks>.ToIntPtr(_ctxHandle);
-      ThrowIfError(NativeMethods.alpm_option_set_progresscb(_handle, &ProgressAgent, ctx));
-      GC.KeepAlive(this);
-    }
-  }
-
-  /// <summary>
-  /// Receives libalpm's log messages, already expanded from the <c>(fmt, va_list)</c> pair the native callback is
-  /// given. Setting a non-null delegate registers the native log callback; setting <see langword="null" /> unregisters it.
-  /// </summary>
-  /// <remarks>
-  /// A message that could not be expanded (a null format string, or an allocation failure) arrives as an empty
-  /// string rather than as <see langword="null" />.
-  /// </remarks>
-  public unsafe Action<LogLevel, string>? LogHandler
-  {
-    get;
-    set
-    {
-      ConfigureGuard();
-      if (value == null)
-      {
-        ThrowIfError(NativeMethods.alpm_option_set_logcb(_handle, null, null));
-        field = null;
-        return;
-      }
-
-      field = value;
-      var ctx = (void*)WeakGCHandle<AlpmCallbacks>.ToIntPtr(_ctxHandle);
-      ThrowIfError(NativeMethods.alpm_option_set_logcb(_handle, &LogAgent, ctx));
-    }
-  }
-
-  /// <summary>
-  /// Optional observer for exceptions thrown by the user handlers ( <see cref="EventHandler" />,
+  /// Optional observer for exceptions thrown by user handlers (<see cref="EventHandler" />,
   /// <see cref="FetchHandler" />, <see cref="OnInstallIgnorePackage" />, <see cref="DownloadHandler" />,
   /// <see cref="ProgressHandler" />, <see cref="LogHandler" />).
   /// </summary>
@@ -747,70 +490,4 @@ public sealed class AlpmCallbacks
   /// Leave it null to ignore handler failures.
   /// </remarks>
   public Action<Exception>? HandlerException { get; set; }
-
-  /// <summary>
-  /// Invokes a user handler body so that no exception escapes to the native caller, which has no managed frame left
-  /// to catch it.
-  /// </summary>
-  /// <param name="body">The handler invocation to protect.</param>
-  /// <param name="observer">
-  /// When non-null and <paramref name="body" /> throws, called with the thrown exception. Exceptions
-  /// thrown by the observer are swallowed too.
-  /// </param>
-  internal static void SafeInvoke(Action body, Action<Exception>? observer)
-  {
-    try
-    {
-      body();
-    }
-    catch (Exception ex)
-    {
-      NotifyHandlerException(observer, ex);
-    }
-  }
-
-  /// <summary>
-  /// <c>SafeInvoke</c> for handlers that return a value: <paramref name="onException" /> is returned when the body
-  /// throws. The fetch thunk uses -1 so a failing handler is reported to libalpm as an error instead of a bogus success.
-  /// </summary>
-  internal static int SafeInvoke(Func<int> body, int onException, Action<Exception>? observer)
-  {
-    try
-    {
-      return body();
-    }
-    catch (Exception ex)
-    {
-      NotifyHandlerException(observer, ex);
-      return onException;
-    }
-  }
-
-  private static void NotifyHandlerException(Action<Exception>? observer, Exception ex)
-  {
-    try
-    {
-      observer?.Invoke(ex);
-    }
-    catch
-    {
-      // An observer must not be able to escape the FFI boundary either.
-    }
-  }
-
-  /// <summary>
-  /// Releases the callback ctx handle. Deliberately <c>internal</c>: the handle is owned by
-  /// <see cref="AlpmSession" />, which releases it once <c>alpm_release</c> has returned successfully. A public entry point
-  /// would let a consumer invalidate the ctx while native code may still call back.
-  /// </summary>
-  /// <remarks>
-  /// Not called when <c>alpm_release</c> failed: the handle it belongs to is still alive then (it is what leaked),
-  /// and its native thunks would dereference this ctx handle - see <see cref="AlpmSession.Dispose()" />.
-  /// </remarks>
-  internal void Dispose()
-  {
-    if (_detached) return;
-    _detached = true;
-    if (_ctxHandle.IsAllocated) _ctxHandle.Dispose();
-  }
 }

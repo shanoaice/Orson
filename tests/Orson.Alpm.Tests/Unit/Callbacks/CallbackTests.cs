@@ -14,7 +14,7 @@ public sealed class CallbackTests
   {
     var thrown = new InvalidOperationException("handler failed");
 
-    var exception = Record.Exception(() => AlpmCallbacks.SafeInvoke(() => throw thrown, null));
+    var exception = Record.Exception(() => AlpmCallbacks.SafeInvoke(0, _ => throw thrown, null));
 
     Assert.Null(exception);
   }
@@ -25,7 +25,7 @@ public sealed class CallbackTests
     var thrown = new InvalidOperationException("handler failed");
     Exception? observed = null;
 
-    AlpmCallbacks.SafeInvoke(() => throw thrown, ex => observed = ex);
+    AlpmCallbacks.SafeInvoke(0, _ => throw thrown, ex => observed = ex);
 
     Assert.Same(thrown, observed);
   }
@@ -35,7 +35,7 @@ public sealed class CallbackTests
   {
     var invoked = false;
 
-    AlpmCallbacks.SafeInvoke(() => invoked = true, _ => throw new InvalidOperationException("observer must not run"));
+    AlpmCallbacks.SafeInvoke(0, _ => invoked = true, _ => throw new InvalidOperationException("observer must not run"));
 
     Assert.True(invoked);
   }
@@ -44,7 +44,8 @@ public sealed class CallbackTests
   public void SafeInvoke_SwallowsObserverExceptions()
   {
     var exception = Record.Exception(() => AlpmCallbacks.SafeInvoke(
-      () => throw new InvalidOperationException("handler failed"),
+      0,
+      _ => throw new InvalidOperationException("handler failed"),
       _ => throw new InvalidOperationException("observer failed")));
 
     Assert.Null(exception);
@@ -57,7 +58,7 @@ public sealed class CallbackTests
     var thrown = new InvalidOperationException("fetch handler failed");
     Exception? observed = null;
 
-    var result = AlpmCallbacks.SafeInvoke(() => throw thrown, -1, ex => observed = ex);
+    var result = AlpmCallbacks.SafeInvoke(0, _ => throw thrown, -1, ex => observed = ex);
 
     Assert.Equal(-1, result);
     Assert.Same(thrown, observed);
@@ -65,6 +66,6 @@ public sealed class CallbackTests
 
   [Fact]
   public void SafeInvoke_WithResult_ReturnsHandlerValue_WhenItDoesNotThrow()
-    => Assert.Equal(7, AlpmCallbacks.SafeInvoke(() => 7, -1, null));
+    => Assert.Equal(7, AlpmCallbacks.SafeInvoke(0, _ => 7, -1, null));
 
 }

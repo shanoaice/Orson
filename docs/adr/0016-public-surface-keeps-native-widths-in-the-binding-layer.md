@@ -13,7 +13,7 @@ semantics are genuinely required, but are not forced onto high-level domain coun
 1. **Counts are `int`.** A count of packages, hooks or files takes the same type as
    `FileList.Count` and `AlpmList.Count`.
 2. **Byte sizes are `long`.** `off_t` is a signed 64-bit quantity. It maps to `long`, the type
-   already used by `PackageBase.Size` and `AlpmDownloadEvent.Progress.Total`.
+   already used by `PackageBase.Size` and `DownloadProgress.Total`.
 3. **The binding layer keeps the native type.** `NativeMethods` keeps `nuint` for `size_t` and
    `CLong` for `off_t`, because that is what the C signatures say. The wrapper translates once, at
    the property or callback boundary.

@@ -1,3 +1,7 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using Orson.Alpm.Bindings;
 using Orson.Alpm.Tests.Fixtures;
 
 namespace Orson.Alpm.Tests.Unit.Callbacks;
@@ -5,8 +9,7 @@ namespace Orson.Alpm.Tests.Unit.Callbacks;
 /// <summary>
 /// The log callback is the one handler whose payload libalpm does not expand for us, so it is the only one that cannot be
 /// covered by
-/// <see
-///   cref="AlpmCallbacks.SafeInvoke(System.Action, System.Action{System.Exception})" />
+/// <c>SafeInvoke</c>
 /// tests alone. These drive the whole production path on a real handle: native <c>alpm_cb_log</c> → the log thunk →
 /// <see cref="LogMessageFormatter" /> → <see cref="AlpmCallbacks.LogHandler" />.
 /// </summary>
@@ -21,6 +24,62 @@ namespace Orson.Alpm.Tests.Unit.Callbacks;
 public sealed class LogCallbackTests
 {
   private const LogLevel AllLevels = LogLevel.Error | LogLevel.Warning | LogLevel.Debug | LogLevel.Function;
+  private const string HarnessLibrary = "orson_log_shim_test";
+
+  [DllImport(HarnessLibrary, EntryPoint = "orson_shim_test_invoke", CallingConvention = CallingConvention.Cdecl,
+    ExactSpelling = true)]
+  private static unsafe extern void Invoke(
+    delegate* unmanaged[Cdecl]<void*, int, byte*, void*, void> callback,
+    void* context,
+    int level,
+    byte* format,
+    byte* text,
+    int number,
+    double fraction);
+
+  [Fact]
+  public unsafe void EnabledLogLevels_FilteringHappensBeforeTheHandler()
+  {
+    using var environment = new IsolatedAlpmEnvironment();
+    var callbacks = environment.AlpmSession.Callbacks;
+    var received = new List<LogLevel>();
+    callbacks.LogHandler = (level, _) => received.Add(level);
+
+    var format = (byte*)Marshal.StringToCoTaskMemUTF8("%s");
+    var text = (byte*)Marshal.StringToCoTaskMemUTF8("debug message");
+    var context = GCHandle.Alloc(callbacks);
+
+    try
+    {
+      Invoke(
+        &DispatchThunk,
+        (void*)GCHandle.ToIntPtr(context),
+        (int)_alpm_loglevel_t.ALPM_LOG_DEBUG,
+        format,
+        text,
+        0,
+        0);
+      Assert.Empty(received);
+
+      callbacks.EnabledLogLevels = LogLevel.Debug;
+      Invoke(
+        &DispatchThunk,
+        (void*)GCHandle.ToIntPtr(context),
+        (int)_alpm_loglevel_t.ALPM_LOG_DEBUG,
+        format,
+        text,
+        0,
+        0);
+
+      Assert.Equal([LogLevel.Debug], received);
+    }
+    finally
+    {
+      context.Free();
+      Marshal.FreeCoTaskMem((nint)format);
+      Marshal.FreeCoTaskMem((nint)text);
+    }
+  }
 
   [Fact]
   public void LogHandler_ReceivesExpandedMessagesFromARealHandle()
@@ -29,7 +88,9 @@ public sealed class LogCallbackTests
 
     using (var environment = new IsolatedAlpmEnvironment())
     {
-      environment.AlpmSession.Callbacks.LogHandler = (level, message) => received.Add((level, message));
+      environment.AlpmSession.Callbacks.EnabledLogLevels = AllLevels;
+      environment.AlpmSession.Callbacks.LogHandler = (level, messageUtf8) =>
+        received.Add((level, Encoding.UTF8.GetString(messageUtf8)));
       // Leaving the block disposes the handle, which is when libalpm logs.
     }
 
@@ -53,10 +114,19 @@ public sealed class LogCallbackTests
 
     using (var environment = new IsolatedAlpmEnvironment())
     {
-      environment.AlpmSession.Callbacks.LogHandler = (_, _) => throw new InvalidOperationException("log handler failed");
+      environment.AlpmSession.Callbacks.EnabledLogLevels = AllLevels;
+      environment.AlpmSession.Callbacks.LogHandler = (_, _) =>
+        throw new InvalidOperationException("log handler failed");
       environment.AlpmSession.Callbacks.HandlerException = observed.Add;
     }
 
     Assert.Contains(observed, exception => exception.Message == "log handler failed");
+  }
+
+  [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+  private static unsafe void DispatchThunk(void* context, int level, byte* format, void* vaList)
+  {
+    var callbacks = (AlpmCallbacks)GCHandle.FromIntPtr((nint)context).Target!;
+    callbacks.DispatchLog((_alpm_loglevel_t)(uint)level, format, vaList);
   }
 }

@@ -1,6 +1,7 @@
 #pragma warning disable SYSLIB1054
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Orson.Alpm.Tests.Unit.Callbacks;
 
@@ -39,11 +40,21 @@ public sealed unsafe class LogMessageFormatterTests
   }
 
   [Fact]
-  public void Format_ReturnsNull_WhenTheFormatStringIsNull()
+  public void Format_ReturnsAnEmptyMessage_WhenTheFormatStringIsNull()
   {
     var received = Capture(null, "ignored", 0, 0);
 
-    Assert.Equal([null], received);
+    Assert.Equal([""], received);
+  }
+
+  [Fact]
+  public void Format_PreservesMessagesLargerThanTheStackBuffer()
+  {
+    var text = new string('x', 700);
+
+    var received = Capture("%s", text, 0, 0);
+
+    Assert.Equal([text], received);
   }
 
   /// <summary>
@@ -76,7 +87,11 @@ public sealed unsafe class LogMessageFormatterTests
   private static void LogThunk(void* context, int level, byte* format, void* vaList)
   {
     var received = GCHandle<List<string?>>.FromIntPtr((nint)context).Target;
-    received.Add(LogMessageFormatter.Format(format, vaList));
+    LogMessageFormatter.Format(
+      format,
+      vaList,
+      (_, messageUtf8) => received.Add(Encoding.UTF8.GetString(messageUtf8)),
+      (LogLevel)(uint)level);
   }
 
   private static byte* Utf8(string? value)

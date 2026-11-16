@@ -272,7 +272,7 @@ public sealed unsafe class ManagedSnapshotTests
 
       // FromUnion takes the callback frame token, which any package views in the payload are
       // anchored to; this branch carries none.
-      var payload = AlpmEvent.FromUnion(native, null);
+      var payload = AlpmEvent.FromUnion(native, CreateEventLifetime());
 
       // Exactly what libalpm does to the union as soon as the callback returns.
       *native = default;
@@ -301,7 +301,7 @@ public sealed unsafe class ManagedSnapshotTests
       native->hook_run.position = 2;
       native->hook_run.total = 5;
 
-      var payload = AlpmEvent.FromUnion(native, null);
+      var payload = AlpmEvent.FromUnion(native, CreateEventLifetime());
 
       *native = default;
 
@@ -330,7 +330,8 @@ public sealed unsafe class ManagedSnapshotTests
       data->total = default;
       data->result = -1;
 
-      var completed = Assert.IsType<AlpmDownloadEvent.Completed>(payload);
+      Assert.Equal(DownloadEventType.Completed, payload.Type);
+      var completed = Assert.NotNull(payload.Completed);
       Assert.Equal(1024L, completed.Total);
       Assert.Equal(0, completed.Result);
       Assert.True(completed.IsSuccessful);
@@ -341,4 +342,7 @@ public sealed unsafe class ManagedSnapshotTests
       NativeMemory.Free((void*)(nint)data);
     }
   }
+
+  private static ChildLifetime CreateEventLifetime()
+    => Lifetime.CreateRoot(new object(), "test root").CreateChild("test callback");
 }

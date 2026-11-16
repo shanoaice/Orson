@@ -6,6 +6,7 @@ versus eager managed snapshots, the null-miss caching loop, and `AlpmList<T>` tr
 ## Requirements
 
 - .NET 10 SDK.
+- A C compiler available as `cc`; the callback log benchmark compiles a small `va_list` harness.
 - A pacman database to measure against (any Arch-based host, or a copy of one). All benchmarks
   are **read-only**; they never modify the database.
 
@@ -39,6 +40,7 @@ Reports land in `BenchmarkDotNet.Artifacts/results/` (markdown, CSV, HTML).
 | `NullMissBenchmarks` | How expensive is re-entering the P/Invoke boundary for an absent property, and what does the bool-flag fix buy? |
 | `ListTraversalBenchmarks` | What does one dependency-list pass cost: streaming the enumerator, re-reading the property, or materializing with `ToArray`? |
 | `QuestionPayloadLifetimeCostBenchmarks` | What does fixing the question payload's lifetime granularity cost per package: resolving the owning-database token (nanoseconds, no garbage) or copying the package eagerly into a `PackageSnapshot` (microseconds to milliseconds, with the file list as the expensive part)? |
+| `CallbackHotPathBenchmarks` | Do stateless events, repeated Progress and Download callbacks, and accepted UTF-8 log messages reach zero steady-state managed allocation? |
 
 ## Methodology
 

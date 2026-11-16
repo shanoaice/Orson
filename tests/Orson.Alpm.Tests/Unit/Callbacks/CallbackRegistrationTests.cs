@@ -33,6 +33,7 @@ public sealed class CallbackRegistrationTests
     var handle = env.AlpmSession.Handle;
 
     var cb = env.AlpmSession.Callbacks;
+    Assert.Equal(LogLevel.Error | LogLevel.Warning, cb.EnabledLogLevels);
 
     // Assert.Null and Assert.NotNull cannot be used on unmanaged function pointers (delegate*).
 #pragma warning disable xUnit2024
@@ -78,6 +79,7 @@ public sealed class CallbackRegistrationTests
     using (var environment = new IsolatedAlpmEnvironment())
     {
       var callback = environment.AlpmSession.Callbacks;
+      callback.EnabledLogLevels = LogLevel.Error | LogLevel.Warning | LogLevel.Debug | LogLevel.Function;
       callback.HandlerException = observed.Add;
       callback.LogHandler = (_, _) =>
       {
@@ -100,6 +102,7 @@ public sealed class CallbackRegistrationTests
     Assert.Throws<ObjectDisposedException>(() => callback.DownloadHandler = (_, _) => { });
     Assert.Throws<ObjectDisposedException>(() => callback.ProgressHandler = _ => { });
     Assert.Throws<ObjectDisposedException>(() => callback.LogHandler = (_, _) => { });
+    Assert.Throws<ObjectDisposedException>(() => callback.EnabledLogLevels = LogLevel.Error);
   }
 
   [Fact]
@@ -117,5 +120,6 @@ public sealed class CallbackRegistrationTests
     Assert.Throws<AlpmLifetimeException>(() => callback.DownloadHandler = (_, _) => { });
     Assert.Throws<AlpmLifetimeException>(() => callback.ProgressHandler = _ => { });
     Assert.Throws<AlpmLifetimeException>(() => callback.LogHandler = (_, _) => { });
+    Assert.Throws<AlpmLifetimeException>(() => callback.EnabledLogLevels = LogLevel.Error);
   }
 }

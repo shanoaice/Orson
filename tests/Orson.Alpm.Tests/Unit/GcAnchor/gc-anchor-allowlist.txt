@@ -21,15 +21,19 @@ AlpmSession.TryInitializeHandle | 2 | SafeAlpmHandle ownership | The raw handle 
 
 AlpmCallbacks.ResolvePackageLifetime | 1 | delegated to caller | alpm_pkg_get_db is called during a synchronous question callback where the native handle and transaction/database are live on the native call stack. Resolves the unmanaged package pointer to the corresponding ChildLifetime.
 
+AlpmCallbacks.DispatchEvent | 1 | delegated to caller | The event thunk passes the native union pointer directly from a synchronous libalpm callback frame; EventInvocation consumes it before DispatchEvent returns and stores no pointer.
+
+AlpmCallbacks.DispatchFetch | 1 | delegated to caller | The fetch thunk passes both native strings directly from a synchronous libalpm callback frame; FetchInvocation decodes them before DispatchFetch returns and stores no pointer.
+
+AlpmCallbacks.DispatchLog | 1 | delegated to caller | The log thunk passes the native format string and one-shot va_list directly from a synchronous libalpm callback frame; LogInvocation consumes both before DispatchLog returns.
+
 InstallIgnorePackageQuestion | 2 | delegated to caller and token-carrying construction | Constructed during the question callback with a non-null ChildLifetime; the constructor copies package name and version out eagerly, and get_Package constructs a PackageView anchored to that lifetime token.
 
 ReplacePackageQuestion | 5 | delegated to caller and token-carrying construction | Constructed during the question callback with non-null ChildLifetime tokens; the constructor copies old/new package names, versions, and new database name out eagerly, and get_OldPackage / get_NewPackage construct PackageViews anchored to those lifetime tokens.
 
 PackageConflictQuestion | 4 | delegated to caller and token-carrying construction | Constructed during the question callback with non-null ChildLifetime tokens; the constructor copies package names, versions, and conflict reasons out eagerly from libalpm's conflict struct, and get_Package1 / get_Package2 construct PackageViews anchored to those lifetime tokens.
 
-AlpmDownloadEvent | 4 | delegated to caller | FromUnion receives the download-event union by parameter and copies it out eagerly. Its only caller is AlpmCallbacks.DownloadAgent, which runs inside the libalpm download callback whose frame already keeps the handle owner alive.
-
-AlpmEvent | 16 | delegated to caller | FromUnion receives the event union by parameter and copies it out eagerly. Its only caller is AlpmCallbacks.EventAgent, which runs inside the libalpm call that owns the union. The PackageView values it builds are handed the callback's token so they stay readable exactly as long as the handle lives.
+AlpmEvent | 19 | delegated to caller | FromUnion receives the event union by parameter and copies it out eagerly. Its only caller is AlpmCallbacks.EventAgent, which runs inside the libalpm call that owns the union. The PackageView values it builds are handed the callback's token so they stay readable exactly as long as the handle lives. The canonical stateless instances contain no native pointer and never escape the session's callback lifetime contract.
 
 AlpmList`1 | 4 | receiver anchoring not modelled | ToArray reads the list through the Native accessor after Lifetime.ThrowIfStale(), and Enumerator.Current anchors the owning view with GC.KeepAlive(_list). The validator only recognises GC.KeepAlive(this), so an anchor on a field of this is invisible to it. The view owns no handle itself; the memory belongs to the list the caller borrowed it from.
 

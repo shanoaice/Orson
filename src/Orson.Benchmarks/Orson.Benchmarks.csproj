@@ -11,6 +11,32 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <OrsonBenchmarkNativeSource>$(MSBuildThisFileDirectory)native/orson_callback_bench_shim.c</OrsonBenchmarkNativeSource>
+    <OrsonBenchmarkNativeCc Condition="'$(OrsonBenchmarkNativeCc)' == ''">$(CC)</OrsonBenchmarkNativeCc>
+    <OrsonBenchmarkNativeCc Condition="'$(OrsonBenchmarkNativeCc)' == ''">cc</OrsonBenchmarkNativeCc>
+    <OrsonBenchmarkNativeOutDir>$(BaseIntermediateOutputPath.Replace('\', '/'))native/</OrsonBenchmarkNativeOutDir>
+    <OrsonBenchmarkNativeOutput>$(OrsonBenchmarkNativeOutDir)liborson_callback_bench_shim.so</OrsonBenchmarkNativeOutput>
+  </PropertyGroup>
+
+  <Target Name="CompileBenchmarkNative"
+          Inputs="$(OrsonBenchmarkNativeSource)"
+          Outputs="$(OrsonBenchmarkNativeOutput)">
+    <MakeDir Directories="$(OrsonBenchmarkNativeOutDir)"/>
+    <Exec Command="&quot;$(OrsonBenchmarkNativeCc)&quot; -shared -O2 -Wall -Wextra -fPIC -fvisibility=hidden -o &quot;$(OrsonBenchmarkNativeOutput)&quot; &quot;$(OrsonBenchmarkNativeSource)&quot;"/>
+  </Target>
+
+  <Target Name="IncludeBenchmarkNative"
+          BeforeTargets="AssignTargetPaths"
+          DependsOnTargets="CompileBenchmarkNative">
+    <ItemGroup Condition="Exists('$(OrsonBenchmarkNativeOutput)')">
+      <None Include="$(OrsonBenchmarkNativeOutput)"
+            Link="liborson_callback_bench_shim.so"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"/>
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />
   </ItemGroup>

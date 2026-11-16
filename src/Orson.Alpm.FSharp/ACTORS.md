@@ -169,6 +169,16 @@ Inside `AlpmWorker`, a small internal bridge implements the synchronous `IQuesti
 
 Because the ALPM worker runs on its own dedicated background thread (not a UI thread), blocking the worker thread inside `.GetAwaiter().GetResult()` while awaiting the UI thread's `TaskCompletionSource` **cannot deadlock the UI thread**.
 
+### 5.3 UTF-8 Log Adapter
+
+`AlpmCallbacks.LogHandler` receives a `ReadOnlySpan<byte>` that is valid only during the synchronous callback:
+
+- A synchronous CLI sink may write the span directly to `Console.OpenStandardOutput()`, `Console.OpenStandardError()`, or a `FileStream`.
+- An actor or UI sink must copy the bytes before posting to a `Channel`, `MailboxProcessor`, or task. The adapter can enqueue `messageUtf8.ToArray()` or decode it once to a string.
+- An F# record, discriminated-union case, option, or asynchronous state machine cannot contain the span.
+
+The `EventSink` implementation therefore needs one direct span path and one owned-copy path. The owned-copy path preserves safety across the worker/UI boundary and intentionally pays one allocation per accepted log message.
+
 ---
 
 ## 6. Under-the-Hood Implementation Sketch (~80 Lines of F#)

@@ -85,7 +85,8 @@ public sealed class LogActionTests : IDisposable
     using (environment)
     {
       var logged = new List<string>();
-      alpm.Callbacks.LogHandler = (_, message) => logged.Add(message);
+      alpm.Callbacks.LogHandler = (_, messageUtf8) =>
+        logged.Add(System.Text.Encoding.UTF8.GetString(messageUtf8));
 
       alpm.LogAction("ORSON", "this must not reach the callback");
 
