@@ -385,3 +385,4 @@ Orson.Alpm.SyncDatabase.Update(bool force = false) -> bool
 *REMOVED*Orson.Alpm.Database.SigLevel.get -> Orson.Alpm.SigLevel
 *REMOVED*Orson.Alpm.Database.Unregister() -> void
 *REMOVED*Orson.Alpm.Database.Update(bool force = false) -> bool
+*REMOVED*Orson.Alpm.AlpmStringList.AlpmStringList() -> void

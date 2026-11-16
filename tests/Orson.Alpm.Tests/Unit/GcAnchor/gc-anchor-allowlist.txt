@@ -31,37 +31,37 @@ AlpmDownloadEvent | 4 | delegated to caller | FromUnion receives the download-ev
 
 AlpmEvent | 16 | delegated to caller | FromUnion receives the event union by parameter and copies it out eagerly. Its only caller is AlpmCallbacks.EventAgent, which runs inside the libalpm call that owns the union. The PackageView values it builds are handed the callback's token so they stay readable exactly as long as the handle lives.
 
-AlpmList`1 | 4 | receiver anchoring not modelled | ToArray reads the list through the Native accessor after Lifetime?.ThrowIfStale(), and Enumerator.Current anchors the owning view with GC.KeepAlive(_list). The validator only recognises GC.KeepAlive(this), so an anchor on a field of this is invisible to it. The view owns no handle itself; the memory belongs to the list the caller borrowed it from.
+AlpmList`1 | 4 | receiver anchoring not modelled | ToArray reads the list through the Native accessor after Lifetime.ThrowIfStale(), and Enumerator.Current anchors the owning view with GC.KeepAlive(_list). The validator only recognises GC.KeepAlive(this), so an anchor on a field of this is invisible to it. The view owns no handle itself; the memory belongs to the list the caller borrowed it from.
 
-AlpmStringList | 3 | delegated to caller | TakeOwned receives a libalpm list the caller has already disowned, wraps it in AlpmOwnedList for the duration of the copy, and frees it before returning. The anchoring obligation belongs to the call site that produced the list.
+AlpmStringList | 1 | delegated to caller | TakeOwned receives a libalpm list the caller has already disowned, materializes via NativeListMarshal.MaterializeAndFree for the duration of the copy, and frees it before returning. The anchoring obligation belongs to the call site that produced the list.
 
-BackupEntry | 1 | delegated to caller | Factory(void*, Lifetime?) receives the entry pointer as a parameter and copies the entry out. Every call site passes a pointer into a list owned by a view that is rooted on the caller's stack for the duration of the call.
+BackupEntry | 1 | delegated to caller | Factory(void*, Lifetime) receives the entry pointer as a parameter and copies the entry out. Every call site passes a pointer into a list owned by a view that is rooted on the caller's stack for the duration of the call.
 
 
-Conflict | 4 | delegated to caller | Factory(void*, Lifetime?) receives the conflict entry as a parameter and snapshots its names eagerly. The payload belongs to the caller's failure list and nothing is retained.
+Conflict | 4 | delegated to caller | Factory(void*) receives the conflict entry as a parameter and snapshots its names eagerly. The payload belongs to the caller's failure list and nothing is retained.
 
 Database | 3 | token-carrying construction and delegated queries | Common database query methods and accessors either call GC.KeepAlive(this) or leave this live across the call, and Database.Lifetime is a non-nullable child of the handle's root token, so a live Database always roots the handle that owns backingStruct. The values it builds are handed that token, which is why the constructed-view sites read as Token ownership rather than Strong.
 
 LocalDatabase | 1 | delegated to caller | Constructor delegates the native pointer and lifetime token to the Database base constructor; the local database pointer is owned by the session and managed via LocalDatabaseLifetime.
 
-SyncDatabase | 9 | token-carrying construction and delegated Factory | Factory(void*, Lifetime?) delegates its pointer parameter to the call site. Its accessors either call GC.KeepAlive(this) or leave this live across the call, and SyncDatabase.Lifetime is a non-nullable child of the handle's root token, so a live SyncDatabase always roots the handle that owns backingStruct. The values it builds are handed that token, which is why the constructed-view sites read as Token ownership rather than Strong.
+SyncDatabase | 7 | token-carrying construction and delegated Factory | Factory(void*, Lifetime) delegates its pointer parameter to the call site. Its accessors either call GC.KeepAlive(this) or leave this live across the call, and SyncDatabase.Lifetime is a non-nullable child of the handle's root token, so a live SyncDatabase always roots the handle that owns backingStruct. The values it builds are handed that token, which is why the constructed-view sites read as Token ownership rather than Strong.
 
-MissingDependency | 1 | delegated to caller | Factory(void*, Lifetime?) receives the entry as a parameter and copies the target and causing package names out eagerly. Nothing is retained beyond the strings.
+MissingDependency | 1 | delegated to caller | Factory(void*) receives the entry as a parameter and copies the target and causing package names out eagerly. Nothing is retained beyond the strings.
 
-Dependency | 1 | delegated to caller | Factory(void*, Lifetime?) receives the dependency as a parameter and copies it out eagerly. Nothing native is retained.
+Dependency | 1 | delegated to caller | Factory(void*, Lifetime) receives the dependency as a parameter and copies it out eagerly. Nothing native is retained.
 
-FileConflict | 1 | delegated to caller | Factory(void*, Lifetime?) receives the file-conflict entry as a parameter and copies its three strings out eagerly. Nothing is retained.
+FileConflict | 1 | delegated to caller | Factory(void*) receives the file-conflict entry as a parameter and copies its three strings out eagerly. Nothing is retained.
 
-FileList | 4 | KeepAlive proven but the token is nullable | get_Item calls GC.KeepAlive(this) before returning the materialised PackageFile. The file array is owned by the package and FileList.Lifetime is that package's token; the field is declared Lifetime? because a detached list disables the guard, not because a live list can lack an owner.
+FileList | 1 | KeepAlive proven | get_Item calls GC.KeepAlive(this) before returning the materialised PackageFile. The file array is owned by the package and FileList.Lifetime is that package's token; the field is declared non-nullable LifetimeStamp.
 
-Group | 5 | delegated Factory plus a parameter-owned call | Factory(void*, Lifetime?) receives the group pointer as a parameter and copies the name and package list out. FindPackages anchors the dbs parameter - its Lifetime is read after the native call, which keeps dbs may-live across it - and only incidentally calls GC.KeepAlive(this) on a Group that owns no native memory.
+Group | 5 | delegated Factory plus a parameter-owned call | Factory(void*, Lifetime) receives the group pointer as a parameter and copies the name and package list out. FindPackages anchors the dbs parameter - its Lifetime is read after the native call, which keeps dbs may-live across it - and only incidentally calls GC.KeepAlive(this) on a Group that owns no native memory.
 
 LoadedPackage | 1 | owns the handle it is handed | The constructor takes the native pointer and its child lifetime token from Alpm.LoadPackage, which registers the pointer in the session registry for cleanup. The base constructor receives the pointer, and LoadedPackage.Dispose / Disown manage its lifecycle without a finalizer.
 
-PackageFile | 1 | delegated to caller | Factory(void*, Lifetime?) receives the file entry as a parameter. PackageFile is an eager snapshot struct that copies mode, size and name out and retains no pointer.
+PackageFile | 1 | delegated to caller | Factory(void*) receives the file entry as a parameter. PackageFile is an eager snapshot struct that copies mode, size and name out and retains no pointer.
 
 PackageVersion.CompareTo | 1 | owns no native memory | The type holds only a managed string. CompareTo marshals both operands into Utf8Buffer instances for the duration of alpm_pkg_vercmp, so no finalizer of this type could free what this call reads.
-PackageView | 7 | delegated to caller | Factory(void*, Lifetime?) receives the package pointer as a parameter. The constructor only stores the pointer and the token; it dereferences nothing, so the caller's view keeps both alive.
+PackageView | 4 | delegated to caller | Factory(void*, Lifetime) receives the package pointer as a parameter. The constructor only stores the pointer and the token; it dereferences nothing, so the caller's view keeps both alive.
 
 LoadedPackageRegistry.Unregister | 1 | delegated to caller | the native pointer is a method parameter: the anchoring obligation belongs to the call site
 LoadedPackageRegistry.Dispose | 1 | receiver on stack | The registry holds the raw pointers and disposes them in a sweep when the owning AlpmSession is disposed before releasing the native handle.

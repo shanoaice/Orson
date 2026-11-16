@@ -16,7 +16,7 @@ public readonly struct PackageFile
     Name = NativeString.FromNative((nint)backingStruct->name);
   }
 
-  internal static unsafe PackageFile Factory(void* ptr, Lifetime? lifetime) => new((_alpm_file_t*)ptr);
+  internal static unsafe PackageFile Factory(void* ptr) => new((_alpm_file_t*)ptr);
 
   /// <summary>The POSIX file mode and permissions.</summary>
   public uint Mode { get; }

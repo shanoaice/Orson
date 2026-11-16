@@ -12,8 +12,8 @@ namespace Orson.Alpm;
 /// documentation states "the list will be duped and the original will still need to be freed by the caller").
 /// <para>
 /// Because a borrowed view does not own the memory, it does not implement <see cref="IDisposable" />. Lists that
-/// must be freed by the caller are either materialized into managed collections or managed through
-/// <see cref="AlpmOwnedList{T}" />.
+/// must be freed by the caller are materialized into managed collections via
+/// <c>NativeListMarshal.MaterializeAndFree</c>.
 /// </para>
 /// <para>
 /// Lifetime safety: the view belongs to the database, transaction, or handle it was obtained from. Accessing
@@ -22,23 +22,23 @@ namespace Orson.Alpm;
 /// </remarks>
 public abstract class AlpmList<T> : IReadOnlyCollection<T>
 {
-  // Visible to this class and to AlpmBorrowedList/AlpmOwnedList only; everything outside goes
+  // Visible to this class and to AlpmBorrowedList only; everything outside goes
   // through ValidatedNative().
   private protected readonly unsafe _alpm_list_t* _native;
-  internal readonly unsafe delegate*<void*, Lifetime?, T> Factory;
+  internal readonly unsafe delegate*<void*, Lifetime, T> Factory;
 
   /// <summary>
   /// The stamp guarding this view, captured from the domain the list was borrowed from. Elements inherit the same
-  /// domain through <see cref="Factory" />, so they observe the same generations; <c>null</c> only for lists with no owning
-  /// native context (the empty <see cref="AlpmStringList" /> and caller-owned <see cref="AlpmOwnedList{T}" /> snapshots).
+  /// domain through <see cref="Factory" />, so they observe the same generations.
   /// </summary>
-  internal readonly LifetimeStamp? Lifetime;
+  internal readonly LifetimeStamp Lifetime;
 
-  private protected unsafe AlpmList(_alpm_list_t* list, delegate*<void*, Lifetime?, T> factory, Lifetime? lifetime)
+  private protected unsafe AlpmList(_alpm_list_t* list, delegate*<void*, Lifetime, T> factory, Lifetime lifetime)
   {
+    ArgumentNullException.ThrowIfNull(lifetime);
     _native = list;
     Factory = factory;
-    Lifetime = lifetime?.Capture();
+    Lifetime = lifetime.Capture();
   }
 
   /// <summary>
@@ -47,7 +47,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
   /// </summary>
   internal unsafe _alpm_list_t* ValidatedNative()
   {
-    Lifetime?.ThrowIfStale();
+    Lifetime.ThrowIfStale();
     return _native;
   }
 
@@ -57,9 +57,9 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
   /// <summary>Wraps an existing <c>alpm_list_t</c> that this library does not own and must not free.</summary>
   /// <param name="list">The list to view. May be <c>null</c>, which yields an empty view.</param>
   /// <param name="factory">Converts one native list item into <typeparamref name="T" />.</param>
-  /// <param name="lifetime">Token guarding traversal and issued elements; <c>null</c> when the list has no owning context.</param>
-  internal static unsafe AlpmList<T> Borrow(_alpm_list_t* list, delegate*<void*, Lifetime?, T> factory,
-    Lifetime? lifetime)
+  /// <param name="lifetime">Token guarding traversal and issued elements.</param>
+  internal static unsafe AlpmList<T> Borrow(_alpm_list_t* list, delegate*<void*, Lifetime, T> factory,
+    Lifetime lifetime)
     => new AlpmBorrowedList<T>(list, factory, lifetime);
 
   /// <summary>
@@ -92,7 +92,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
     /// </remarks>
     private _alpm_list_t* Advance()
     {
-      _list.Lifetime?.ThrowIfStale();
+      _list.Lifetime.ThrowIfStale();
       return _current is null ? null : _current->next;
     }
 
@@ -122,7 +122,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
         return false;
       }
 
-      _currentItem = _list.Factory(_current->data, _list.Lifetime?.Domain);
+      _currentItem = _list.Factory(_current->data, _list.Lifetime.Domain);
       GC.KeepAlive(_list);
       return true;
     }
@@ -149,7 +149,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
   /// <summary>Returns an enumerator that iterates through the <see cref="AlpmList{T}" />.</summary>
   public Enumerator GetEnumerator()
   {
-    Lifetime?.ThrowIfStale();
+    Lifetime.ThrowIfStale();
     return new Enumerator(this);
   }
 
@@ -165,7 +165,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
   {
     // The token check comes before the null test on purpose: a released owner must make every read
     // throw, and an empty-but-stale view answering with [] would quietly contradict that.
-    Lifetime?.ThrowIfStale();
+    Lifetime.ThrowIfStale();
     if (_native == null) return [];
 
     var count = (int)NativeMethods.alpm_list_count(_native);
@@ -173,7 +173,7 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
     var i = 0;
     for (var node = _native; node != null; node = node->next)
     {
-      result[i++] = Factory(node->data, Lifetime?.Domain);
+      result[i++] = Factory(node->data, Lifetime.Domain);
     }
 
     return result;
@@ -183,45 +183,8 @@ public abstract class AlpmList<T> : IReadOnlyCollection<T>
 /// <summary>Concrete borrowed view produced by <see cref="AlpmList{T}.Borrow" />.</summary>
 internal sealed class AlpmBorrowedList<T> : AlpmList<T>
 {
-  internal unsafe AlpmBorrowedList(_alpm_list_t* list, delegate*<void*, Lifetime?, T> factory, Lifetime? lifetime)
+  internal unsafe AlpmBorrowedList(_alpm_list_t* list, delegate*<void*, Lifetime, T> factory, Lifetime lifetime)
     : base(list, factory, lifetime)
   {
-  }
-}
-
-/// <summary>Represents a caller-owned native list that frees its resources upon disposal.</summary>
-internal sealed class AlpmOwnedList<T> : AlpmList<T>, IDisposable
-{
-  private readonly unsafe delegate* unmanaged[Cdecl]<void*, void> _innerFree;
-  private bool _disposed;
-
-  /// <summary>Initializes a new instance of the <see cref="AlpmOwnedList{T}" /> class.</summary>
-  /// <param name="list">Caller-owned list, or <c>null</c>.</param>
-  /// <param name="factory">Converts one native list item into <typeparamref name="T" />.</param>
-  /// <param name="innerFree">Required element destructor, or <c>null</c> when the elements are owned elsewhere.</param>
-  /// <param name="lifetime">
-  /// Token guarding the snapshot pass and the materialized elements when they point back into a
-  /// native context (e.g. package views owned by a database); <c>null</c> for fully self-contained payloads that are copied
-  /// during materialization.
-  /// </param>
-  internal unsafe AlpmOwnedList(_alpm_list_t* list, delegate*<void*, Lifetime?, T> factory,
-    delegate* unmanaged[Cdecl]<void*, void> innerFree, Lifetime? lifetime) : base(list, factory, lifetime)
-  {
-    _innerFree = innerFree;
-  }
-
-  internal static unsafe IReadOnlyList<T> Take(_alpm_list_t* list, delegate*<void*, Lifetime?, T> factory,
-    delegate* unmanaged[Cdecl]<void*, void> innerFree, Lifetime? lifetime = null)
-  {
-    using var owned = new AlpmOwnedList<T>(list, factory, innerFree, lifetime);
-    return owned.ToArray();
-  }
-
-  public unsafe void Dispose()
-  {
-    if (_disposed) return;
-
-    NativeListMarshal.Free(_native, _innerFree);
-    _disposed = true;
   }
 }

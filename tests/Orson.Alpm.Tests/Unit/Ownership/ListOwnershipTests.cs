@@ -19,10 +19,11 @@ public sealed unsafe class ListOwnershipTests
   [Fact]
   public void Borrow_ReadsItems_WithoutFreeingTheList()
   {
+    var lifetime = RootLifetime.Create(new object(), "test");
     var list = BuildStringList("alpha", "beta", "gamma");
     try
     {
-      var view = AlpmList<string>.Borrow(list, &TestStringFactory, null);
+      var view = AlpmList<string>.Borrow(list, &TestStringFactory, lifetime);
 
       Assert.Equal(3, view.Count);
       Assert.Equal(["alpha", "beta", "gamma"], view.ToArray());
@@ -38,19 +39,28 @@ public sealed unsafe class ListOwnershipTests
   [Fact]
   public void Borrow_NullList_IsAnEmptyView()
   {
-    var view = AlpmList<string>.Borrow(null, &TestStringFactory, null);
+    var lifetime = RootLifetime.Create(new object(), "test");
+    var view = AlpmList<string>.Borrow(null, &TestStringFactory, lifetime);
 
     Assert.Empty(view);
     Assert.Empty(view.ToArray());
   }
 
   [Fact]
+  public void Borrow_NullLifetime_ThrowsArgumentNullException()
+  {
+    Assert.Throws<ArgumentNullException>(() =>
+      AlpmList<string>.Borrow(null, &TestStringFactory, null!));
+  }
+
+  [Fact]
   public void Enumerator_Current_ReturnsCachedItemWithoutReinvokingFactory()
   {
+    var lifetime = RootLifetime.Create(new object(), "test");
     var list = BuildStringList("alpha");
     try
     {
-      var view = AlpmList<string>.Borrow(list, &TestStringFactory, null);
+      var view = AlpmList<string>.Borrow(list, &TestStringFactory, lifetime);
       using var enumerator = view.GetEnumerator();
       Assert.True(enumerator.MoveNext());
 
@@ -74,7 +84,8 @@ public sealed unsafe class ListOwnershipTests
   public void Borrow_ElementAt_ThrowsOnOutOfRange()
     => Assert.Throws<ArgumentOutOfRangeException>(() =>
     {
-      var view = AlpmList<string>.Borrow(null, &TestStringFactory, null);
+      var lifetime = RootLifetime.Create(new object(), "test");
+      var view = AlpmList<string>.Borrow(null, &TestStringFactory, lifetime);
       _ = view.ElementAt(0);
     });
 
@@ -153,6 +164,6 @@ public sealed unsafe class ListOwnershipTests
 
   // The lifetime parameter matches the factory delegate shape; this test's strings are owned by the
   // test itself, so the views are borrowed with a null token and the factory never looks at it.
-  private static string TestStringFactory(void* data, Lifetime? lifetime)
+  private static string TestStringFactory(void* data, Lifetime lifetime)
     => Marshal.PtrToStringUTF8((nint)data) ?? string.Empty;
 }

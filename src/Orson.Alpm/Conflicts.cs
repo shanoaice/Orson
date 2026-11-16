@@ -21,7 +21,7 @@ public sealed class FileConflict
     Target = NativeString.FromNative((nint)backingStruct->target);
   }
 
-  internal static unsafe FileConflict Factory(void* ptr, Lifetime? lifetime) => new((_alpm_fileconflict_t*)ptr);
+  internal static unsafe FileConflict Factory(void* ptr) => new((_alpm_fileconflict_t*)ptr);
 }
 
 /// <summary>Represents a package dependency conflict between two packages.</summary>
@@ -40,7 +40,7 @@ public sealed class Conflict
     Package2Name = NativeString.FromNative((nint)NativeMethods.alpm_pkg_get_name(backingStruct->package2))!;
   }
 
-  internal static unsafe Conflict Factory(void* ptr, Lifetime? lifetime) => new((_alpm_conflict_t*)ptr);
+  internal static unsafe Conflict Factory(void* ptr) => new((_alpm_conflict_t*)ptr);
 
   /// <summary>The dependency relationship that caused this conflict.</summary>
   public Dependency Reason { get; }

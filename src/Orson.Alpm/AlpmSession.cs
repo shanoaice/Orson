@@ -518,9 +518,7 @@ public sealed partial class AlpmSession : IDisposable
       }
 
       var result = NativeMethods.alpm_checkdeps(Handle, pkgList, remList, upgList, reverseDependencies ? 1 : 0);
-      return result != null
-        ? AlpmOwnedList<MissingDependency>.Take(result, &MissingDependency.Factory, &UnmanagedDestructors.DepMissingFreeExtern)
-        : Array.Empty<MissingDependency>();
+      return NativeListMarshal.MaterializeAndFree(result, &MissingDependency.Factory, &UnmanagedDestructors.DepMissingFreeExtern);
     }
     finally
     {
@@ -541,9 +539,7 @@ public sealed partial class AlpmSession : IDisposable
     {
       pkgList = NativeListMarshal.BuildPointerList(packages);
       var result = NativeMethods.alpm_checkconflicts(Handle, pkgList);
-      return result != null
-        ? AlpmOwnedList<Conflict>.Take(result, &Conflict.Factory, &UnmanagedDestructors.ConflictFreeExtern)
-        : Array.Empty<Conflict>();
+      return NativeListMarshal.MaterializeAndFree(result, &Conflict.Factory, &UnmanagedDestructors.ConflictFreeExtern);
     }
     finally
     {

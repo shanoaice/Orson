@@ -60,7 +60,7 @@ public sealed unsafe class Dependency
     Depmod = depmod;
   }
 
-  internal static Dependency Factory(void* ptr, Lifetime? lifetime) => new((_alpm_depend_t*)ptr);
+  internal static Dependency Factory(void* ptr, Lifetime lifetime) => new((_alpm_depend_t*)ptr);
 
   /// <summary>
   /// Borrowed view over a dependency list owned by libalpm (for example <c>alpm_pkg_get_depends</c>,
@@ -68,7 +68,7 @@ public sealed unsafe class Dependency
   /// </summary>
   /// <param name="alpmList">The borrowed list. May be <c>null</c>.</param>
   /// <param name="lifetime">Token of the context that owns the list; guards traversal.</param>
-  internal static AlpmList<Dependency> ListFactory(_alpm_list_t* alpmList, Lifetime? lifetime)
+  internal static AlpmList<Dependency> ListFactory(_alpm_list_t* alpmList, Lifetime lifetime)
     => AlpmList<Dependency>.Borrow(alpmList, &Factory, lifetime);
 
   /// <summary>An optional description of why this dependency is required or recommended.</summary>
@@ -121,8 +121,8 @@ public sealed class MissingDependency
     Dependency = dependency;
   }
 
-  // Token parameter unused: a DepMissing is an eager snapshot of caller-owned failure data.
-  internal static unsafe MissingDependency Factory(void* native, Lifetime? lifetime)
+  // A DepMissing is an eager snapshot of caller-owned failure data.
+  internal static unsafe MissingDependency Factory(void* native)
     => new(NativeString.FromNative((nint)((_alpm_depmissing_t*)native)->target),
       NativeString.FromNative((nint)((_alpm_depmissing_t*)native)->causingpkg),
       ((_alpm_depmissing_t*)native)->depend != null ? new Dependency(((_alpm_depmissing_t*)native)->depend) : null);

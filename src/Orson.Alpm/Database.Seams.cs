@@ -31,9 +31,7 @@ public abstract unsafe partial class Database
       }
 
       GC.KeepAlive(this);
-      results = retList != null
-        ? AlpmOwnedList<PackageView>.Take(retList, &PackageView.Factory, null, Lifetime)
-        : Array.Empty<PackageView>();
+      results = NativeListMarshal.MaterializeAndFree(retList, &PackageView.Factory, Lifetime);
       failure = null;
       return true;
     }

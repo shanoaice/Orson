@@ -19,6 +19,62 @@ internal static class NativeListMarshal
     NativeMethods.alpm_list_free(list);
   }
 
+  /// <summary>
+  /// Materializes a caller-owned native list of self-contained items into an array and frees the native list.
+  /// </summary>
+  internal static unsafe T[] MaterializeAndFree<T>(
+    _alpm_list_t* list,
+    delegate*<void*, T> factory,
+    delegate* unmanaged[Cdecl]<void*, void> innerFree = null)
+  {
+    if (list == null) return [];
+
+    try
+    {
+      var count = (int)NativeMethods.alpm_list_count(list);
+      var result = new T[count];
+      var i = 0;
+      for (var node = list; node != null; node = node->next)
+      {
+        result[i++] = factory(node->data);
+      }
+      return result;
+    }
+    finally
+    {
+      Free(list, innerFree);
+    }
+  }
+
+  /// <summary>
+  /// Materializes a caller-owned native list of lifetime-anchored views into an array and frees the native list.
+  /// </summary>
+  internal static unsafe T[] MaterializeAndFree<T>(
+    _alpm_list_t* list,
+    delegate*<void*, Lifetime, T> factory,
+    Lifetime lifetime,
+    delegate* unmanaged[Cdecl]<void*, void> innerFree = null)
+  {
+    ArgumentNullException.ThrowIfNull(lifetime);
+    if (list == null) return [];
+
+    try
+    {
+      var count = (int)NativeMethods.alpm_list_count(list);
+      var result = new T[count];
+      var i = 0;
+      for (var node = list; node != null; node = node->next)
+      {
+        result[i++] = factory(node->data, lifetime);
+      }
+      return result;
+    }
+    finally
+    {
+      Free(list, innerFree);
+    }
+  }
+
   internal static unsafe _alpm_list_t* BuildPointerList(void* pointer)
   {
     return pointer != null ? NativeMethods.alpm_list_add(null, pointer) : null;

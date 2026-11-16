@@ -15,27 +15,20 @@ public sealed class Group
   /// <summary>Initializes a new instance of the <see cref="Group" /> class.</summary>
   /// <param name="backingStruct">The libalpm-owned group; dereferenced eagerly.</param>
   /// <param name="lifetime">Token of the database owning the group and its member packages; forwarded to the members.</param>
-  internal unsafe Group(_alpm_group_t* backingStruct, ChildLifetime? lifetime)
+  internal unsafe Group(_alpm_group_t* backingStruct, ChildLifetime lifetime)
   {
-    if (lifetime is null)
-    {
-      throw new InvalidOperationException("Group packages cannot be constructed without a child database lifetime.");
-    }
+    ArgumentNullException.ThrowIfNull(lifetime);
     Name = NativeString.FromNative((nint)backingStruct->name)!;
     Packages = [.. AlpmList<PackageView>.Borrow(backingStruct->packages, &PackageView.Factory, lifetime)];
   }
 
-  internal static unsafe Group Factory(void* ptr, Lifetime? lifetime)
+  internal static unsafe Group Factory(void* ptr, Lifetime lifetime)
   {
-    if (lifetime is null)
-    {
-      throw new InvalidOperationException("Group member packages cannot be anchored without a lifetime domain.");
-    }
-    if (lifetime is RootLifetime)
+    if (lifetime is not ChildLifetime child)
     {
       throw new InvalidOperationException("Group member packages cannot be anchored directly to a root lifetime domain; a child database domain is required.");
     }
-    return new((_alpm_group_t*)ptr, (ChildLifetime)lifetime);
+    return new((_alpm_group_t*)ptr, child);
   }
 
   // ReSharper disable once MemberCanBePrivate.Global
@@ -57,7 +50,7 @@ public sealed class Group
     Span<byte> scratch = stackalloc byte[64];
     using var nameBuf = new Utf8Buffer(Name, scratch);
     var result = NativeMethods.alpm_find_group_pkgs(dbs.ValidatedNative(), nameBuf.Ptr);
-    var list = AlpmOwnedList<PackageView>.Take(result, &GroupPackageFactory, null, dbs.Lifetime?.Domain);
+    var list = NativeListMarshal.MaterializeAndFree(result, &GroupPackageFactory, dbs.Lifetime.Domain);
     GC.KeepAlive(this);
     return list;
   }
@@ -74,7 +67,7 @@ public sealed class Group
     Span<byte> scratch = stackalloc byte[64];
     using var nameBuf = new Utf8Buffer(Name, scratch);
     var result = NativeMethods.alpm_find_group_pkgs(dbs.ValidatedNative(), nameBuf.Ptr);
-    var list = AlpmOwnedList<PackageView>.Take(result, &GroupPackageFactory, null, dbs.Lifetime?.Domain);
+    var list = NativeListMarshal.MaterializeAndFree(result, &GroupPackageFactory, dbs.Lifetime.Domain);
     GC.KeepAlive(this);
     return list;
   }
@@ -89,13 +82,8 @@ public sealed class Group
   /// the members would all carry the session domain, which is correct but coarse: it is the last domain to move, so one
   /// database being unregistered would retire packages that still belong to a live sibling.
   /// </remarks>
-  internal static unsafe PackageView GroupPackageFactory(void* ptr, Lifetime? sessionDomain)
+  internal static unsafe PackageView GroupPackageFactory(void* ptr, Lifetime sessionDomain)
   {
-    if (sessionDomain is null)
-    {
-      throw new InvalidOperationException("Cannot resolve group package lifetime without a session lifetime domain.");
-    }
-
     var db = NativeMethods.alpm_pkg_get_db((_alpm_pkg_t*)ptr);
     if (db == null)
     {

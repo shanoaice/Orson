@@ -24,19 +24,14 @@ public readonly unsafe partial struct PackageView : IPackageMetadata, IEquatable
     _stamp = lifetime.Capture();
   }
 
-  internal static PackageView Factory(void* ptr, Lifetime? lifetime)
+  internal static PackageView Factory(void* ptr, Lifetime lifetime)
   {
-    if (lifetime is null)
-    {
-      throw new InvalidOperationException("PackageView cannot be anchored without a lifetime domain.");
-    }
-
-    if (lifetime is RootLifetime)
+    if (lifetime is not ChildLifetime child)
     {
       throw new InvalidOperationException("PackageView cannot be anchored directly to a root lifetime domain; a child domain is required.");
     }
 
-    return new PackageView((_alpm_pkg_t*)ptr, (ChildLifetime)lifetime);
+    return new PackageView((_alpm_pkg_t*)ptr, child);
   }
 
   internal _alpm_pkg_t* BackingStruct

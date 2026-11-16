@@ -117,9 +117,8 @@ public sealed unsafe class ManagedSnapshotTests
       native->name = name;
       native->hash = hash;
 
-      // Backup is an eager snapshot: the factory takes the list's token for shape compatibility,
-      // but this test's memory is orson-owned, so no context guards it.
-      var backup = BackupEntry.Factory(native, null);
+      var lifetime = RootLifetime.Create(new object(), "test");
+      var backup = BackupEntry.Factory(native, lifetime);
 
       Scramble(name, "etc/pacman.conf");
       Scramble(hash, "deadbeef");
@@ -149,7 +148,7 @@ public sealed unsafe class ManagedSnapshotTests
       native->mode = 0b111_101_101;
       native->size = new CLong(4096);
 
-      var file = PackageFile.Factory(native, null);
+      var file = PackageFile.Factory(native);
 
       Scramble(name, "usr/bin/probe");
       native->name = null;
@@ -195,9 +194,8 @@ public sealed unsafe class ManagedSnapshotTests
       fileList.count = (nuint)names.Length;
       fileList.files = entries;
 
-      // The FileList token guards Count / indexer / enumeration; this list is orson-owned, so a
-      // null token means "no owning context to outlive".
-      var list = new FileList(&fileList, null);
+      var fileLifetime = RootLifetime.Create(new object(), "test");
+      var list = new FileList(&fileList, fileLifetime);
 
       Assert.Equal(names.Length, list.Count);
       Assert.Equal(names, list.Select(file => file.Name));

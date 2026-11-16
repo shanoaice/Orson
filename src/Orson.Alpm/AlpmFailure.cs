@@ -98,13 +98,13 @@ internal sealed class AlpmFailure
     {
       AlpmFailureCode.UnsatisfiedDependencies =>
         new AlpmFailureDetail.MissingDependencies(
-          AlpmOwnedList<MissingDependency>.Take(data, &MissingDependency.Factory, &UnmanagedDestructors.DepMissingFreeExtern)),
+          NativeListMarshal.MaterializeAndFree(data, &MissingDependency.Factory, &UnmanagedDestructors.DepMissingFreeExtern)),
       AlpmFailureCode.ConflictingDependencies =>
         new AlpmFailureDetail.ConflictingDependencies(
-          AlpmOwnedList<Conflict>.Take(data, &Conflict.Factory, &UnmanagedDestructors.ConflictFreeExtern)),
+          NativeListMarshal.MaterializeAndFree(data, &Conflict.Factory, &UnmanagedDestructors.ConflictFreeExtern)),
       AlpmFailureCode.FileConflicts =>
         new AlpmFailureDetail.ConflictingFiles(
-          AlpmOwnedList<FileConflict>.Take(data, &FileConflict.Factory, &UnmanagedDestructors.FileConflictFreeExtern)),
+          NativeListMarshal.MaterializeAndFree(data, &FileConflict.Factory, &UnmanagedDestructors.FileConflictFreeExtern)),
       AlpmFailureCode.PackageInvalid
         or AlpmFailureCode.PackageInvalidChecksum
         or AlpmFailureCode.PackageInvalidSignature

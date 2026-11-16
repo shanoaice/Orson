@@ -28,9 +28,8 @@ public sealed unsafe partial class SyncDatabase : Database
   /// <see cref="Unregister" />, <see cref="AlpmSession.UnregisterAllSyncDatabases" />) can hold nodes those calls freed;
   /// re-fetch the list after mutating the registry instead of re-enumerating a stale one.
   /// </remarks>
-  internal static SyncDatabase Factory(void* ptr, Lifetime? lifetime)
+  internal static SyncDatabase Factory(void* ptr, Lifetime lifetime)
   {
-    ArgumentNullException.ThrowIfNull(lifetime);
     RootLifetime root;
     ChildLifetime? syncListLifetime = null;
     if (lifetime is RootLifetime r)

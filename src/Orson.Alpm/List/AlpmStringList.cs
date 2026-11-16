@@ -16,22 +16,17 @@ public sealed class AlpmStringList : AlpmList<string>
 {
   /// <summary>Initializes a new instance of the <see cref="AlpmStringList" /> class.</summary>
   /// <param name="alpmList">The borrowed list of C strings. May be <c>null</c>.</param>
-  /// <param name="lifetime">
-  /// Token of the native context that owns the strings; guards traversal. <c>null</c> only for the
-  /// empty list.
-  /// </param>
-  internal unsafe AlpmStringList(_alpm_list_t* alpmList, Lifetime? lifetime) : base(alpmList, &StringFactory, lifetime)
-  {
-  }
-
-  /// <summary>Initializes a new, empty instance of the <see cref="AlpmStringList" /> class.</summary>
-  public unsafe AlpmStringList() : base(null, &StringFactory, null)
+  /// <param name="lifetime">Token of the native context that owns the strings; guards traversal.</param>
+  internal unsafe AlpmStringList(_alpm_list_t* alpmList, Lifetime lifetime) : base(alpmList, &StringFactory, lifetime)
   {
   }
 
   // The token parameter exists to match the factory delegate signature; string elements are copied
   // eagerly, so an issued string never points into native memory and needs no element token.
-  private static unsafe string StringFactory(void* data, Lifetime? lifetime)
+  private static unsafe string StringFactory(void* data, Lifetime lifetime)
+    => NativeString.FromNative((nint)data) ?? string.Empty;
+
+  private static unsafe string BareStringFactory(void* data)
     => NativeString.FromNative((nint)data) ?? string.Empty;
 
   /// <summary>
@@ -45,7 +40,6 @@ public sealed class AlpmStringList : AlpmList<string>
   /// </param>
   internal static unsafe IReadOnlyList<string> TakeOwned(_alpm_list_t* list, delegate* unmanaged[Cdecl]<void*, void> innerFree)
   {
-    using var owned = new AlpmOwnedList<string>(list, &StringFactory, innerFree, null);
-    return owned.ToArray();
+    return NativeListMarshal.MaterializeAndFree(list, &BareStringFactory, innerFree);
   }
 }

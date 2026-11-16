@@ -17,15 +17,16 @@ namespace Orson.Alpm;
 public sealed unsafe class FileList : IReadOnlyList<PackageFile>
 {
   private readonly _alpm_filelist_t* _backingStruct;
-  private readonly LifetimeStamp? _lifetime;
+  private readonly LifetimeStamp _lifetime;
 
   /// <summary>Initializes a new instance of the <see cref="FileList" /> class.</summary>
   /// <param name="backingStruct">The package-owned file list.</param>
-  /// <param name="lifetime">Domain of the package that owns the array; <c>null</c> disables the guard.</param>
-  internal FileList(_alpm_filelist_t* backingStruct, Lifetime? lifetime)
+  /// <param name="lifetime">Domain of the package that owns the array.</param>
+  internal FileList(_alpm_filelist_t* backingStruct, Lifetime lifetime)
   {
+    ArgumentNullException.ThrowIfNull(lifetime);
     _backingStruct = backingStruct;
-    _lifetime = lifetime?.Capture();
+    _lifetime = lifetime.Capture();
   }
 
   /// <summary>Gets the number of files in the file list.</summary>
@@ -33,7 +34,7 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
   {
     get
     {
-      _lifetime?.ThrowIfStale();
+      _lifetime.ThrowIfStale();
       return (int)_backingStruct->count;
     }
   }
@@ -47,7 +48,7 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
   {
     get
     {
-      _lifetime?.ThrowIfStale();
+      _lifetime.ThrowIfStale();
       if ((nuint)index >= _backingStruct->count) throw new ArgumentOutOfRangeException(nameof(index));
 
       var file = new PackageFile(&_backingStruct->files[index]);
@@ -62,7 +63,7 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
   public bool Contains(string path)
   {
     ArgumentNullException.ThrowIfNull(path);
-    _lifetime?.ThrowIfStale();
+    _lifetime.ThrowIfStale();
 
     Span<byte> scratch = stackalloc byte[256];
     using var pathBuf = new Utf8Buffer(path, scratch);
@@ -77,7 +78,7 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
   public PackageFile? FindFile(string path)
   {
     ArgumentNullException.ThrowIfNull(path);
-    _lifetime?.ThrowIfStale();
+    _lifetime.ThrowIfStale();
 
     Span<byte> scratch = stackalloc byte[256];
     using var pathBuf = new Utf8Buffer(path, scratch);
@@ -118,7 +119,7 @@ public sealed unsafe class FileList : IReadOnlyList<PackageFile>
   /// <summary>Returns an enumerator that iterates through the <see cref="FileList" />.</summary>
   public Enumerator GetEnumerator()
   {
-    _lifetime?.ThrowIfStale();
+    _lifetime.ThrowIfStale();
     return new Enumerator(this);
   }
 
