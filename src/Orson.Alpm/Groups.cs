@@ -62,8 +62,25 @@ public sealed class Group
     return list;
   }
 
+  /// <summary>Finds group members across <paramref name="dbs" />.</summary>
+  /// <remarks>
+  /// libalpm allocates the returned list for the caller ("caller is responsible for <c>alpm_list_free</c>"), so it
+  /// is copied into a managed collection and freed here. The packages themselves stay owned by their databases, and each
+  /// member stays tied to the database that owns it. Unregistering one database therefore retires its own members, but not
+  /// the members of a sibling database.
+  /// </remarks>
+  public unsafe IReadOnlyList<PackageView> FindPackages(AlpmList<SyncDatabase> dbs)
+  {
+    Span<byte> scratch = stackalloc byte[64];
+    using var nameBuf = new Utf8Buffer(Name, scratch);
+    var result = NativeMethods.alpm_find_group_pkgs(dbs.ValidatedNative(), nameBuf.Ptr);
+    var list = AlpmOwnedList<PackageView>.Take(result, &GroupPackageFactory, null, dbs.Lifetime?.Domain);
+    GC.KeepAlive(this);
+    return list;
+  }
+
   /// <summary>
-  /// Element factory for <see cref="FindPackages" />: binds a package to the domain of the database that owns
+  /// Element factory for <see cref="FindPackages(AlpmList{Database})" />: binds a package to the domain of the database that owns
   /// it.
   /// </summary>
   /// <remarks>

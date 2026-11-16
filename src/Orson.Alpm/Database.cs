@@ -33,12 +33,11 @@ public enum DatabaseUsage : uint
 /// <summary>A package database: the local database or a registered sync tree.</summary>
 /// <remarks>
 /// A borrowed handle: libalpm owns the database, this wrapper only reads through it. Every accessor checks first
-/// that the database is still live, so using one after <see cref="Unregister" />, after
-/// <see cref="AlpmSession.UnregisterAllSyncDatabases" /> or after the owning <see cref="AlpmSession" /> was released
-/// throws <see cref="AlpmLifetimeException" /> instead of reading freed memory. Views handed out here (packages, groups,
-/// server lists) die with it the same way.
+/// that the database is still live, so using one after the owning <see cref="AlpmSession" /> was released
+/// throws <see cref="AlpmLifetimeException" /> instead of reading freed memory. Views handed out here (packages, groups)
+/// die with it the same way.
 /// </remarks>
-public sealed unsafe partial class Database
+public abstract unsafe partial class Database
 {
   /// <summary>
   /// The only way to obtain the native pointer from outside this class. The guard runs here, so a sibling cannot
@@ -56,7 +55,7 @@ public sealed unsafe partial class Database
     private init;
   }
 
-  private _alpm_handle_t* RawHandle => NativeMethods.alpm_db_get_handle(ValidatedPtr);
+  private protected _alpm_handle_t* RawHandle => NativeMethods.alpm_db_get_handle(ValidatedPtr);
 
   /// <summary>
   /// The domain guarding this database and every view issued from it. Registered in the handle's pointer registry
@@ -65,52 +64,17 @@ public sealed unsafe partial class Database
   /// </summary>
   internal readonly ChildLifetime Lifetime;
 
-  private readonly bool _isLocal;
-  private readonly Action? _onUnregistered;
-
   /// <summary>When this wrapper was created, so <see cref="ThrowIfInvalidated" /> can detect a bump.</summary>
   private LifetimeStamp _stamp;
 
   /// <summary>Initializes a new instance of the <see cref="Database" /> class.</summary>
   /// <param name="backingStruct">The libalpm-owned database.</param>
   /// <param name="lifetime">The database's domain; all accessors and issued views guard on it.</param>
-  /// <param name="onUnregistered">Optional callback invoked when the database is unregistered.</param>
-  /// <param name="isLocal"><c>true</c> if this is the local database; <c>false</c> for sync databases.</param>
-  internal Database(_alpm_db_t* backingStruct, ChildLifetime lifetime, Action? onUnregistered = null,
-    bool isLocal = false)
+  private protected Database(_alpm_db_t* backingStruct, ChildLifetime lifetime)
   {
     ValidatedPtr = backingStruct;
     Lifetime = lifetime;
-    _isLocal = isLocal;
-    _onUnregistered = onUnregistered;
     _stamp = lifetime.Capture();
-  }
-
-  /// <summary>
-  /// Element factory for <see cref="AlpmSession.GetSyncDatabases" />: resolves the per-database token from the
-  /// handle registry keyed by the native pointer, so two wrappers for the same database - and two enumerations of the same
-  /// list - share one token and one invalidation.
-  /// </summary>
-  /// <remarks>
-  /// The name is read only when the pointer is not registered yet: on a fresh list the database is alive and the
-  /// read is safe. A list obtained <i>before</i> a registry mutation (<see cref="AlpmSession.RegisterSyncDatabase" />,
-  /// <see cref="Unregister" />, <see cref="AlpmSession.UnregisterAllSyncDatabases" />) can hold nodes those calls freed;
-  /// re-fetch the list after mutating the registry instead of re-enumerating a stale one.
-  /// </remarks>
-  internal static Database Factory(void* ptr, Lifetime? lifetime)
-  {
-    ArgumentNullException.ThrowIfNull(lifetime);
-    if (lifetime is not RootLifetime root)
-    {
-      throw new InvalidOperationException("Sync databases must be enumerated against a root session lifetime domain.");
-    }
-
-    var name = NativeString.FromNative((nint)NativeMethods.alpm_db_get_name((_alpm_db_t*)ptr)) ?? "(unknown)";
-    return new Database((_alpm_db_t*)ptr, root.GetLifetimeTokenForHandle(ptr, $"the sync database {name}"), () =>
-    {
-      root.ForgetHandle(ptr);
-      root.Invalidate("Database.Unregister()");
-    }, isLocal: false);
   }
 
   /// <summary>
@@ -174,7 +138,6 @@ public sealed unsafe partial class Database
     return new PackageView(pkg, Lifetime);
   }
 
-
   /// <summary>Searches this database for packages matching the given patterns.</summary>
   public IReadOnlyList<PackageView> Search(IEnumerable<string> needles)
   {
@@ -205,38 +168,6 @@ public sealed unsafe partial class Database
     return cache;
   }
 
-
-  /// <summary>The servers configured for this database; empty when none are set.</summary>
-  /// <remarks>
-  /// The list is borrowed from the database and is never freed by the view. Adding, removing, or replacing a server
-  /// retires the view, because libalpm frees or re-links that list in place; the database's package views are unaffected.
-  /// The next read binds a fresh view to the rebuilt list.
-  /// </remarks>
-  public AlpmStringList Servers
-  {
-    get
-    {
-      var servers = NativeMethods.alpm_db_get_servers(ValidatedPtr);
-      return new AlpmStringList(servers, Lifetime.Facet(LifetimeFacet.Servers, "the server list"));
-    }
-  }
-
-  /// <summary>The cache servers configured for this database; empty when none are set.</summary>
-  /// <remarks>
-  /// The list is borrowed from the database and is never freed by the view. The cache-server operations retire the
-  /// view for the same reason the server operations retire <see cref="Servers" />, and the server list is unaffected by
-  /// them.
-  /// </remarks>
-  public AlpmStringList CacheServers
-  {
-    get
-    {
-      var servers = NativeMethods.alpm_db_get_cache_servers(ValidatedPtr);
-      return new AlpmStringList(servers,
-        Lifetime.Facet(LifetimeFacet.CacheServers, "the cache-server list"));
-    }
-  }
-
   /// <summary>Finds a package group by name within this database.</summary>
   /// <param name="name">The name of the group to find.</param>
   /// <returns>A <see cref="Group" /> matching the specified name, or <c>null</c> if not found.</returns>
@@ -261,18 +192,6 @@ public sealed unsafe partial class Database
   {
     if (!TryLoadGroupCache(out var cache, out var failure)) throw failure.ToException();
     return cache;
-  }
-
-
-  /// <summary>The signature verification level configured for this database.</summary>
-  public SigLevel SigLevel
-  {
-    get
-    {
-      var sig = (SigLevel)NativeMethods.alpm_db_get_siglevel(ValidatedPtr);
-      GC.KeepAlive(this);
-      return sig;
-    }
   }
 
   /// <summary>Gets or sets the allowed usage flags for this database.</summary>
@@ -308,211 +227,11 @@ public sealed unsafe partial class Database
     }
   }
 
-  /// <summary>Adds a download server to this database.</summary>
-  public void AddServer(string url)
-  {
-    ArgumentNullException.ThrowIfNull(url);
-    var dbPtr = ValidatedPtr;
-    var handlePtr = RawHandle;
-    Span<byte> scratch = stackalloc byte[256];
-    using var urlBuf = new Utf8Buffer(url, scratch);
-
-    var err = NativeMethods.alpm_db_add_server(dbPtr, urlBuf.Ptr);
-    if (err != 0)
-    {
-      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-      GC.KeepAlive(this);
-      throw AlpmFailure.Of(rawErrno, "add server").ToException();
-    }
-
-    Lifetime.InvalidateFacet(LifetimeFacet.Servers, "Database.AddServer");
-    GC.KeepAlive(this);
-  }
-
-  /// <summary>Removes a download server from this database.</summary>
-  /// <returns><c>true</c> if the server was removed; <c>false</c> if it was not found.</returns>
-  public bool RemoveServer(string url)
-  {
-    ArgumentNullException.ThrowIfNull(url);
-    var dbPtr = ValidatedPtr;
-    var handlePtr = RawHandle;
-    Span<byte> scratch = stackalloc byte[256];
-    using var urlBuf = new Utf8Buffer(url, scratch);
-
-    var ret = NativeMethods.alpm_db_remove_server(dbPtr, urlBuf.Ptr);
-    if (ret < 0)
-    {
-      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-      GC.KeepAlive(this);
-      throw AlpmFailure.Of(rawErrno, "remove server").ToException();
-    }
-
-    GC.KeepAlive(this);
-    var removed = ret == 0;
-    if (removed)
-    {
-      Lifetime.InvalidateFacet(LifetimeFacet.Servers, "Database.RemoveServer");
-    }
-
-    return removed;
-  }
-
-  /// <summary>Sets the complete list of download servers for this database.</summary>
-  public void SetServers(IEnumerable<string> servers)
-  {
-    ArgumentNullException.ThrowIfNull(servers);
-    var dbPtr = ValidatedPtr;
-    var handlePtr = RawHandle;
-    var nativeList = NativeListMarshal.BuildStringList(servers, out var buffers);
-    try
-    {
-      var err = NativeMethods.alpm_db_set_servers(dbPtr, nativeList);
-      if (err != 0)
-      {
-        var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-        GC.KeepAlive(this);
-        throw AlpmFailure.Of(rawErrno, "set servers").ToException();
-      }
-
-      Lifetime.InvalidateFacet(LifetimeFacet.Servers, "Database.SetServers");
-      GC.KeepAlive(this);
-    }
-    finally
-    {
-      NativeListMarshal.FreeStringListBuffers(buffers, nativeList);
-    }
-  }
-
-  /// <summary>Adds a download cache server to this database.</summary>
-  public void AddCacheServer(string url)
-  {
-    ArgumentNullException.ThrowIfNull(url);
-    var dbPtr = ValidatedPtr;
-    var handlePtr = RawHandle;
-    Span<byte> scratch = stackalloc byte[256];
-    using var urlBuf = new Utf8Buffer(url, scratch);
-
-    var err = NativeMethods.alpm_db_add_cache_server(dbPtr, urlBuf.Ptr);
-    if (err != 0)
-    {
-      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-      GC.KeepAlive(this);
-      throw AlpmFailure.Of(rawErrno, "add cache server").ToException();
-    }
-
-    Lifetime.InvalidateFacet(LifetimeFacet.CacheServers, "Database.AddCacheServer");
-    GC.KeepAlive(this);
-  }
-
-  /// <summary>Removes a download cache server from this database.</summary>
-  /// <returns><c>true</c> if the cache server was removed; <c>false</c> if it was not found.</returns>
-  public bool RemoveCacheServer(string url)
-  {
-    ArgumentNullException.ThrowIfNull(url);
-    var dbPtr = ValidatedPtr;
-    var handlePtr = RawHandle;
-    Span<byte> scratch = stackalloc byte[256];
-    using var urlBuf = new Utf8Buffer(url, scratch);
-
-    var ret = NativeMethods.alpm_db_remove_cache_server(dbPtr, urlBuf.Ptr);
-    if (ret < 0)
-    {
-      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-      GC.KeepAlive(this);
-      throw AlpmFailure.Of(rawErrno, "remove cache server").ToException();
-    }
-
-    GC.KeepAlive(this);
-    var removed = ret == 0;
-    if (removed)
-    {
-      Lifetime.InvalidateFacet(LifetimeFacet.CacheServers, "Database.RemoveCacheServer");
-    }
-
-    return removed;
-  }
-
-  /// <summary>Sets the complete list of download cache servers for this database.</summary>
-  public void SetCacheServers(IEnumerable<string> servers)
-  {
-    ArgumentNullException.ThrowIfNull(servers);
-    var dbPtr = ValidatedPtr;
-    var handlePtr = RawHandle;
-    var nativeList = NativeListMarshal.BuildStringList(servers, out var buffers);
-    try
-    {
-      var err = NativeMethods.alpm_db_set_cache_servers(dbPtr, nativeList);
-      if (err != 0)
-      {
-        var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-        GC.KeepAlive(this);
-        throw AlpmFailure.Of(rawErrno, "set cache servers").ToException();
-      }
-
-      Lifetime.InvalidateFacet(LifetimeFacet.CacheServers, "Database.SetCacheServers");
-      GC.KeepAlive(this);
-    }
-    finally
-    {
-      NativeListMarshal.FreeStringListBuffers(buffers, nativeList);
-    }
-  }
-
   /// <summary>Retires all existing views issued from this database while keeping the database wrapper alive.</summary>
   internal void InvalidateViews(string reason)
   {
     Lifetime.Invalidate(reason);
     _stamp = Lifetime.Capture();
-  }
-
-
-  /// <summary>Updates this database from its configured download servers.</summary>
-  /// <param name="force">
-  /// If <c>true</c>, forces the download even if the local copy is current, as in <c>pacman -Syy</c>
-  /// </param>
-  /// <returns>
-  /// <c>true</c> if at least one file was downloaded, including a forced download of content that did not change;
-  /// <c>false</c> if every file was already current.
-  /// </returns>
-  /// <remarks>
-  /// Existing views of this database are invalidated before the download starts, so they are invalid even when the
-  /// call fails. A forced update only downloads the files again; it does not promise that their contents changed.
-  /// </remarks>
-  public bool Update(bool force = false)
-  {
-    if (!TryUpdate(force, out var updated, out var failure))
-    {
-      throw failure.ToException();
-    }
-
-    return updated;
-  }
-
-  /// <summary>Unregisters this database from its handle, releasing it.</summary>
-  /// <remarks>
-  /// On success every wrapper and view for this database starts throwing <see cref="AlpmLifetimeException" />. A
-  /// failed unregister leaves the database usable.
-  /// </remarks>
-  public void Unregister()
-  {
-    if (_isLocal)
-    {
-      throw new InvalidOperationException(
-        "The local database cannot be unregistered. It represents installed packages and is released when the session is disposed.");
-    }
-
-    var dbPtr = ValidatedPtr;
-    var handlePtr = NativeMethods.alpm_db_get_handle(dbPtr);
-    var err = NativeMethods.alpm_db_unregister(dbPtr);
-    if (err != 0)
-    {
-      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-      GC.KeepAlive(this);
-      throw AlpmFailure.Of(rawErrno, "unregister database").ToException();
-    }
-
-    Lifetime.Invalidate("Database.Unregister()");
-    _onUnregistered?.Invoke();
   }
 
   /// <summary>Whether this database is valid.</summary>

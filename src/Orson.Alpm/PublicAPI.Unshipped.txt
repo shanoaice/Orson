@@ -351,3 +351,37 @@ static Orson.Alpm.PackageView.operator ==(Orson.Alpm.PackageView left, Orson.Alp
 *REMOVED*static Orson.Alpm.PackageVersion.operator !=(Orson.Alpm.PackageVersion? left, Orson.Alpm.PackageVersion? right) -> bool
 *REMOVED*static Orson.Alpm.PackageVersion.operator ==(Orson.Alpm.PackageVersion? left, Orson.Alpm.PackageVersion? right) -> bool
 *REMOVED*static Orson.Alpm.PackageView.FindSatisfier(System.Collections.Generic.IEnumerable<Orson.Alpm.PackageView!>! packages, string! dependency) -> Orson.Alpm.PackageView?
+Orson.Alpm.AlpmSession.GetLocalDatabase() -> Orson.Alpm.LocalDatabase!
+Orson.Alpm.AlpmSession.GetSyncDatabases() -> Orson.Alpm.AlpmList<Orson.Alpm.SyncDatabase!>!
+Orson.Alpm.AlpmSession.RegisterSyncDatabase(string! treename, Orson.Alpm.SigLevel level) -> Orson.Alpm.SyncDatabase!
+Orson.Alpm.AlpmSession.UpdateDatabases(System.Collections.Generic.IEnumerable<Orson.Alpm.SyncDatabase!>! databases, bool force = false) -> bool
+Orson.Alpm.Group.FindPackages(Orson.Alpm.AlpmList<Orson.Alpm.SyncDatabase!>! dbs) -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView>!
+Orson.Alpm.LocalDatabase
+Orson.Alpm.SyncDatabase
+Orson.Alpm.SyncDatabase.AddCacheServer(string! url) -> void
+Orson.Alpm.SyncDatabase.AddServer(string! url) -> void
+Orson.Alpm.SyncDatabase.CacheServers.get -> Orson.Alpm.AlpmStringList!
+Orson.Alpm.SyncDatabase.RemoveCacheServer(string! url) -> bool
+Orson.Alpm.SyncDatabase.RemoveServer(string! url) -> bool
+Orson.Alpm.SyncDatabase.Servers.get -> Orson.Alpm.AlpmStringList!
+Orson.Alpm.SyncDatabase.SetCacheServers(System.Collections.Generic.IEnumerable<string!>! servers) -> void
+Orson.Alpm.SyncDatabase.SetServers(System.Collections.Generic.IEnumerable<string!>! servers) -> void
+Orson.Alpm.SyncDatabase.SigLevel.get -> Orson.Alpm.SigLevel
+Orson.Alpm.SyncDatabase.TreeName.get -> string!
+Orson.Alpm.SyncDatabase.Unregister() -> void
+Orson.Alpm.SyncDatabase.Update(bool force = false) -> bool
+*REMOVED*Orson.Alpm.AlpmSession.GetLocalDatabase() -> Orson.Alpm.Database!
+*REMOVED*Orson.Alpm.AlpmSession.GetSyncDatabases() -> Orson.Alpm.AlpmList<Orson.Alpm.Database!>!
+*REMOVED*Orson.Alpm.AlpmSession.RegisterSyncDatabase(string! treename, Orson.Alpm.SigLevel level) -> Orson.Alpm.Database!
+*REMOVED*Orson.Alpm.AlpmSession.UpdateDatabases(System.Collections.Generic.IEnumerable<Orson.Alpm.Database!>! databases, bool force = false) -> bool
+*REMOVED*Orson.Alpm.Database.AddCacheServer(string! url) -> void
+*REMOVED*Orson.Alpm.Database.AddServer(string! url) -> void
+*REMOVED*Orson.Alpm.Database.CacheServers.get -> Orson.Alpm.AlpmStringList!
+*REMOVED*Orson.Alpm.Database.RemoveCacheServer(string! url) -> bool
+*REMOVED*Orson.Alpm.Database.RemoveServer(string! url) -> bool
+*REMOVED*Orson.Alpm.Database.Servers.get -> Orson.Alpm.AlpmStringList!
+*REMOVED*Orson.Alpm.Database.SetCacheServers(System.Collections.Generic.IEnumerable<string!>! servers) -> void
+*REMOVED*Orson.Alpm.Database.SetServers(System.Collections.Generic.IEnumerable<string!>! servers) -> void
+*REMOVED*Orson.Alpm.Database.SigLevel.get -> Orson.Alpm.SigLevel
+*REMOVED*Orson.Alpm.Database.Unregister() -> void
+*REMOVED*Orson.Alpm.Database.Update(bool force = false) -> bool

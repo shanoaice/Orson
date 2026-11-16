@@ -91,7 +91,7 @@ public sealed partial class AlpmSession
 
   /// <summary>The failure-returning seam for <see cref="RegisterSyncDatabase" />.</summary>
   internal unsafe bool TryRegisterSyncDatabase(string treename, SigLevel level,
-    [NotNullWhen(true)] out Database? database,
+    [NotNullWhen(true)] out SyncDatabase? database,
     [NotNullWhen(false)] out AlpmFailure? failure)
   {
     ThrowIfDisposed();
@@ -108,19 +108,19 @@ public sealed partial class AlpmSession
     }
 
     var token = _lifetime.GetLifetimeTokenForHandle(dbPtr, $"the sync database {treename}");
-    database = new Database(dbPtr, token, () =>
+    database = new SyncDatabase(dbPtr, token, () =>
     {
+      token.Invalidate("Database.Unregister()");
       _lifetime.ForgetHandle(dbPtr);
-      _lifetime.Invalidate("Database.Unregister()");
-    }, isLocal: false);
+      InvalidateSyncDatabases("Database.Unregister()");
+    });
     failure = null;
     return true;
   }
 
-
   /// <summary>The failure-returning seam for <see cref="UpdateDatabases" />.</summary>
   internal unsafe bool TryUpdateDatabases(
-    IEnumerable<Database> databases,
+    IEnumerable<SyncDatabase> databases,
     bool force,
     out bool updated,
     [NotNullWhen(false)] out AlpmFailure? failure)

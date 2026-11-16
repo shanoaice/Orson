@@ -210,17 +210,28 @@ public sealed class LifetimeInvalidationTests : IDisposable
 
     Assert.Throws<AlpmLifetimeException>(() => core.Name);
 
-    // The list view is stamped with the session, so it dies with the node the unregister freed.
+    // The list view is stamped with the sync database list domain, so it dies with the node the unregister freed.
     var thrown = Assert.Throws<AlpmLifetimeException>(retained.ToArray);
-    Assert.Equal("the ALPM handle", thrown.Target);
+    Assert.Equal("the sync database list", thrown.Target);
     Assert.Equal("Database.Unregister()", thrown.InvalidatedBy);
   }
 
   [Fact]
-  public void LocalDatabaseUnregister_ThrowsInvalidOperationException()
+  public void SyncDatabaseUnregister_LeavesOtherSyncDatabasesAndLocalDatabaseOperational()
   {
     var localDb = _environment.AlpmSession.GetLocalDatabase();
-    Assert.Throws<InvalidOperationException>(localDb.Unregister);
+    var core = _environment.AlpmSession.RegisterSyncDatabase("core", SigLevel.UseDefault);
+    var extra = _environment.AlpmSession.RegisterSyncDatabase("extra", SigLevel.UseDefault);
+
+    Assert.Equal("local", localDb.Name);
+    Assert.Equal("core", core.Name);
+    Assert.Equal("extra", extra.Name);
+
+    core.Unregister();
+
+    Assert.Throws<AlpmLifetimeException>(() => core.Name);
+    Assert.Equal("local", localDb.Name);
+    Assert.Equal("extra", extra.Name);
   }
 
   [Fact]

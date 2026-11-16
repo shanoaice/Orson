@@ -33,7 +33,7 @@ internal static class BenchEnvironment
   }
 
   /// <summary>Registers the first available sync database (<c>extra</c>, then <c>core</c>).</summary>
-  internal static Database RegisterSyncDatabase(AlpmSession alpm)
+  internal static SyncDatabase RegisterSyncDatabase(AlpmSession alpm)
   {
     var syncDir = Path.Combine(DbPath, "sync");
     foreach (var name in new[] { "extra", "core" })

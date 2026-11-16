@@ -15,7 +15,7 @@ namespace Orson.Alpm.Tests.Unit.Errors;
 [Collection("AlpmSessionSerial")]
 public sealed class StickyErrnoTests
 {
-  private static Database RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("orson-sticky", 0);
+  private static SyncDatabase RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("orson-sticky", 0);
 
   /// <summary>
   /// Leaves a non-OK errno on the handle: <c>alpm_db_get_pkg</c> sets <c>ALPM_ERR_PKG_NOT_FOUND</c> on a miss and

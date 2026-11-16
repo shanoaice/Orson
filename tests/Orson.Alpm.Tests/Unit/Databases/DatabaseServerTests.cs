@@ -14,7 +14,7 @@ public sealed class DatabaseServerTests
   private const string Url = "https://example.invalid/$repo/os/$arch";
   private const string OtherUrl = "https://other.invalid/$repo/os/$arch";
 
-  private static Database RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("orson-test", 0);
+  private static SyncDatabase RegisterSync(AlpmSession alpm) => alpm.RegisterSyncDatabase("orson-test", 0);
 
   [Fact]
   public void Servers_StartEmpty()

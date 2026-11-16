@@ -3,7 +3,7 @@ using Orson.Alpm.Bindings;
 
 namespace Orson.Alpm;
 
-public sealed unsafe partial class Database
+public abstract unsafe partial class Database
 {
   /// <summary>The failure-returning seam for <see cref="Search" />.</summary>
   internal bool TrySearch(
@@ -96,7 +96,7 @@ public sealed unsafe partial class Database
   /// <remarks>
   /// This is only valid after an entry point that resets <c>pm_errno</c> at entry, because only then is a non-ok value
   /// guaranteed to come from that call. <c>alpm_db_get_pkgcache</c> and <c>alpm_db_get_groupcache</c> both do; the two
-  /// server getters deliberately do not, which is why <see cref="Servers" /> and <see cref="CacheServers" /> cannot use this
+  /// server getters deliberately do not, which is why <c>Servers</c> and <c>CacheServers</c> cannot use this
   /// and must treat a null list as "none configured" whatever the handle's errno happens to say. Anything that reports
   /// failure through its return value goes through <see cref="AlpmFailure.Of(SafeAlpmHandle, string)" /> instead.
   /// <para>
@@ -120,41 +120,6 @@ public sealed unsafe partial class Database
     failure = AlpmFailure.Of(errno, operation);
     return false;
   }
-
-
-  /// <summary>The failure-returning seam for <see cref="Update" />.</summary>
-  internal bool TryUpdate(bool force, out bool updated, [NotNullWhen(false)] out AlpmFailure? failure)
-  {
-    var dbPtr = ValidatedPtr;
-    var handlePtr = RawHandle;
-
-    InvalidateViews("Database.Update");
-
-    _alpm_list_t* list = null;
-    try
-    {
-      list = NativeListMarshal.BuildPointerList(dbPtr);
-      var ret = NativeMethods.alpm_db_update(handlePtr, list, force ? 1 : 0);
-      if (ret < 0)
-      {
-        var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-        GC.KeepAlive(this);
-        updated = false;
-        failure = AlpmFailure.Of(rawErrno, "update database");
-        return false;
-      }
-
-      GC.KeepAlive(this);
-      updated = ret == 0;
-      failure = null;
-      return true;
-    }
-    finally
-    {
-      NativeListMarshal.Free(list);
-    }
-  }
-
 
   /// <summary>The failure-returning seam for <see cref="Validate" />.</summary>
   internal bool TryValidate([NotNullWhen(false)] out AlpmFailure? failure)

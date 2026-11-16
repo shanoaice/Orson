@@ -101,8 +101,9 @@ public sealed class LifetimeGcPathTests
   {
     var environment = new IsolatedAlpmEnvironment();
 
-    // Stamped with the local database's domain, whose root is the session.
-    return (environment.AlpmSession.GetLocalDatabase().Servers,
+    // Stamped with the sync database's domain, whose root is the session.
+    var syncDb = environment.AlpmSession.RegisterSyncDatabase("core", SigLevel.UseDefault);
+    return (syncDb.Servers,
       new WeakReference<SafeAlpmHandle>(environment.AlpmSession.Handle),
       environment.WorkspaceRoot);
   }

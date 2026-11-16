@@ -37,7 +37,7 @@ public sealed class ErrorContractTests : IDisposable
   [Fact]
   public void Servers_And_CacheServers_AreEmpty_WithoutAnError()
   {
-    var database = LocalDatabase;
+    var database = AlpmSession.RegisterSyncDatabase("test_sync", SigLevel.UseDefault);
 
     Assert.Empty(database.Servers);
     Assert.Empty(database.CacheServers);

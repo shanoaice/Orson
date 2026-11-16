@@ -46,6 +46,7 @@ public sealed partial class AlpmSession : IDisposable
 
   private readonly RootLifetime _lifetime;
   private ChildLifetime? _localDatabaseLifetime;
+  private ChildLifetime? _syncDatabasesLifetime;
 
   private int _disposeStarted;
   private int _disposedFlag;
@@ -221,6 +222,16 @@ public sealed partial class AlpmSession : IDisposable
   /// <summary>The lifetime domain for the local database.</summary>
   internal ChildLifetime LocalDatabaseLifetime => _localDatabaseLifetime ??= _lifetime.CreateChild("the local database");
 
+  /// <summary>The lifetime domain for the sync database list.</summary>
+  internal ChildLifetime SyncDatabasesLifetime => _syncDatabasesLifetime ??= _lifetime.CreateChild("the sync database list");
+
+  /// <summary>Retires the sync database list domain, invalidating any views over it.</summary>
+  internal void InvalidateSyncDatabases(string reason)
+  {
+    _syncDatabasesLifetime?.Invalidate(reason);
+    _syncDatabasesLifetime = null;
+  }
+
   /// <summary>The safe handle that owns this instance's libalpm context.</summary>
   /// <remarks>
   /// Handing this to the <c>[LibraryImport]</c> overloads in <see cref="NativeMethods" /> routes the call through
@@ -328,7 +339,7 @@ public sealed partial class AlpmSession : IDisposable
   /// issued before it - committing frees libalpm's in-memory package caches - and the next call returns a fresh wrapper for
   /// the re-opened database.
   /// </remarks>
-  public unsafe Database GetLocalDatabase()
+  public unsafe LocalDatabase GetLocalDatabase()
   {
     ThrowIfDisposed();
     var databasePtr = NativeMethods.alpm_get_localdb(Handle);
@@ -338,28 +349,28 @@ public sealed partial class AlpmSession : IDisposable
     }
 
     _localDatabaseLifetime ??= _lifetime.CreateChild("the local database");
-    return new Database(databasePtr, _localDatabaseLifetime, isLocal: true);
+    return new LocalDatabase(databasePtr, _localDatabaseLifetime);
   }
 
   /// <summary>Gets the list of registered sync package databases.</summary>
-  /// <returns>A read-only <see cref="AlpmList{Database}" /> of sync databases.</returns>
-  public unsafe AlpmList<Database> GetSyncDatabases()
+  /// <returns>A read-only <see cref="AlpmList{SyncDatabase}" /> of sync databases.</returns>
+  public unsafe AlpmList<SyncDatabase> GetSyncDatabases()
   {
     ThrowIfDisposed();
     var syncDatabases = NativeMethods.alpm_get_syncdbs(Handle);
-    return AlpmList<Database>.Borrow(syncDatabases, &Database.Factory, _lifetime);
+    return AlpmList<SyncDatabase>.Borrow(syncDatabases, &SyncDatabase.Factory, SyncDatabasesLifetime);
   }
 
   /// <summary>Registers a new sync package database on this handle.</summary>
   /// <param name="treename">The name of the database repository (e.g. "core", "extra").</param>
   /// <param name="level">The signature verification requirements for this database.</param>
-  /// <returns>The newly registered <see cref="Database" />.</returns>
+  /// <returns>The newly registered <see cref="SyncDatabase" />.</returns>
   /// <remarks>
   /// The registration appends a node to the handle's sync-database list. It never frees an existing node, so a list
   /// view taken before this call stays safe to walk - but it cannot see the new database either, so take a fresh
   /// <see cref="GetSyncDatabases" /> afterwards.
   /// </remarks>
-  public Database RegisterSyncDatabase(string treename, SigLevel level)
+  public SyncDatabase RegisterSyncDatabase(string treename, SigLevel level)
   {
     if (!TryRegisterSyncDatabase(treename, level, out var database, out var failure))
     {
@@ -385,6 +396,7 @@ public sealed partial class AlpmSession : IDisposable
     }
 
     _lifetime.InvalidateHandles("AlpmSession.UnregisterAllSyncDatabases()");
+    InvalidateSyncDatabases("AlpmSession.UnregisterAllSyncDatabases()");
   }
 
   /// <summary>Updates the specified synchronization databases from their configured download servers.</summary>
@@ -400,7 +412,7 @@ public sealed partial class AlpmSession : IDisposable
   /// views are invalid even when the call fails. A forced update downloads the files again; it does not promise that their
   /// contents changed.
   /// </remarks>
-  public bool UpdateDatabases(IEnumerable<Database> databases, bool force = false)
+  public bool UpdateDatabases(IEnumerable<SyncDatabase> databases, bool force = false)
   {
     ThrowIfDisposed();
     if (!TryUpdateDatabases(databases, force, out var updated, out var failure))
@@ -547,7 +559,7 @@ public sealed partial class AlpmSession : IDisposable
   /// <para>
   /// The returned view is new. It is anchored to the lifetime domain of the database that provided the package,
   /// resolved among the wrappers the caller handed in; reading it after that database is retired - by
-  /// <see cref="Database.Update" />, unregistration, or a commit - throws <see cref="AlpmLifetimeException" /> instead of
+  /// <see cref="SyncDatabase.Update" />, unregistration, or a commit - throws <see cref="AlpmLifetimeException" /> instead of
   /// reading freed memory.
   /// </para>
   /// <para>
@@ -631,6 +643,7 @@ public sealed partial class AlpmSession : IDisposable
         // wrapper can pass its check while its memory is on the way out.
         _lifetime.Invalidate("AlpmSession.Dispose()");
         _localDatabaseLifetime = null;
+        InvalidateSyncDatabases("AlpmSession.Dispose()");
 
         // Free any undisposed file-loaded packages from this session
         _loadedPackages.Dispose();

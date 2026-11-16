@@ -40,7 +40,11 @@ BackupEntry | 1 | delegated to caller | Factory(void*, Lifetime?) receives the e
 
 Conflict | 4 | delegated to caller | Factory(void*, Lifetime?) receives the conflict entry as a parameter and snapshots its names eagerly. The payload belongs to the caller's failure list and nothing is retained.
 
-Database | 11 | token-carrying construction and delegated Factory | Factory(void*, Lifetime?) delegates its pointer parameter to the call site. Its accessors either call GC.KeepAlive(this) or leave this live across the call, and Database.Lifetime is a non-nullable child of the handle's root token, so a live Database always roots the handle that owns backingStruct. The values it builds are handed that token, which is why the constructed-view sites read as Token ownership rather than Strong.
+Database | 3 | token-carrying construction and delegated queries | Common database query methods and accessors either call GC.KeepAlive(this) or leave this live across the call, and Database.Lifetime is a non-nullable child of the handle's root token, so a live Database always roots the handle that owns backingStruct. The values it builds are handed that token, which is why the constructed-view sites read as Token ownership rather than Strong.
+
+LocalDatabase | 1 | delegated to caller | Constructor delegates the native pointer and lifetime token to the Database base constructor; the local database pointer is owned by the session and managed via LocalDatabaseLifetime.
+
+SyncDatabase | 9 | token-carrying construction and delegated Factory | Factory(void*, Lifetime?) delegates its pointer parameter to the call site. Its accessors either call GC.KeepAlive(this) or leave this live across the call, and SyncDatabase.Lifetime is a non-nullable child of the handle's root token, so a live SyncDatabase always roots the handle that owns backingStruct. The values it builds are handed that token, which is why the constructed-view sites read as Token ownership rather than Strong.
 
 MissingDependency | 1 | delegated to caller | Factory(void*, Lifetime?) receives the entry as a parameter and copies the target and causing package names out eagerly. Nothing is retained beyond the strings.
 
@@ -50,7 +54,7 @@ FileConflict | 1 | delegated to caller | Factory(void*, Lifetime?) receives the 
 
 FileList | 4 | KeepAlive proven but the token is nullable | get_Item calls GC.KeepAlive(this) before returning the materialised PackageFile. The file array is owned by the package and FileList.Lifetime is that package's token; the field is declared Lifetime? because a detached list disables the guard, not because a live list can lack an owner.
 
-Group | 4 | delegated Factory plus a parameter-owned call | Factory(void*, Lifetime?) receives the group pointer as a parameter and copies the name and package list out. FindPackages anchors the dbs parameter - its Lifetime is read after the native call, which keeps dbs may-live across it - and only incidentally calls GC.KeepAlive(this) on a Group that owns no native memory.
+Group | 5 | delegated Factory plus a parameter-owned call | Factory(void*, Lifetime?) receives the group pointer as a parameter and copies the name and package list out. FindPackages anchors the dbs parameter - its Lifetime is read after the native call, which keeps dbs may-live across it - and only incidentally calls GC.KeepAlive(this) on a Group that owns no native memory.
 
 LoadedPackage | 1 | owns the handle it is handed | The constructor takes the native pointer and its child lifetime token from Alpm.LoadPackage, which registers the pointer in the session registry for cleanup. The base constructor receives the pointer, and LoadedPackage.Dispose / Disown manage its lifecycle without a finalizer.
 
