@@ -43,3 +43,4 @@ When Rider MCP is absent, use standard `dotnet` CLI tools and SharpLens instead.
 - Write XML documentation (`///`) from the consumer's perspective. ABSOLUTELY NEVER include agent investigation notes, design debates, test setups, or probe narratives.
 - When documenting non-obvious upstream behavior or quirks, state the facts, constraints, and counterexamples directly without referencing internal tests or benchmark measurements.
 - Logic is asset, code is actually debt. Reuse existing logic sensibly and fix the root cause instead of inventing workarounds. Use your discretion.
+- Weigh allocation reduction against code complexity. Tight CPU loops need zero-allocation paths. Bursty I/O and UI events do not justify complex caching or pooling. Refer to ADR 0020 for boundary guidelines as needed.
