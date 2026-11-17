@@ -128,37 +128,30 @@ public sealed partial class AlpmSession
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(databases);
 
-    var dbList = databases.ToList();
-    if (dbList.Count == 0)
+    if (!databases.Any())
     {
       throw new ArgumentException("At least one database must be supplied.", nameof(databases));
     }
 
-    foreach (var db in dbList)
+    foreach (var db in databases)
     {
       db.InvalidateViews("Database.Update");
     }
 
-    _alpm_list_t* nativeList = null;
-    try
+    Span<_alpm_list_t> scratch = stackalloc _alpm_list_t[8];
+    using var builder = new TransientAlpmListBuilder(scratch);
+    var nativeList = builder.ConstructNative(databases);
+    var ret = NativeMethods.alpm_db_update(Handle, nativeList, force ? 1 : 0);
+    if (ret < 0)
     {
-      nativeList = NativeListMarshal.BuildPointerList(dbList);
-      var ret = NativeMethods.alpm_db_update(Handle, nativeList, force ? 1 : 0);
-      if (ret < 0)
-      {
-        updated = false;
-        failure = AlpmFailure.Of(Handle, "update databases");
-        return false;
-      }
+      updated = false;
+      failure = AlpmFailure.Of(Handle, "update databases");
+      return false;
+    }
 
-      updated = ret == 0;
-      failure = null;
-      return true;
-    }
-    finally
-    {
-      NativeListMarshal.Free(nativeList);
-    }
+    updated = ret == 0;
+    failure = null;
+    return true;
   }
 
 

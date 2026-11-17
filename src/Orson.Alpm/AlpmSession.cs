@@ -483,12 +483,7 @@ public sealed partial class AlpmSession : IDisposable
   public IReadOnlyList<string> FetchPackageUrls(IEnumerable<string> urls)
   {
     ThrowIfDisposed();
-    if (!TryFetchPackageUrls(urls, out var fetchedUrls, out var failure))
-    {
-      throw failure.ToException();
-    }
-
-    return fetchedUrls;
+    return !TryFetchPackageUrls(urls, out var fetchedUrls, out var failure) ? throw failure.ToException() : fetchedUrls;
   }
 
   /// <summary>Checks a list of packages for missing dependencies.</summary>
@@ -501,31 +496,14 @@ public sealed partial class AlpmSession : IDisposable
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(packages);
 
-    _alpm_list_t* pkgList = null;
-    _alpm_list_t* remList = null;
-    _alpm_list_t* upgList = null;
-    try
-    {
-      pkgList = NativeListMarshal.BuildPointerList(packages);
-      if (remove is not null)
-      {
-        remList = NativeListMarshal.BuildPointerList(remove);
-      }
+    Span<_alpm_list_t> scratch = stackalloc _alpm_list_t[64];
+    using var builder = new TransientAlpmListBuilder(scratch);
+    var pkgList = builder.ConstructNative(packages);
+    var remList = remove == null ? null : builder.ConstructNative(remove);
+    var upgList = upgrade == null ? null : builder.ConstructNative(upgrade);
 
-      if (upgrade is not null)
-      {
-        upgList = NativeListMarshal.BuildPointerList(upgrade);
-      }
-
-      var result = NativeMethods.alpm_checkdeps(Handle, pkgList, remList, upgList, reverseDependencies ? 1 : 0);
-      return NativeListMarshal.MaterializeAndFree(result, &MissingDependency.Factory, &UnmanagedDestructors.DepMissingFreeExtern);
-    }
-    finally
-    {
-      NativeListMarshal.Free(pkgList);
-      NativeListMarshal.Free(remList);
-      NativeListMarshal.Free(upgList);
-    }
+    var result = NativeMethods.alpm_checkdeps(Handle, pkgList, remList, upgList, reverseDependencies ? 1 : 0);
+    return NativeListMarshal.MaterializeAndFree(result, &MissingDependency.Factory, &UnmanagedDestructors.DepMissingFreeExtern);
   }
 
   /// <summary>Checks a list of packages for conflicts.</summary>
@@ -534,17 +512,11 @@ public sealed partial class AlpmSession : IDisposable
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(packages);
 
-    _alpm_list_t* pkgList = null;
-    try
-    {
-      pkgList = NativeListMarshal.BuildPointerList(packages);
-      var result = NativeMethods.alpm_checkconflicts(Handle, pkgList);
-      return NativeListMarshal.MaterializeAndFree(result, &Conflict.Factory, &UnmanagedDestructors.ConflictFreeExtern);
-    }
-    finally
-    {
-      NativeListMarshal.Free(pkgList);
-    }
+    Span<_alpm_list_t> scratch = stackalloc _alpm_list_t[32];
+    using var builder = new TransientAlpmListBuilder(scratch);
+    var pkgList = builder.ConstructNative(packages);
+    var result = NativeMethods.alpm_checkconflicts(Handle, pkgList);
+    return NativeListMarshal.MaterializeAndFree(result, &Conflict.Factory, &UnmanagedDestructors.ConflictFreeExtern);
   }
 
   /// <summary>Resolves a dependency string to the package that provides it, searching the given databases in order.</summary>
@@ -569,30 +541,23 @@ public sealed partial class AlpmSession : IDisposable
     ArgumentNullException.ThrowIfNull(databases);
     ArgumentNullException.ThrowIfNull(dependency);
 
-    var dbList = databases as IReadOnlyList<Database> ?? databases.ToList();
-    _alpm_list_t* nativeList = null;
-    Span<byte> scratch = stackalloc byte[64];
-    using var depBuf = new Utf8Buffer(dependency, scratch);
-    try
+    Span<byte> depBytes = stackalloc byte[64];
+    using var depBuf = new Utf8Buffer(dependency, depBytes);
+    Span<_alpm_list_t> scratch = stackalloc _alpm_list_t[8];
+    using var builder = new TransientAlpmListBuilder(scratch);
+    var nativeList = builder.ConstructNative(databases);
+    var pkgPtr = NativeMethods.alpm_find_dbs_satisfier(Handle, nativeList, depBuf.Ptr);
+    if (pkgPtr == null)
     {
-      nativeList = NativeListMarshal.BuildPointerList(dbList);
-      var pkgPtr = NativeMethods.alpm_find_dbs_satisfier(Handle, nativeList, depBuf.Ptr);
-      if (pkgPtr == null)
-      {
-        return null;
-      }
+      return null;
+    }
 
-      var dbPtr = NativeMethods.alpm_pkg_get_db(pkgPtr);
-      // Resolved among the wrappers the caller handed in, not through the handle registry: the local
-      // database is never registered there (see AlpmSession.GetLocalDatabase), and a registry lookup would
-      // therefore mint a second domain for it. See Database.ResolveLifetime for what rides on this.
-      var dbLifetime = Database.ResolveLifetime(dbList, dbPtr);
-      return new PackageView(pkgPtr, dbLifetime);
-    }
-    finally
-    {
-      NativeListMarshal.Free(nativeList);
-    }
+    var dbPtr = NativeMethods.alpm_pkg_get_db(pkgPtr);
+    // Resolved among the wrappers the caller handed in, not through the handle registry: the local
+    // database is never registered there (see AlpmSession.GetLocalDatabase), and a registry lookup would
+    // therefore mint a second domain for it. See Database.ResolveLifetime for what rides on this.
+    var dbLifetime = Database.ResolveLifetime(databases, dbPtr);
+    return new PackageView(pkgPtr, dbLifetime);
   }
 
   /// <summary>

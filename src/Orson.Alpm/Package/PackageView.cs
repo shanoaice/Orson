@@ -12,10 +12,23 @@ namespace Orson.Alpm;
 /// A 40-byte non-allocating value type directly borrowing unmanaged memory.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-public readonly unsafe partial struct PackageView : IPackageMetadata, IEquatable<PackageView>
+public readonly unsafe partial struct PackageView : IPackageMetadata, IEquatable<PackageView>, INativeWrapper
 {
   private readonly _alpm_pkg_t* _rawPackage;
   private readonly LifetimeStamp _stamp;
+
+  unsafe void* INativeWrapper.BackingStruct
+  {
+    get
+    {
+      if (this == default)
+      {
+        throw new ArgumentException("The collection contains an uninitialized package view.");
+      }
+
+      return BackingStruct;
+    }
+  }
 
   internal PackageView(_alpm_pkg_t* backingStruct, ChildLifetime lifetime)
   {
@@ -518,32 +531,25 @@ public readonly unsafe partial struct PackageView : IPackageMetadata, IEquatable
     ArgumentNullException.ThrowIfNull(packages);
     ArgumentNullException.ThrowIfNull(dependency);
 
-    var pkgList = packages as IReadOnlyCollection<PackageView> ?? packages.ToList();
-    Span<byte> scratch = stackalloc byte[64];
-    using var depBuf = new Utf8Buffer(dependency, scratch);
-    _alpm_list_t* nativeList = null;
-    try
-    {
-      nativeList = NativeListMarshal.BuildPointerList(pkgList);
-      var matchedPtr = NativeMethods.alpm_find_satisfier(nativeList, depBuf.Ptr);
-      if (matchedPtr == null) return null;
+    Span<byte> depBytes = stackalloc byte[64];
+    using var depBuf = new Utf8Buffer(dependency, depBytes);
+    Span<_alpm_list_t> scratch = stackalloc _alpm_list_t[32];
+    using var builder = new TransientAlpmListBuilder(scratch);
+    var nativeList = builder.ConstructNative(packages);
+    var matchedPtr = NativeMethods.alpm_find_satisfier(nativeList, depBuf.Ptr);
+    if (matchedPtr == null) return null;
 
-      foreach (var pkg in pkgList)
+    foreach (var pkg in packages)
+    {
+      if (pkg.BackingStruct == matchedPtr)
       {
-        if (pkg.BackingStruct == matchedPtr)
-        {
-          return pkg;
-        }
+        return pkg;
       }
+    }
 
-      throw new InvalidOperationException(
-        "libalpm returned a package that is not among the ones passed to the call; " +
-        "there is no domain to anchor the resulting view to.");
-    }
-    finally
-    {
-      NativeListMarshal.Free(nativeList);
-    }
+    throw new InvalidOperationException(
+      "libalpm returned a package that is not among the ones passed to the call; " +
+      "there is no domain to anchor the resulting view to.");
   }
 
   /// <summary>Checks whether a newer version of this package is available in the given synchronization databases.</summary>
@@ -552,21 +558,14 @@ public readonly unsafe partial struct PackageView : IPackageMetadata, IEquatable
     ArgumentNullException.ThrowIfNull(syncDatabases);
     ThrowIfStale();
 
-    var dbs = syncDatabases as IReadOnlyList<Database> ?? syncDatabases.ToList();
-    _alpm_list_t* dbsList = null;
-    try
-    {
-      dbsList = NativeListMarshal.BuildPointerList(dbs);
-      var newPkgPtr = NativeMethods.alpm_sync_get_new_version(BackingStruct, dbsList);
-      if (newPkgPtr == null) return null;
+    Span<_alpm_list_t> scratch = stackalloc _alpm_list_t[8];
+    using var builder = new TransientAlpmListBuilder(scratch);
+    var dbsList = builder.ConstructNative(syncDatabases);
+    var newPkgPtr = NativeMethods.alpm_sync_get_new_version(BackingStruct, dbsList);
+    if (newPkgPtr == null) return null;
 
-      var dbPtr = NativeMethods.alpm_pkg_get_db(newPkgPtr);
-      return new PackageView(newPkgPtr, Database.ResolveLifetime(dbs, dbPtr));
-    }
-    finally
-    {
-      NativeListMarshal.Free(dbsList);
-    }
+    var dbPtr = NativeMethods.alpm_pkg_get_db(newPkgPtr);
+    return new PackageView(newPkgPtr, Database.ResolveLifetime(syncDatabases, dbPtr));
   }
 
   /// <inheritdoc />
