@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Orson.Alpm.Bindings;
+using Orson.Alpm.Interop;
 
 namespace Orson.Alpm;
 
@@ -15,30 +16,24 @@ public abstract unsafe partial class Database
     var dbPtr = ValidatedPtr;
     var handlePtr = RawHandle;
 
-    var needleList = NativeListMarshal.BuildStringList(needles, out var buffers);
+    using var builder = new TransientAlpmStringListAllocator();
+    var needleList = builder.ConstructNative(needles);
     _alpm_list_t* retList = null;
-    try
+    var ret = NativeMethods.alpm_db_search(dbPtr, needleList, &retList);
+    if (ret < 0)
     {
-      var ret = NativeMethods.alpm_db_search(dbPtr, needleList, &retList);
-      if (ret < 0)
-      {
-        NativeListMarshal.Free(retList);
-        var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-        GC.KeepAlive(this);
-        results = null;
-        failure = AlpmFailure.Of(rawErrno, "search database");
-        return false;
-      }
-
+      NativeListMarshal.Free(retList);
+      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
       GC.KeepAlive(this);
-      results = NativeListMarshal.MaterializeAndFree(retList, &PackageView.Factory, Lifetime);
-      failure = null;
-      return true;
+      results = null;
+      failure = AlpmFailure.Of(rawErrno, "search database");
+      return false;
     }
-    finally
-    {
-      NativeListMarshal.FreeStringListBuffers(buffers, needleList);
-    }
+
+    GC.KeepAlive(this);
+    results = NativeListMarshal.MaterializeAndFree(retList, &PackageView.Factory, Lifetime);
+    failure = null;
+    return true;
   }
 
   /// <summary>The failure-returning seam for <see cref="LoadPackageCache" />.</summary>

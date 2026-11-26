@@ -128,37 +128,29 @@ public sealed partial class AlpmSession
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(databases);
 
-    var dbList = databases.ToList();
-    if (dbList.Count == 0)
+    if (!databases.Any())
     {
       throw new ArgumentException("At least one database must be supplied.", nameof(databases));
     }
 
-    foreach (var db in dbList)
+    foreach (var db in databases)
     {
       db.InvalidateViews("Database.Update");
     }
 
-    _alpm_list_t* nativeList = null;
-    try
+    using var builder = new TransientAlpmListAllocator();
+    var nativeList = builder.ConstructNative(databases);
+    var ret = NativeMethods.alpm_db_update(Handle, nativeList, force ? 1 : 0);
+    if (ret < 0)
     {
-      nativeList = NativeListMarshal.BuildPointerList(dbList);
-      var ret = NativeMethods.alpm_db_update(Handle, nativeList, force ? 1 : 0);
-      if (ret < 0)
-      {
-        updated = false;
-        failure = AlpmFailure.Of(Handle, "update databases");
-        return false;
-      }
+      updated = false;
+      failure = AlpmFailure.Of(Handle, "update databases");
+      return false;
+    }
 
-      updated = ret == 0;
-      failure = null;
-      return true;
-    }
-    finally
-    {
-      NativeListMarshal.Free(nativeList);
-    }
+    updated = ret == 0;
+    failure = null;
+    return true;
   }
 
 
@@ -170,34 +162,28 @@ public sealed partial class AlpmSession
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(urls);
 
-    var nativeUrls = NativeListMarshal.BuildStringList(urls, out var buffers);
+    using var builder = new TransientAlpmStringListAllocator();
+    var nativeUrls = builder.ConstructNative(urls);
     _alpm_list_t* fetchedList = null;
-    try
+    var err = NativeMethods.alpm_fetch_pkgurl(Handle, nativeUrls, &fetchedList);
+    if (err != 0)
     {
-      var err = NativeMethods.alpm_fetch_pkgurl(Handle, nativeUrls, &fetchedList);
-      if (err != 0)
+      // alpm_fetch_pkgurl's failure paths free *fetched with FREELIST and leave it NULL
+      // (dload.c), so this branch normally sees null. The guard covers only a native path that
+      // returns an error while still populating the out parameter.
+      if (fetchedList != null)
       {
-        // alpm_fetch_pkgurl's failure paths free *fetched with FREELIST and leave it NULL
-        // (dload.c), so this branch normally sees null. The guard covers only a native path that
-        // returns an error while still populating the out parameter.
-        if (fetchedList != null)
-        {
-          NativeListMarshal.Free(fetchedList, &UnmanagedDestructors.CFreeExtern);
-        }
-
-        fetchedUrls = null;
-        failure = AlpmFailure.Of(Handle, "fetch package URLs");
-        return false;
+        NativeListMarshal.Free(fetchedList, &UnmanagedDestructors.CFreeExtern);
       }
 
-      fetchedUrls = AlpmStringList.TakeOwned(fetchedList, &UnmanagedDestructors.CFreeExtern);
-      failure = null;
-      return true;
+      fetchedUrls = null;
+      failure = AlpmFailure.Of(Handle, "fetch package URLs");
+      return false;
     }
-    finally
-    {
-      NativeListMarshal.FreeStringListBuffers(buffers, nativeUrls);
-    }
+
+    fetchedUrls = AlpmStringList.TakeOwned(fetchedList, &UnmanagedDestructors.CFreeExtern);
+    failure = null;
+    return true;
   }
 
 }

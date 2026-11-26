@@ -1,4 +1,5 @@
 using Orson.Alpm.Bindings;
+using Orson.Alpm.Interop;
 
 namespace Orson.Alpm;
 
@@ -156,24 +157,18 @@ public sealed unsafe partial class SyncDatabase : Database
     ArgumentNullException.ThrowIfNull(servers);
     var dbPtr = ValidatedPtr;
     var handlePtr = RawHandle;
-    var nativeList = NativeListMarshal.BuildStringList(servers, out var buffers);
-    try
+    using var builder = new TransientAlpmStringListAllocator();
+    var nativeList = builder.ConstructNative(servers);
+    var err = NativeMethods.alpm_db_set_servers(dbPtr, nativeList);
+    if (err != 0)
     {
-      var err = NativeMethods.alpm_db_set_servers(dbPtr, nativeList);
-      if (err != 0)
-      {
-        var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-        GC.KeepAlive(this);
-        throw AlpmFailure.Of(rawErrno, "set servers").ToException();
-      }
-
-      Lifetime.InvalidateFacet(LifetimeFacet.Servers, "Database.SetServers");
+      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
       GC.KeepAlive(this);
+      throw AlpmFailure.Of(rawErrno, "set servers").ToException();
     }
-    finally
-    {
-      NativeListMarshal.FreeStringListBuffers(buffers, nativeList);
-    }
+
+    Lifetime.InvalidateFacet(LifetimeFacet.Servers, "Database.SetServers");
+    GC.KeepAlive(this);
   }
 
   /// <summary>Adds a download cache server to this database.</summary>
@@ -231,24 +226,18 @@ public sealed unsafe partial class SyncDatabase : Database
     ArgumentNullException.ThrowIfNull(servers);
     var dbPtr = ValidatedPtr;
     var handlePtr = RawHandle;
-    var nativeList = NativeListMarshal.BuildStringList(servers, out var buffers);
-    try
+    using var builder = new TransientAlpmStringListAllocator();
+    var nativeList = builder.ConstructNative(servers);
+    var err = NativeMethods.alpm_db_set_cache_servers(dbPtr, nativeList);
+    if (err != 0)
     {
-      var err = NativeMethods.alpm_db_set_cache_servers(dbPtr, nativeList);
-      if (err != 0)
-      {
-        var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
-        GC.KeepAlive(this);
-        throw AlpmFailure.Of(rawErrno, "set cache servers").ToException();
-      }
-
-      Lifetime.InvalidateFacet(LifetimeFacet.CacheServers, "Database.SetCacheServers");
+      var rawErrno = (int)NativeMethods.alpm_errno(handlePtr);
       GC.KeepAlive(this);
+      throw AlpmFailure.Of(rawErrno, "set cache servers").ToException();
     }
-    finally
-    {
-      NativeListMarshal.FreeStringListBuffers(buffers, nativeList);
-    }
+
+    Lifetime.InvalidateFacet(LifetimeFacet.CacheServers, "Database.SetCacheServers");
+    GC.KeepAlive(this);
   }
 
   /// <summary>Updates this database from its configured download servers.</summary>

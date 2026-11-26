@@ -1,4 +1,5 @@
 using Orson.Alpm.Bindings;
+using Orson.Alpm.Interop;
 
 namespace Orson.Alpm;
 
@@ -37,8 +38,10 @@ public enum DatabaseUsage : uint
 /// throws <see cref="AlpmLifetimeException" /> instead of reading freed memory. Views handed out here (packages, groups)
 /// die with it the same way.
 /// </remarks>
-public abstract unsafe partial class Database
+public abstract unsafe partial class Database : INativeWrapper
 {
+  unsafe void* INativeWrapper.BackingStruct => ValidatedPtr;
+
   /// <summary>
   /// The only way to obtain the native pointer from outside this class. The guard runs here, so a sibling cannot
   /// read the pointer of a released database.
@@ -102,7 +105,7 @@ public abstract unsafe partial class Database
   /// found inside the list it was given, so this is an invariant violation rather than a result to hand out: issuing the
   /// view under a freshly minted domain would hide it, and issuing it with none would leave it unanchored.
   /// </exception>
-  internal static ChildLifetime ResolveLifetime(IReadOnlyList<Database> databases, _alpm_db_t* dbPtr)
+  internal static ChildLifetime ResolveLifetime(IEnumerable<Database> databases, _alpm_db_t* dbPtr)
   {
     foreach (var database in databases)
     {
