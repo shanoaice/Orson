@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Orson.Alpm.Bindings;
 
 namespace Orson.Alpm;
@@ -13,6 +14,7 @@ namespace Orson.Alpm;
 /// to pass.
 /// </remarks>
 [Flags]
+[SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "TransactionFlags legitimately uses 'Flags' suffix per standard flag enum conventions.")]
 public enum TransactionFlags : uint
 {
   /// <summary>No transaction flags set; standard fully-checked mode (0).</summary>

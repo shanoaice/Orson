@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Orson.Alpm.Bindings;
 
@@ -20,6 +21,7 @@ namespace Orson.Alpm;
 /// elements after that owner is disposed throws an <see cref="AlpmLifetimeException" /> instead of reading freed memory.
 /// </para>
 /// </remarks>
+[SuppressMessage("Naming", "CA1710:Identifiers should have correct suffix", Justification = "AlpmList<T> is named after libalpm's alpm_list_t and the domain glossary; renaming to AlpmListCollection violates the domain model.")]
 public abstract class AlpmList<T> : IReadOnlyCollection<T>
 {
   // Visible to this class and to AlpmBorrowedList only; everything outside goes

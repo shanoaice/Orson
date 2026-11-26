@@ -42,6 +42,9 @@ public sealed class TrySeamContractTests : IDisposable
   public void TryCreate_Failure_SetsNullSessionAndFailure()
   {
     var ok = AlpmSession.TryCreate("/dev/null/not/a/dir", "/dev/null/not/a/dir", out var session, out var failure);
+
+    using var _ = session;
+
     Assert.False(ok);
     Assert.Null(session);
     Assert.NotNull(failure);
@@ -53,7 +56,8 @@ public sealed class TrySeamContractTests : IDisposable
   public void TryLoadPackage_Success_SetsPackageAndNullFailure()
   {
     var path = PackageArchive.Create(PackageDirectory, "orson-load-pkg");
-    var ok = _environment.AlpmSession.TryLoadPackage(path, full: true, SigLevel.UseDefault, out var pkg, out var failure);
+    var ok = _environment.AlpmSession.TryLoadPackage(path, full: true, SigLevel.UseDefault, out var pkg,
+      out var failure);
 
     Assert.True(ok);
     Assert.NotNull(pkg);
@@ -64,7 +68,10 @@ public sealed class TrySeamContractTests : IDisposable
   [Fact]
   public void TryLoadPackage_Failure_SetsNullPackageAndFailure()
   {
-    var ok = _environment.AlpmSession.TryLoadPackage("/nonexistent/file.pkg.tar.zst", full: false, SigLevel.UseDefault, out var pkg, out var failure);
+    var ok = _environment.AlpmSession.TryLoadPackage("/nonexistent/file.pkg.tar.zst", full: false, SigLevel.UseDefault,
+      out var pkg, out var failure);
+
+    using var _ = pkg;
 
     Assert.False(ok);
     Assert.Null(pkg);

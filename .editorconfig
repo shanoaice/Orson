@@ -57,10 +57,6 @@ dotnet_diagnostic.CA2213.severity = warning
 dotnet_diagnostic.CA2214.severity = warning
 
 # --- ALPM Domain Architecture Adjustments ---
-# AlpmList<T> is named after libalpm's alpm_list_t and the domain glossary; renaming to AlpmListCollection violates domain model
-dotnet_diagnostic.CA1710.severity = none
-# TransactionFlags legitimately uses 'Flags' suffix per standard flag enum conventions
-dotnet_diagnostic.CA1711.severity = none
 # Event and question hierarchies model discriminated union variants nested in their parent types (AlpmEvent, AlpmQuestion, AlpmDownloadEvent)
 dotnet_diagnostic.CA1034.severity = none
 # Native-bound enums mirror libalpm unsigned C types (uint) and closed 1-based domain sets without artificial None=0 (ADR 0019)
@@ -70,8 +66,9 @@ dotnet_diagnostic.CA1712.severity = none
 # ALPM URLs (mirrors, databases) contain template expansion variables ($repo, $arch) that are not valid RFC URIs until expanded
 dotnet_diagnostic.CA1054.severity = none
 dotnet_diagnostic.CA1056.severity = none
-# Roslyn dataflow analysis cannot trace mutations through unmanaged pointer-to-pointers (&retList, archive_entry**), causing false positives
-dotnet_diagnostic.CA1508.severity = suggestion
+
+# RCS1123 extra parentheses will clash with Rider lint rules, and it is not quite useful anyways
+dotnet_diagnostic.RCS1123.severity = none
 
 [src/Orson.Alpm/Exceptions.cs]
 # Exceptions carry mandatory domain state (ADR 0007); standard parameterless constructors are invalid
@@ -99,15 +96,15 @@ dotnet_diagnostic.CA2101.severity = none
 [tests/**]
 # Test method names use underscores for readability (Method_Scenario_ExpectedBehavior)
 dotnet_diagnostic.CA1707.severity = none
+# Test executables use xUnit *Collection marker types and do not ship a public API
+dotnet_diagnostic.CA1711.severity = none
 # Test assertions and audit helpers do not require explicit culture specifications
 dotnet_diagnostic.CA1304.severity = none
 dotnet_diagnostic.CA1305.severity = none
 dotnet_diagnostic.CA1307.severity = none
-# Tests intentionally exercise GC, lifetimes, and unfreed resource states
-dotnet_diagnostic.CA2000.severity = none
-# Unused fields or general types in test helpers
-dotnet_diagnostic.CA1823.severity = none
+# Use interface/abstract types in test variables where testing polymorphic contracts
 dotnet_diagnostic.CA1859.severity = none
+
 [src/Orson.Benchmarks/**]
 # Benchmark method names use underscores for scenarios and parameterization
 dotnet_diagnostic.CA1707.severity = none

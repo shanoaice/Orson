@@ -17,9 +17,6 @@ namespace Orson.Alpm.Tests.Unit.Ownership;
 [Collection("AlpmSessionSerial")]
 public sealed class PackageTransferTests : IDisposable
 {
-  /// <summary>No flags: the tests only care about ownership, but the transaction must still be sound.</summary>
-  private const TransactionFlags NoFlags = 0;
-
   private readonly IsolatedAlpmEnvironment _environment = new();
 
   public void Dispose() => _environment.Dispose();

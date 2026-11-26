@@ -99,7 +99,9 @@ public sealed class LifetimeGcPathTests
   [MethodImpl(MethodImplOptions.NoInlining)]
   private static (AlpmStringList View, WeakReference<SafeAlpmHandle> Handle, string Workspace) CreateWithALiveView()
   {
+#pragma warning disable CA2000 // Intentionally abandoned to test whether a live view keeps SafeAlpmHandle rooted across GC.
     var environment = new IsolatedAlpmEnvironment();
+#pragma warning restore CA2000
 
     // Stamped with the sync database's domain, whose root is the session.
     var syncDb = environment.AlpmSession.RegisterSyncDatabase("core", SigLevel.UseDefault);
@@ -111,7 +113,9 @@ public sealed class LifetimeGcPathTests
   [MethodImpl(MethodImplOptions.NoInlining)]
   private static (WeakReference Session, string Workspace) CreateWithoutViews()
   {
+#pragma warning disable CA2000 // Intentionally abandoned to exercise SafeAlpmHandle finalization without live views.
     var environment = new IsolatedAlpmEnvironment();
+#pragma warning restore CA2000
 
     return (new WeakReference(environment.AlpmSession), environment.WorkspaceRoot);
   }

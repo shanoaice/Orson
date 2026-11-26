@@ -38,10 +38,12 @@ public sealed class CallbackContextLifetimeTests
   [MethodImpl(MethodImplOptions.NoInlining)]
   private static (WeakReference Callback, string Workspace) CreateAlpmWithoutDisposing()
   {
+#pragma warning disable CA2000 // Intentionally abandoned to exercise SafeAlpmHandle finalization.
     var environment = new IsolatedAlpmEnvironment();
+#pragma warning restore CA2000
     var weak = new WeakReference(environment.AlpmSession.Callbacks);
 
-    // Intentionally not disposed: this exercises SafeAlpmHandle's critical finalizer.
+    // Intentionally not disposed: this exercises SafeAlpmHandle's finalizer.
     return (weak, environment.WorkspaceRoot);
   }
 

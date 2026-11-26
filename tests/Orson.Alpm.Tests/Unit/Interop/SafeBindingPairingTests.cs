@@ -29,13 +29,6 @@ public sealed class SafeBindingPairingTests
   };
 
   /// <summary>
-  /// Entry points that must keep the raw generated declaration because a <c>SafeHandle</c> cannot be marshaled from
-  /// inside its own <c>ReleaseHandle</c>: <c>alpm_release</c> is the native release routine itself, called by
-  /// <see cref="SafeAlpmHandle.ReleaseHandle" /> with the raw handle value.
-  /// </summary>
-  private static readonly string[] RawOnlyEntryPoints = ["alpm_release"];
-
-  /// <summary>
   /// Handwritten overloads that deliberately deviate from their generated declaration: entry point to the indices
   /// of the parameters whose types intentionally differ. The log callback keeps its <c>va_list</c> argument opaque (
   /// <c>void*</c> instead of the generated <c>__va_list_tag*</c>) so that regenerating the bindings can never re-materialize
