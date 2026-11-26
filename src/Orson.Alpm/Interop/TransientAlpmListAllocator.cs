@@ -37,10 +37,12 @@ internal ref struct TransientAlpmListAllocator() : IDisposable
 
   private unsafe HeapChunk* _heap = null;
 
-  internal unsafe _alpm_list_t* ConstructNative<T>(IEnumerable<T> managedList)
+  internal unsafe _alpm_list_t* ConstructNative<T>(IReadOnlyCollection<T> managedList)
     where T : INativeWrapper
   {
-    var count = managedList.Count();
+    ArgumentNullException.ThrowIfNull(managedList);
+
+    var count = managedList.Count;
 
     if (count == 0) return null;
 

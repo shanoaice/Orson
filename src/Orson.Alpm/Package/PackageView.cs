@@ -526,7 +526,7 @@ public readonly unsafe partial struct PackageView : IPackageMetadata, IEquatable
   }
 
   /// <summary>Finds a package satisfying the specified dependency in a collection of packages.</summary>
-  public static PackageView? FindSatisfier(IEnumerable<PackageView> packages, string dependency)
+  public static PackageView? FindSatisfier(IReadOnlyCollection<PackageView> packages, string dependency)
   {
     ArgumentNullException.ThrowIfNull(packages);
     ArgumentNullException.ThrowIfNull(dependency);
@@ -552,7 +552,7 @@ public readonly unsafe partial struct PackageView : IPackageMetadata, IEquatable
   }
 
   /// <summary>Checks whether a newer version of this package is available in the given synchronization databases.</summary>
-  public PackageView? GetNewVersion(IEnumerable<Database> syncDatabases)
+  public PackageView? GetNewVersion(IReadOnlyCollection<Database> syncDatabases)
   {
     ArgumentNullException.ThrowIfNull(syncDatabases);
     ThrowIfStale();

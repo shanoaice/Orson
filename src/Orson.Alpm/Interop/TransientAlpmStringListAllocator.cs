@@ -52,11 +52,9 @@ internal ref struct TransientAlpmStringListAllocator() : IDisposable
   private unsafe HeapChunk* _heapLists = null;
   private unsafe HeapChunk* _heapStrings = null;
 
-  internal unsafe _alpm_list_t* ConstructNative(IEnumerable<string> strings)
+  internal unsafe _alpm_list_t* ConstructNative(IReadOnlyCollection<string> strings)
   {
-    ArgumentNullException.ThrowIfNull(strings);
-
-    var listCount = strings.Count();
+    var listCount = strings.Count;
 
     if (listCount == 0) return null;
 

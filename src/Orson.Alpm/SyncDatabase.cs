@@ -152,7 +152,7 @@ public sealed unsafe partial class SyncDatabase : Database
   }
 
   /// <summary>Sets the complete list of download servers for this database.</summary>
-  public void SetServers(IEnumerable<string> servers)
+  public void SetServers(IReadOnlyCollection<string> servers)
   {
     ArgumentNullException.ThrowIfNull(servers);
     var dbPtr = ValidatedPtr;
@@ -221,7 +221,7 @@ public sealed unsafe partial class SyncDatabase : Database
   }
 
   /// <summary>Sets the complete list of download cache servers for this database.</summary>
-  public void SetCacheServers(IEnumerable<string> servers)
+  public void SetCacheServers(IReadOnlyCollection<string> servers)
   {
     ArgumentNullException.ThrowIfNull(servers);
     var dbPtr = ValidatedPtr;

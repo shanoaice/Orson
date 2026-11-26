@@ -120,7 +120,7 @@ public sealed partial class AlpmSession
 
   /// <summary>The failure-returning seam for <see cref="UpdateDatabases" />.</summary>
   internal unsafe bool TryUpdateDatabases(
-    IEnumerable<SyncDatabase> databases,
+    IReadOnlyCollection<SyncDatabase> databases,
     bool force,
     out bool updated,
     [NotNullWhen(false)] out AlpmFailure? failure)
@@ -128,7 +128,7 @@ public sealed partial class AlpmSession
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(databases);
 
-    if (!databases.Any())
+    if (databases.Count == 0)
     {
       throw new ArgumentException("At least one database must be supplied.", nameof(databases));
     }
@@ -155,7 +155,7 @@ public sealed partial class AlpmSession
 
 
   /// <summary>The failure-returning seam for <see cref="FetchPackageUrls" />.</summary>
-  internal unsafe bool TryFetchPackageUrls(IEnumerable<string> urls,
+  internal unsafe bool TryFetchPackageUrls(IReadOnlyCollection<string> urls,
     [NotNullWhen(true)] out IReadOnlyList<string>? fetchedUrls,
     [NotNullWhen(false)] out AlpmFailure? failure)
   {

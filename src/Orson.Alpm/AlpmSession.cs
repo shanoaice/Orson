@@ -412,7 +412,7 @@ public sealed partial class AlpmSession : IDisposable
   /// views are invalid even when the call fails. A forced update downloads the files again; it does not promise that their
   /// contents changed.
   /// </remarks>
-  public bool UpdateDatabases(IEnumerable<SyncDatabase> databases, bool force = false)
+  public bool UpdateDatabases(IReadOnlyCollection<SyncDatabase> databases, bool force = false)
   {
     ThrowIfDisposed();
     if (!TryUpdateDatabases(databases, force, out var updated, out var failure))
@@ -480,7 +480,7 @@ public sealed partial class AlpmSession : IDisposable
   }
 
   /// <summary>Fetches packages from the specified URLs.</summary>
-  public IReadOnlyList<string> FetchPackageUrls(IEnumerable<string> urls)
+  public IReadOnlyList<string> FetchPackageUrls(IReadOnlyCollection<string> urls)
   {
     ThrowIfDisposed();
     return !TryFetchPackageUrls(urls, out var fetchedUrls, out var failure) ? throw failure.ToException() : fetchedUrls;
@@ -488,9 +488,9 @@ public sealed partial class AlpmSession : IDisposable
 
   /// <summary>Checks a list of packages for missing dependencies.</summary>
   public unsafe IReadOnlyList<MissingDependency> CheckDependencies(
-    IEnumerable<PackageView> packages,
-    IEnumerable<PackageView>? remove = null,
-    IEnumerable<PackageView>? upgrade = null,
+    IReadOnlyCollection<PackageView> packages,
+    IReadOnlyCollection<PackageView>? remove = null,
+    IReadOnlyCollection<PackageView>? upgrade = null,
     bool reverseDependencies = false)
   {
     ThrowIfDisposed();
@@ -506,7 +506,7 @@ public sealed partial class AlpmSession : IDisposable
   }
 
   /// <summary>Checks a list of packages for conflicts.</summary>
-  public unsafe IReadOnlyList<Conflict> CheckConflicts(IEnumerable<PackageView> packages)
+  public unsafe IReadOnlyList<Conflict> CheckConflicts(IReadOnlyCollection<PackageView> packages)
   {
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(packages);
@@ -533,7 +533,7 @@ public sealed partial class AlpmSession : IDisposable
   /// needs no handle, touches no database, and hands back one of the views you passed in.
   /// </para>
   /// </remarks>
-  public unsafe PackageView? ResolveDependency(IEnumerable<Database> databases, string dependency)
+  public unsafe PackageView? ResolveDependency(IReadOnlyCollection<Database> databases, string dependency)
   {
     ThrowIfDisposed();
     ArgumentNullException.ThrowIfNull(databases);

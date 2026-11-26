@@ -31,8 +31,12 @@ Orson.Alpm.AlpmDownloadEvent.TryGetRetry(out Orson.Alpm.DownloadRetry retry) -> 
 Orson.Alpm.AlpmEvent.OptionalDependencyRemoval.Package.get -> Orson.Alpm.PackageView
 Orson.Alpm.AlpmPackageException.AlpmPackageException(int errno, string? strError = null, Orson.Alpm.IPackageMetadata? package = null, string? context = null) -> void
 Orson.Alpm.AlpmPackageException.Package.get -> Orson.Alpm.IPackageMetadata?
-Orson.Alpm.AlpmSession.CheckConflicts(System.Collections.Generic.IEnumerable<Orson.Alpm.PackageView>! packages) -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.Conflict!>!
-Orson.Alpm.AlpmSession.CheckDependencies(System.Collections.Generic.IEnumerable<Orson.Alpm.PackageView>! packages, System.Collections.Generic.IEnumerable<Orson.Alpm.PackageView>? remove = null, System.Collections.Generic.IEnumerable<Orson.Alpm.PackageView>? upgrade = null, bool reverseDependencies = false) -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.MissingDependency!>!
+Orson.Alpm.AlpmSession.CheckConflicts(System.Collections.Generic.IReadOnlyCollection<Orson.Alpm.PackageView>! packages) -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.Conflict!>!
+Orson.Alpm.AlpmSession.CheckDependencies(System.Collections.Generic.IReadOnlyCollection<Orson.Alpm.PackageView>! packages, System.Collections.Generic.IReadOnlyCollection<Orson.Alpm.PackageView>? remove = null, System.Collections.Generic.IReadOnlyCollection<Orson.Alpm.PackageView>? upgrade = null, bool reverseDependencies = false) -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.MissingDependency!>!
+Orson.Alpm.AlpmSession.FetchPackageUrls(System.Collections.Generic.IReadOnlyCollection<string!>! urls) -> System.Collections.Generic.IReadOnlyList<string!>!
+Orson.Alpm.AlpmSession.ResolveDependency(System.Collections.Generic.IReadOnlyCollection<Orson.Alpm.Database!>! databases, string! dependency) -> Orson.Alpm.PackageView?
+*REMOVED*Orson.Alpm.AlpmSession.FetchPackageUrls(System.Collections.Generic.IEnumerable<string!>! urls) -> System.Collections.Generic.IReadOnlyList<string!>!
+*REMOVED*Orson.Alpm.AlpmSession.ResolveDependency(System.Collections.Generic.IEnumerable<Orson.Alpm.Database!>! databases, string! dependency) -> Orson.Alpm.PackageView?
 Orson.Alpm.CorruptedPackageQuestion
 Orson.Alpm.CorruptedPackageQuestion.CorruptedPackageQuestion() -> void
 Orson.Alpm.CorruptedPackageQuestion.FilePath.get -> string?
@@ -41,7 +45,7 @@ Orson.Alpm.CorruptedPackageQuestion.ReasonCode.get -> uint
 Orson.Alpm.CorruptedPackageQuestion.Remove.get -> bool
 Orson.Alpm.CorruptedPackageQuestion.Remove.set -> void
 Orson.Alpm.Database.LoadPackageCache() -> Orson.Alpm.AlpmList<Orson.Alpm.PackageView>!
-Orson.Alpm.Database.Search(System.Collections.Generic.IEnumerable<string!>! needles) -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView>!
+Orson.Alpm.Database.Search(System.Collections.Generic.IReadOnlyCollection<string!>! needles) -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView>!
 Orson.Alpm.DownloadCompleted
 Orson.Alpm.DownloadCompleted.DownloadCompleted() -> void
 Orson.Alpm.DownloadCompleted.DownloadCompleted(long Total, int Result) -> void
@@ -318,7 +322,9 @@ static Orson.Alpm.Extensions.CachyOs.GetInstalledDatabase(this Orson.Alpm.Packag
 static Orson.Alpm.LoadedPackage.implicit operator Orson.Alpm.PackageView(Orson.Alpm.LoadedPackage! pkg) -> Orson.Alpm.PackageView
 static Orson.Alpm.PackageVersion.operator !=(Orson.Alpm.PackageVersion left, Orson.Alpm.PackageVersion right) -> bool
 static Orson.Alpm.PackageVersion.operator ==(Orson.Alpm.PackageVersion left, Orson.Alpm.PackageVersion right) -> bool
-static Orson.Alpm.PackageView.FindSatisfier(System.Collections.Generic.IEnumerable<Orson.Alpm.PackageView>! packages, string! dependency) -> Orson.Alpm.PackageView?
+static Orson.Alpm.PackageView.FindSatisfier(System.Collections.Generic.IReadOnlyCollection<Orson.Alpm.PackageView>! packages, string! dependency) -> Orson.Alpm.PackageView?
+Orson.Alpm.PackageView.GetNewVersion(System.Collections.Generic.IReadOnlyCollection<Orson.Alpm.Database!>! syncDatabases) -> Orson.Alpm.PackageView?
+*REMOVED*Orson.Alpm.PackageView.GetNewVersion(System.Collections.Generic.IEnumerable<Orson.Alpm.Database!>! syncDatabases) -> Orson.Alpm.PackageView?
 static Orson.Alpm.PackageView.operator !=(Orson.Alpm.PackageView left, Orson.Alpm.PackageView right) -> bool
 static Orson.Alpm.PackageView.operator ==(Orson.Alpm.PackageView left, Orson.Alpm.PackageView right) -> bool
 *REMOVED*Orson.Alpm.AlpmEvent.OptionalDependencyRemoval.Package.get -> Orson.Alpm.PackageView!
@@ -389,7 +395,7 @@ static Orson.Alpm.PackageView.operator ==(Orson.Alpm.PackageView left, Orson.Alp
 Orson.Alpm.AlpmSession.GetLocalDatabase() -> Orson.Alpm.LocalDatabase!
 Orson.Alpm.AlpmSession.GetSyncDatabases() -> Orson.Alpm.AlpmList<Orson.Alpm.SyncDatabase!>!
 Orson.Alpm.AlpmSession.RegisterSyncDatabase(string! treename, Orson.Alpm.SigLevel level) -> Orson.Alpm.SyncDatabase!
-Orson.Alpm.AlpmSession.UpdateDatabases(System.Collections.Generic.IEnumerable<Orson.Alpm.SyncDatabase!>! databases, bool force = false) -> bool
+Orson.Alpm.AlpmSession.UpdateDatabases(System.Collections.Generic.IReadOnlyCollection<Orson.Alpm.SyncDatabase!>! databases, bool force = false) -> bool
 Orson.Alpm.Group.FindPackages(Orson.Alpm.AlpmList<Orson.Alpm.SyncDatabase!>! dbs) -> System.Collections.Generic.IReadOnlyList<Orson.Alpm.PackageView>!
 Orson.Alpm.LocalDatabase
 Orson.Alpm.SyncDatabase
@@ -399,8 +405,8 @@ Orson.Alpm.SyncDatabase.CacheServers.get -> Orson.Alpm.AlpmStringList!
 Orson.Alpm.SyncDatabase.RemoveCacheServer(string! url) -> bool
 Orson.Alpm.SyncDatabase.RemoveServer(string! url) -> bool
 Orson.Alpm.SyncDatabase.Servers.get -> Orson.Alpm.AlpmStringList!
-Orson.Alpm.SyncDatabase.SetCacheServers(System.Collections.Generic.IEnumerable<string!>! servers) -> void
-Orson.Alpm.SyncDatabase.SetServers(System.Collections.Generic.IEnumerable<string!>! servers) -> void
+Orson.Alpm.SyncDatabase.SetCacheServers(System.Collections.Generic.IReadOnlyCollection<string!>! servers) -> void
+Orson.Alpm.SyncDatabase.SetServers(System.Collections.Generic.IReadOnlyCollection<string!>! servers) -> void
 Orson.Alpm.SyncDatabase.SigLevel.get -> Orson.Alpm.SigLevel
 Orson.Alpm.SyncDatabase.TreeName.get -> string!
 Orson.Alpm.SyncDatabase.Unregister() -> void

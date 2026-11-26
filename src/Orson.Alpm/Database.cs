@@ -105,7 +105,7 @@ public abstract unsafe partial class Database : INativeWrapper
   /// found inside the list it was given, so this is an invariant violation rather than a result to hand out: issuing the
   /// view under a freshly minted domain would hide it, and issuing it with none would leave it unanchored.
   /// </exception>
-  internal static ChildLifetime ResolveLifetime(IEnumerable<Database> databases, _alpm_db_t* dbPtr)
+  internal static ChildLifetime ResolveLifetime(IReadOnlyCollection<Database> databases, _alpm_db_t* dbPtr)
   {
     foreach (var database in databases)
     {
@@ -142,7 +142,7 @@ public abstract unsafe partial class Database : INativeWrapper
   }
 
   /// <summary>Searches this database for packages matching the given patterns.</summary>
-  public IReadOnlyList<PackageView> Search(IEnumerable<string> needles)
+  public IReadOnlyList<PackageView> Search(IReadOnlyCollection<string> needles)
   {
     if (!TrySearch(needles, out var results, out var failure))
     {
