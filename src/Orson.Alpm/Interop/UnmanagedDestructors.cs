@@ -1,4 +1,6 @@
 #pragma warning disable SYSLIB1054
+#pragma warning disable CA2255
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Orson.Alpm.Bindings;
@@ -7,6 +9,29 @@ namespace Orson.Alpm.Interop;
 
 internal static partial class UnmanagedDestructors
 {
+  private static int s_resolverInitialized;
+
+  [ModuleInitializer]
+  internal static void Initialize()
+  {
+    if (Interlocked.Exchange(ref s_resolverInitialized, 1) != 0)
+    {
+      return;
+    }
+
+    NativeLibrary.SetDllImportResolver(typeof(UnmanagedDestructors).Assembly, ResolveDllImport);
+  }
+
+  private static IntPtr ResolveDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+  {
+    if (!OperatingSystem.IsWindows() && (libraryName == "libc" || libraryName == "libc.so.6"))
+    {
+      return NativeLibrary.GetMainProgramHandle();
+    }
+
+    return IntPtr.Zero;
+  }
+
   [LibraryImport("libc", EntryPoint = "free")]
   internal unsafe static partial void CFree(void* ptr);
 
