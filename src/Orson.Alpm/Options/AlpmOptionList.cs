@@ -19,7 +19,7 @@ namespace Orson.Alpm;
 /// <c>[UnmanagedCallersOnly]</c> thunk per libalpm entry point.
 /// </para>
 /// </remarks>
-internal abstract unsafe class AlpmOptionList<T> : ICollection<T>
+internal abstract unsafe class AlpmOptionList<T> : ICollection<T>, IReadOnlyCollection<T>
 {
   private readonly SafeAlpmHandle _handle;
 
