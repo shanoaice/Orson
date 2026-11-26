@@ -447,3 +447,47 @@ Orson.Alpm.DownloadEventType.Completed = 3 -> Orson.Alpm.DownloadEventType
 *REMOVED*Orson.Alpm.AlpmDownloadEvent.Progress.Total.get -> long
 *REMOVED*Orson.Alpm.AlpmDownloadEvent.Retry
 *REMOVED*Orson.Alpm.AlpmDownloadEvent.Retry.WillResume.get -> bool
+Orson.Alpm.DownloadInit.Deconstruct(out bool IsOptional) -> void
+Orson.Alpm.DownloadInit.Equals(Orson.Alpm.DownloadInit other) -> bool
+~override Orson.Alpm.DownloadInit.Equals(object obj) -> bool
+override Orson.Alpm.DownloadInit.GetHashCode() -> int
+static Orson.Alpm.DownloadInit.operator ==(Orson.Alpm.DownloadInit left, Orson.Alpm.DownloadInit right) -> bool
+static Orson.Alpm.DownloadInit.operator !=(Orson.Alpm.DownloadInit left, Orson.Alpm.DownloadInit right) -> bool
+~override Orson.Alpm.DownloadInit.ToString() -> string
+Orson.Alpm.DownloadProgress.Deconstruct(out long Downloaded, out long Total) -> void
+Orson.Alpm.DownloadProgress.Equals(Orson.Alpm.DownloadProgress other) -> bool
+~override Orson.Alpm.DownloadProgress.Equals(object obj) -> bool
+override Orson.Alpm.DownloadProgress.GetHashCode() -> int
+static Orson.Alpm.DownloadProgress.operator ==(Orson.Alpm.DownloadProgress left, Orson.Alpm.DownloadProgress right) -> bool
+static Orson.Alpm.DownloadProgress.operator !=(Orson.Alpm.DownloadProgress left, Orson.Alpm.DownloadProgress right) -> bool
+~override Orson.Alpm.DownloadProgress.ToString() -> string
+Orson.Alpm.DownloadRetry.Deconstruct(out bool WillResume) -> void
+Orson.Alpm.DownloadRetry.Equals(Orson.Alpm.DownloadRetry other) -> bool
+~override Orson.Alpm.DownloadRetry.Equals(object obj) -> bool
+override Orson.Alpm.DownloadRetry.GetHashCode() -> int
+static Orson.Alpm.DownloadRetry.operator ==(Orson.Alpm.DownloadRetry left, Orson.Alpm.DownloadRetry right) -> bool
+static Orson.Alpm.DownloadRetry.operator !=(Orson.Alpm.DownloadRetry left, Orson.Alpm.DownloadRetry right) -> bool
+~override Orson.Alpm.DownloadRetry.ToString() -> string
+Orson.Alpm.DownloadCompleted.Deconstruct(out long Total, out int Result) -> void
+Orson.Alpm.DownloadCompleted.Equals(Orson.Alpm.DownloadCompleted other) -> bool
+~override Orson.Alpm.DownloadCompleted.Equals(object obj) -> bool
+override Orson.Alpm.DownloadCompleted.GetHashCode() -> int
+static Orson.Alpm.DownloadCompleted.operator ==(Orson.Alpm.DownloadCompleted left, Orson.Alpm.DownloadCompleted right) -> bool
+static Orson.Alpm.DownloadCompleted.operator !=(Orson.Alpm.DownloadCompleted left, Orson.Alpm.DownloadCompleted right) -> bool
+~override Orson.Alpm.DownloadCompleted.ToString() -> string
+virtual Orson.Alpm.AlpmCallbacks.CorruptedPackageHandler.Invoke(ref Orson.Alpm.CorruptedPackageQuestion question) -> void
+virtual Orson.Alpm.AlpmCallbacks.ImportKeyHandler.Invoke(ref Orson.Alpm.ImportKeyQuestion question) -> void
+virtual Orson.Alpm.AlpmCallbacks.InstallIgnorePackageHandler.Invoke(ref Orson.Alpm.InstallIgnorePackageQuestion question) -> void
+virtual Orson.Alpm.AlpmCallbacks.LogMessageHandler.Invoke(Orson.Alpm.LogLevel level, System.ReadOnlySpan<byte> messageUtf8) -> void
+virtual Orson.Alpm.AlpmCallbacks.PackageConflictHandler.Invoke(ref Orson.Alpm.PackageConflictQuestion question) -> void
+virtual Orson.Alpm.AlpmCallbacks.RemoveUnresolvablePackagesHandler.Invoke(ref Orson.Alpm.RemoveUnresolvablePackagesQuestion question) -> void
+virtual Orson.Alpm.AlpmCallbacks.ReplacePackageHandler.Invoke(ref Orson.Alpm.ReplacePackageQuestion question) -> void
+virtual Orson.Alpm.AlpmCallbacks.SelectProviderHandler.Invoke(ref Orson.Alpm.SelectProviderQuestion question) -> void
+Orson.Alpm.MtreeEntry.MtreeEntry() -> void
+Orson.Alpm.MtreeEntry.<Clone>$() -> Orson.Alpm.MtreeEntry!
+Orson.Alpm.MtreeEntry.Equals(Orson.Alpm.MtreeEntry? other) -> bool
+override Orson.Alpm.MtreeEntry.Equals(object? obj) -> bool
+override Orson.Alpm.MtreeEntry.GetHashCode() -> int
+static Orson.Alpm.MtreeEntry.operator ==(Orson.Alpm.MtreeEntry? left, Orson.Alpm.MtreeEntry? right) -> bool
+static Orson.Alpm.MtreeEntry.operator !=(Orson.Alpm.MtreeEntry? left, Orson.Alpm.MtreeEntry? right) -> bool
+override Orson.Alpm.MtreeEntry.ToString() -> string!
