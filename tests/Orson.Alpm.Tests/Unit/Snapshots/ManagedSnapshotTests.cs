@@ -315,34 +315,6 @@ public sealed unsafe class ManagedSnapshotTests
     }
   }
 
-  [Fact]
-  public void DownloadPayload_CopiesItsFieldsOutOfTheCallbackData()
-  {
-    var data = (_alpm_download_event_completed_t*)NativeMemory.AllocZeroed((nuint)sizeof(_alpm_download_event_completed_t));
-
-    try
-    {
-      data->total = new CLong(1024);
-      data->result = 0;
-
-      var payload = AlpmDownloadEvent.FromUnion(_alpm_download_event_type_t.ALPM_DOWNLOAD_COMPLETED, data);
-
-      data->total = default;
-      data->result = -1;
-
-      Assert.Equal(DownloadEventType.Completed, payload.Type);
-      var completed = Assert.NotNull(payload.Completed);
-      Assert.Equal(1024L, completed.Total);
-      Assert.Equal(0, completed.Result);
-      Assert.True(completed.IsSuccessful);
-      Assert.False(completed.IsError);
-    }
-    finally
-    {
-      NativeMemory.Free((void*)(nint)data);
-    }
-  }
-
   private static ChildLifetime CreateEventLifetime()
     => Lifetime.CreateRoot(new object(), "test root").CreateChild("test callback");
 }

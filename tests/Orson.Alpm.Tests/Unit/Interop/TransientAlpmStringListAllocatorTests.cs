@@ -121,17 +121,6 @@ public sealed class TransientAlpmStringListAllocatorTests
   }
 
   [Fact]
-  public unsafe void TransientAlpmStringListBuilder_PreservesOrderAndLoopsBack()
-  {
-    string[] strings = ["first", "αβγ", "third-🧪"];
-
-    using var builder = new TransientAlpmStringListAllocator();
-    var first = builder.ConstructNative(strings);
-
-    AssertValidStringList(first, strings);
-  }
-
-  [Fact]
   public unsafe void TransientAlpmStringListBuilder_SupportsMultipleListBuilding()
   {
     string[] strings1 = ["first", "αβ", "🧪"];

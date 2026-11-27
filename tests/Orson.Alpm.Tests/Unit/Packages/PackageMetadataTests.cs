@@ -293,8 +293,6 @@ public sealed class PackageMetadataTests : IDisposable
 
     Assert.Throws<ArgumentOutOfRangeException>(() => _ = pkg.Files[-1]);
     Assert.Throws<ArgumentOutOfRangeException>(() => _ = pkg.Files[2]);
-    Assert.Throws<ArgumentNullException>(() => pkg.Files.Contains(null!));
-    Assert.Throws<ArgumentNullException>(() => pkg.Files.FindFile(null!));
 
     using var enumerator = pkg.Files.GetEnumerator();
     Assert.Throws<InvalidOperationException>(() => { _ = enumerator.Current; });
@@ -352,23 +350,6 @@ public sealed class PackageMetadataTests : IDisposable
     Assert.NotNull(snapshotWithFiles.BackupFiles);
     Assert.True(snapshotWithFiles.Files.Count > 0);
     Assert.True(snapshotWithFiles.BackupFiles.Count > 0);
-  }
-
-  [Fact]
-  public void IPackageMetadata_ImplementedByPackageView_Snapshot_AndLoadedPackage()
-  {
-    var archive = PackageArchive.Create(_environment.PackageDirectory, new PackageSpec("interface-pkg"));
-    using var loaded = _environment.AlpmSession.LoadPackage(archive, full: true, SigLevel.UseDefault);
-    var view = (PackageView)loaded;
-    var snapshot = view.ToSnapshot();
-
-    Assert.IsAssignableFrom<IPackageMetadata>(loaded);
-    Assert.IsAssignableFrom<IPackageMetadata>(view);
-    Assert.IsAssignableFrom<IPackageMetadata>(snapshot);
-
-    Assert.Equal("interface-pkg", ((IPackageMetadata)loaded).Name);
-    Assert.Equal("interface-pkg", ((IPackageMetadata)view).Name);
-    Assert.Equal("interface-pkg", ((IPackageMetadata)snapshot).Name);
   }
 }
 

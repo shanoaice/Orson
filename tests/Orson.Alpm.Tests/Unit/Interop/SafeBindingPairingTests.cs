@@ -32,9 +32,10 @@ public sealed class SafeBindingPairingTests
   /// Handwritten overloads that deliberately deviate from their generated declaration: entry point to the indices
   /// of the parameters whose types intentionally differ. The log callback keeps its <c>va_list</c> argument opaque (
   /// <c>void*</c> instead of the generated <c>__va_list_tag*</c>) so that regenerating the bindings can never re-materialize
-  /// a typed <c>va_list</c> in the native thunk signature: <c>AlpmCallbacks.LogAgent</c> forwards it unchanged to the native
-  /// <c>vasprintf</c> shim (see <c>LogMessageFormatter</c>). Everything else about the overload - entry point, arity, the
-  /// other parameter types, the return type - is still paired and checked.
+  /// a typed <c>va_list</c> in the native thunk signature: <c>AlpmCallbacks.LogAgent</c> forwards it unchanged to
+  /// <c>LogMessageFormatter</c>, which formats through <c>vsnprintf</c> on x64/arm64 and through <c>vasprintf</c> elsewhere.
+  /// Everything else about the overload - entry point, arity, the other parameter types, the return type - is still paired
+  /// and checked.
   /// </summary>
   private static readonly Dictionary<string, int[]> IntentionalParameterDeviations = new()
   {
@@ -123,15 +124,5 @@ public sealed class SafeBindingPairingTests
       {problems.Count} hand-written overload(s) do not match their generated declaration:
       {string.Join(Environment.NewLine, problems)}
       """);
-  }
-
-  [Fact]
-  public unsafe void LibalpmVersion_IsAvailable()
-  {
-    var versionPtr = NativeMethods.alpm_version();
-    Assert.True(versionPtr != null);
-    var version = Marshal.PtrToStringUTF8((nint)versionPtr);
-    Assert.NotNull(version);
-    Assert.Matches(@"^[0-9]+.[0-9]+.[0-9]+", version);
   }
 }

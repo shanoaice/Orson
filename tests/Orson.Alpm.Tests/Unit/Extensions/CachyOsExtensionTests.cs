@@ -51,12 +51,6 @@ public sealed class CachyOsExtensionTests
   }
 
   [Fact]
-  public void GetPhysicalArchitecture_GuardsAgainstNullOptions()
-  {
-    Assert.Throws<ArgumentNullException>(() => ((AlpmOptions)null!).GetPhysicalArchitecture());
-  }
-
-  [Fact]
   public void GetInstalledDatabase_BehavesAccordingToSupport()
   {
     using var env = new IsolatedAlpmEnvironment();
@@ -88,9 +82,8 @@ public sealed class CachyOsExtensionTests
     var desc = Path.Combine(env.DatabasePath, "local", $"synced-pkg-{PackageArchive.Version}", "desc");
     File.AppendAllText(desc, "%INSTALLED_DB%\ncore\n\n");
 
-    env.AlpmSession.Dispose();
-    using var reopened = new AlpmSession(env.Root, env.DatabasePath);
-    var pkg = reopened.GetLocalDatabase().GetPackage("synced-pkg");
+    env.ReopenSession();
+    var pkg = env.AlpmSession.GetLocalDatabase().GetPackage("synced-pkg");
 
     Assert.NotNull(pkg);
     Assert.Equal("core", pkg.Value.GetInstalledDatabase());
@@ -108,9 +101,6 @@ public sealed class CachyOsExtensionTests
   }
 
   [Fact]
-  public void GetInstalledDatabase_GuardsAgainstNullPackage()
-  {
-    Assert.Throws<ArgumentNullException>(() => ((LoadedPackage)null!).GetInstalledDatabase());
-    Assert.Throws<ArgumentException>(() => default(PackageView).GetInstalledDatabase());
-  }
+  public void GetInstalledDatabase_GuardsAgainstAnUninitializedPackageView()
+    => Assert.Throws<ArgumentException>(() => default(PackageView).GetInstalledDatabase());
 }

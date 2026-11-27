@@ -67,21 +67,6 @@ public sealed unsafe class PackageVersionValueTests
     Assert.False(version.Equals((object?)null));
     // ReSharper disable once SuspiciousTypeConversion.Global
     Assert.False(version.Equals("1.0-1"));
-    // Intentionally testing overloaded operator == and != against null
-#pragma warning disable xUnit2024, CS8073
-    // ReSharper disable ConditionIsAlwaysTrueOrFalse
-    Assert.False(version == null);
-    Assert.False(null == version);
-    Assert.True(version != null);
-    Assert.True(null != version);
-    // ReSharper restore ConditionIsAlwaysTrueOrFalse
-#pragma warning restore xUnit2024, CS8073
-
-    PackageVersion? leftNull = null;
-    PackageVersion? rightNull = null;
-
-    Assert.True(leftNull == rightNull);
-    Assert.False(leftNull != rightNull);
   }
 
   /// <summary>

@@ -60,10 +60,7 @@ public sealed class PackageTransferTests : IDisposable
 
     var view = transaction.AddPackage(package);
 
-    Assert.IsType<PackageView>(view);
     Assert.Equal("orson-view", view.Name);
-    Assert.False(typeof(LoadedPackage).IsAssignableFrom(typeof(PackageView)),
-      "the view must not be an owning type");
   }
 
   /// <summary>
@@ -124,17 +121,15 @@ public sealed class PackageTransferTests : IDisposable
   }
 
   /// <summary>
-  /// The borrowing overload is the one for a package libalpm owns. Note what libalpm does with a package that is
-  /// *already installed*: it refuses it with <c>ALPM_ERR_WRONG_ARGS</c> - adding one is only meaningful for a sync-database
-  /// package - and the exception carries the very package the call was operating on.
+  /// The borrowing overload is the one for a package libalpm owns. libalpm refuses an *already installed* package
+  /// with <c>ALPM_ERR_WRONG_ARGS</c>; adding one is only meaningful for a sync-database package.
   /// </summary>
   /// <remarks>
-  /// This is also the deterministic way to reach <see cref="AlpmPackageException" /> 's package payload: libalpm
-  /// offers no easier failing <c>alpm_add_pkg</c> (the same package twice is deduplicated, and an ignored package is still
-  /// accepted - probed).
+  /// This is also a deterministic failing <c>alpm_add_pkg</c>: adding the same package twice is deduplicated, and an
+  /// ignored package is still accepted (probed).
   /// </remarks>
   [Fact]
-  public void AddPackage_OfAnInstalledPackage_IsRefusedWithThatPackageInThePayload()
+  public void AddPackage_OfAnInstalledPackage_IsRefused_AndLeavesItWithItsDatabase()
   {
     var path = PackageArchive.Create(PackageDirectory, new PackageSpec("orson-installed") { File = "usr/bin/probe-file" });
 

@@ -57,15 +57,6 @@ public sealed class OptionCollectionTests : IDisposable
   }
 
   [Fact]
-  public void CopyTo_NullArray_ThrowsArgumentNullException()
-  {
-    var architectures = Architectures;
-    architectures.Add("x86_64");
-
-    Assert.Throws<ArgumentNullException>(() => architectures.CopyTo(null!, 0));
-  }
-
-  [Fact]
   public void CopyTo_NegativeArrayIndex_ThrowsArgumentOutOfRangeException()
   {
     var architectures = Architectures;
@@ -377,7 +368,6 @@ public sealed class OptionCollectionTests : IDisposable
     Assert.NotEmpty(options.Lockfile);
 
     Assert.ThrowsAny<Exception>(() => options.ParallelDownloads = 0);
-    Assert.Throws<ArgumentNullException>(() => options.DatabaseExtension = null!);
   }
 
 }

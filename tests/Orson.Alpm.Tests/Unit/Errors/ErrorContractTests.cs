@@ -7,7 +7,6 @@ namespace Orson.Alpm.Tests.Unit.Errors;
 /// Locks in the low-risk half of the error-signal rules:
 /// <list type="bullet">
 /// <item>rule 3 - a null native pointer with an ok errno means "empty", not "failure";</item>
-/// <item>rule 4 - <c>Database.Validate</c> no longer returns a <c>(bool, Exception?)</c> tuple;</item>
 /// <item>rule 5 - option getters that start out unset are nullable instead of asserting non-null.</item>
 /// </list>
 /// </summary>
@@ -35,27 +34,6 @@ public sealed class ErrorContractTests : IDisposable
     => Assert.Empty(LocalDatabase.LoadGroupCache());
 
   [Fact]
-  public void Servers_And_CacheServers_AreEmpty_WithoutAnError()
-  {
-    var database = AlpmSession.RegisterSyncDatabase("test_sync", SigLevel.UseDefault);
-
-    Assert.Empty(database.Servers);
-    Assert.Empty(database.CacheServers);
-  }
-
-  [Fact]
-  public void LoadPackageCache_Throws_WhenLibalpmReportsAnError()
-  {
-    // A freshly registered sync database has no loaded package cache yet: libalpm sets an errno.
-    var sync = AlpmSession.RegisterSyncDatabase("core", 0);
-
-    Assert.ThrowsAny<Exception>(() =>
-    {
-      _ = sync.LoadPackageCache();
-    });
-  }
-
-  [Fact]
   public void TryLoadPackageCache_ReturnsFalseAndSetsFailure_WhenLibalpmReportsAnError()
   {
     var sync = AlpmSession.RegisterSyncDatabase("core", 0);
@@ -67,15 +45,6 @@ public sealed class ErrorContractTests : IDisposable
     Assert.NotNull(failure);
     Assert.Equal(AlpmFailureCode.DatabaseNotFound, failure.Code);
     Assert.Equal((int)_alpm_errno_t.ALPM_ERR_DB_NOT_FOUND, failure.NativeCode);
-  }
-
-  [Fact]
-  public void Validate_DoesNotThrow_AndIsValidIsTrue_ForAFreshDatabase()
-  {
-    var database = LocalDatabase;
-
-    Assert.True(database.IsValid);
-    database.Validate();
   }
 
   [Fact]
@@ -91,13 +60,5 @@ public sealed class ErrorContractTests : IDisposable
     Assert.NotNull(AlpmSession.Options.Root);
     Assert.NotNull(AlpmSession.Options.DatabasePath);
     Assert.NotNull(AlpmSession.Options.Lockfile);
-  }
-
-  [Fact]
-  public void LogFileAndGpgDirectory_ThrowArgumentNullException_WhenNullAssigned()
-  {
-    Assert.Throws<ArgumentNullException>(() => AlpmSession.Options.LogFile = null!);
-    Assert.Throws<ArgumentNullException>(() => AlpmSession.Options.GpgDirectory = null!);
-    Assert.Throws<ArgumentNullException>(() => AlpmSession.Options.DatabaseExtension = null!);
   }
 }

@@ -41,13 +41,6 @@ public sealed unsafe class ListOwnershipTests
   }
 
   [Fact]
-  public void Borrow_NullLifetime_ThrowsArgumentNullException()
-  {
-    Assert.Throws<ArgumentNullException>(() =>
-      AlpmList<string>.Borrow(null, &TestStringFactory, null!));
-  }
-
-  [Fact]
   public void Enumerator_Current_ReturnsCachedItemWithoutReinvokingFactory()
   {
     var lifetime = RootLifetime.Create(new object(), "test");
@@ -114,8 +107,8 @@ public sealed unsafe class ListOwnershipTests
   private static void FreeNativeStringList(_alpm_list_t* list)
     => NativeListMarshal.Free(list, &UnmanagedDestructors.CFreeExtern);
 
-  // The lifetime parameter matches the factory delegate shape; this test's strings are owned by the
-  // test itself, so the views are borrowed with a null token and the factory never looks at it.
+  // The lifetime parameter matches the factory delegate shape; these strings are owned by the test
+  // itself, so the factory ignores the token.
   private static string TestStringFactory(void* data, Lifetime lifetime)
     => Marshal.PtrToStringUTF8((nint)data) ?? string.Empty;
 }

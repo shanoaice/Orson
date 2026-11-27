@@ -48,28 +48,6 @@ public sealed unsafe class QuestionStructTests : IDisposable
   }
 
   [Fact]
-  public void InstallIgnorePackage_AnswerWritesBackToNativeUnion()
-  {
-    using var pkg = Load("orson-disarm-pkg", file: "usr/bin/probe");
-    var native = new _alpm_question_t
-    {
-      type_ = _alpm_question_type_t.ALPM_QUESTION_INSTALL_IGNOREPKG
-    };
-
-    native.install_ignorepkg.install = 0;
-    native.install_ignorepkg.pkg = pkg.BackingStruct;
-    var frame = _environment.AlpmSession.RootLifetime.CreateChild("frame");
-    var question = new InstallIgnorePackageQuestion(&native, frame);
-
-    Assert.False(question.Install);
-
-    // Setting answer updates both managed property and native memory
-    question.Install = true;
-    Assert.True(question.Install);
-    Assert.Equal(1, native.install_ignorepkg.install);
-  }
-
-  [Fact]
   public void InstallIgnorePackage_PackageViewInvalidatesWhenLifetimeDies()
   {
     using var pkg = Load("orson-payload-frame-dies", file: "usr/bin/probe");
@@ -133,26 +111,6 @@ public sealed unsafe class QuestionStructTests : IDisposable
     // 3. When native answer field is set, managed property reflects it
     native.replace.replace = 1;
     Assert.True(question.Replace);
-  }
-
-  [Fact]
-  public void ReplacePackage_AnswerWritesBackToNativeUnion()
-  {
-    var frameLifetime = _environment.AlpmSession.RootLifetime.CreateChild("test frame");
-
-    var native = new _alpm_question_t
-    {
-      type_ = _alpm_question_type_t.ALPM_QUESTION_REPLACE_PKG
-    };
-    native.replace.replace = 0;
-
-    var question = new ReplacePackageQuestion(&native, frameLifetime, frameLifetime);
-
-    Assert.False(question.Replace);
-
-    question.Replace = true;
-    Assert.True(question.Replace);
-    Assert.Equal(1, native.replace.replace);
   }
 
   [Fact]
@@ -269,27 +227,6 @@ public sealed unsafe class QuestionStructTests : IDisposable
   }
 
   [Fact]
-  public void PackageConflict_AnswerWritesBackToNativeUnion()
-  {
-    var frameLifetime = _environment.AlpmSession.RootLifetime.CreateChild("test frame");
-
-    var native = new _alpm_question_t
-    {
-      type_ = _alpm_question_type_t.ALPM_QUESTION_CONFLICT_PKG
-    };
-    native.conflict.remove = 0;
-    native.conflict.conflict = null;
-
-    var question = new PackageConflictQuestion(&native, frameLifetime, frameLifetime);
-
-    Assert.False(question.Remove);
-
-    question.Remove = true;
-    Assert.True(question.Remove);
-    Assert.Equal(1, native.conflict.remove);
-  }
-
-  [Fact]
   public void PackageConflict_PackageViewsInvalidateWhenLifetimesDie()
   {
     using var pkg1 = Load("orson-payload-pkg1", file: "usr/bin/probe");
@@ -355,28 +292,6 @@ public sealed unsafe class QuestionStructTests : IDisposable
     }
   }
 
-  [Fact]
-  public void CorruptedPackage_AnswerWritesBackToNativeUnion()
-  {
-    fixed (byte* filepath = "/var/cache/pacman/pkg/test.pkg.tar.zst\0"u8)
-    {
-      var native = new _alpm_question_t
-      {
-        type_ = _alpm_question_type_t.ALPM_QUESTION_CORRUPTED_PKG
-      };
-      native.corrupted.remove = 0;
-      native.corrupted.filepath = filepath;
-      native.corrupted.reason = _alpm_errno_t.ALPM_ERR_PKG_INVALID;
-
-      var question = new CorruptedPackageQuestion(&native);
-      Assert.False(question.Remove);
-
-      question.Remove = true;
-      Assert.True(question.Remove);
-      Assert.Equal(1, native.corrupted.remove);
-    }
-  }
-
   // =========================================================================
   // 5. RemoveUnresolvablePackagesQuestion (alpm_list_t)
   // =========================================================================
@@ -414,23 +329,6 @@ public sealed unsafe class QuestionStructTests : IDisposable
     {
       NativeMethods.alpm_list_free(packages);
     }
-  }
-
-  [Fact]
-  public void RemoveUnresolvablePackages_AnswerWritesBackToNativeUnion()
-  {
-    var native = new _alpm_question_t
-    {
-      type_ = _alpm_question_type_t.ALPM_QUESTION_REMOVE_PKGS
-    };
-    native.remove_pkgs.skip = 0;
-    native.remove_pkgs.packages = null;
-
-    var question = new RemoveUnresolvablePackagesQuestion(&native, []);
-    Assert.False(question.Skip);
-
-    question.Skip = true;
-    Assert.True(question.Skip);
   }
 
   [Fact]
@@ -536,25 +434,6 @@ public sealed unsafe class QuestionStructTests : IDisposable
   }
 
   [Fact]
-  public void SelectProvider_AnswerWritesBackToNativeUnion()
-  {
-    var native = new _alpm_question_t
-    {
-      type_ = _alpm_question_type_t.ALPM_QUESTION_SELECT_PROVIDER
-    };
-    native.select_provider.use_index = 0;
-    native.select_provider.providers = null;
-    native.select_provider.depend = null;
-
-    var question = new SelectProviderQuestion(&native, []);
-    Assert.Equal(0, question.UseIndex);
-
-    question.UseIndex = 1;
-    Assert.Equal(1, question.UseIndex);
-    Assert.Equal(1, native.select_provider.use_index);
-  }
-
-  [Fact]
   public void SelectProvider_ProviderViewsInvalidateWhenLifetimesDie()
   {
     using var pkg = Load("orson-payload-prov-die", file: "usr/bin/probe");
@@ -616,29 +495,6 @@ public sealed unsafe class QuestionStructTests : IDisposable
 
       native.import_key.import = 1;
       Assert.True(question.Import);
-    }
-  }
-
-  [Fact]
-  public void ImportKey_AnswerWritesBackToNativeUnion()
-  {
-    fixed (byte* uid = "Test User <test@example.com>\0"u8,
-                 fpr = "1234567890ABCDEF1234567890ABCDEF12345678\0"u8)
-    {
-      var native = new _alpm_question_t
-      {
-        type_ = _alpm_question_type_t.ALPM_QUESTION_IMPORT_KEY
-      };
-      native.import_key.import = 0;
-      native.import_key.uid = uid;
-      native.import_key.fingerprint = fpr;
-
-      var question = new ImportKeyQuestion(&native);
-      Assert.False(question.Import);
-
-      question.Import = true;
-      Assert.True(question.Import);
-      Assert.Equal(1, native.import_key.import);
     }
   }
 

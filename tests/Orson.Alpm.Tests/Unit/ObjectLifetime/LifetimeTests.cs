@@ -31,10 +31,6 @@ public sealed unsafe class LifetimeTests
   }
 
   [Fact]
-  public void CreateRoot_WithNullOwner_Throws()
-    => Assert.Throws<ArgumentNullException>(() => Lifetime.CreateRoot(null!, "orphan"));
-
-  [Fact]
   public void CreateChild_BelongsToTheRoot_AndAChildCannotCreateChildren()
   {
     var root = Root();

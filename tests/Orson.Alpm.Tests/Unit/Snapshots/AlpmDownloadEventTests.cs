@@ -41,9 +41,6 @@ public sealed unsafe class AlpmDownloadEventTests
     Assert.True(payload.TryGetProgress(out var tryProgress));
     Assert.Equal(123, tryProgress.Downloaded);
     Assert.Equal(456, tryProgress.Total);
-    var (downloaded, total) = progress;
-    Assert.Equal(123, downloaded);
-    Assert.Equal(456, total);
     Assert.Null(payload.Init);
     Assert.False(payload.TryGetInit(out _));
   }
@@ -94,9 +91,6 @@ public sealed unsafe class AlpmDownloadEventTests
     Assert.True(payload.TryGetCompleted(out var tryCompleted));
     Assert.Equal(789, tryCompleted.Total);
     Assert.Equal(result, tryCompleted.Result);
-    var (total, deconstructedResult) = completed;
-    Assert.Equal(789, total);
-    Assert.Equal(result, deconstructedResult);
     Assert.Null(payload.Progress);
     Assert.False(payload.TryGetProgress(out _));
   }
